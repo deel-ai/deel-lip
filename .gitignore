@@ -1,0 +1,9 @@
+# Python files
+.ipynb_checkpoints
+__pycache__
+.mypy_cache
+*.egg-info
+
+# Files generated:
+logs
+export-wass
