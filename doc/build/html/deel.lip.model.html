@@ -1,0 +1,347 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>deel.lip.model module &mdash; deel-lip 2.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="deel.lip.normalizers module" href="deel.lip.normalizers.html" />
+    <link rel="prev" title="deel.lip.losses module" href="deel.lip.losses.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> deel-lip
+          
+
+          
+            
+            <img src="_static/logo_white.svg" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.activations.html">deel.lip.activations module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.callbacks.html">deel.lip.callbacks module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.constraints.html">deel.lip.constraints module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.initializers.html">deel.lip.initializers module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.layers.html">deel.lip.layers module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.losses.html">deel.lip.losses module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">deel.lip.model module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">deel-lip</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>deel.lip.model module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/deel.lip.model.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-deel.lip.model">
+<span id="deel-lip-model-module"></span><h1>deel.lip.model module<a class="headerlink" href="#module-deel.lip.model" title="Permalink to this headline">¶</a></h1>
+<p>This module contains equivalents for Model and Sequential. These classes add support for condensation and vanilla
+exportation.</p>
+<dl class="class">
+<dt id="deel.lip.model.Model">
+<em class="property">class </em><code class="sig-prename descclassname">deel.lip.model.</code><code class="sig-name descname">Model</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.engine.training.Model</span></code>, <a class="reference internal" href="deel.lip.layers.html#deel.lip.layers.Condensable" title="deel.lip.layers.Condensable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.layers.Condensable</span></code></a></p>
+<p>Equivalent of keras.Model but support condensation and vanilla exportation.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>As lipschitz constant are multiplicative along layer, the Model class cannot set a global Lipschitz
+constant ( Problem with branching inside a model ).</p>
+</div>
+<dl class="method">
+<dt id="deel.lip.model.Model.condense">
+<code class="sig-name descname">condense</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Model.condense" title="Permalink to this definition">¶</a></dt>
+<dd><p>The condense operation allow to overwrite the kernel and ensure that other variables are still consistent.</p>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="deel.lip.model.Model.vanilla_export">
+<code class="sig-name descname">vanilla_export</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Model.vanilla_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>This operation allow to turn this Layer to it’s super type, easing storage and serving.</p>
+<p>Returns: self as super type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="deel.lip.model.Sequential">
+<em class="property">class </em><code class="sig-prename descclassname">deel.lip.model.</code><code class="sig-name descname">Sequential</code><span class="sig-paren">(</span><em class="sig-param">layers=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">k_coef_lip=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.engine.sequential.Sequential</span></code>, <a class="reference internal" href="deel.lip.layers.html#deel.lip.layers.LipschitzLayer" title="deel.lip.layers.LipschitzLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.layers.LipschitzLayer</span></code></a>, <a class="reference internal" href="deel.lip.layers.html#deel.lip.layers.Condensable" title="deel.lip.layers.Condensable"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.layers.Condensable</span></code></a></p>
+<p>Equivalent of keras.Sequential but allow to set k-lip factor globally. Also support condensation and vanilla
+exportation.
+For now constant repartition is implemented ( each layer get n_sqrt(k_lip_factor), where n is the number of layers )
+But in the future other repartition function may be implemented.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layers</strong> – list of layers to add to the model.</p></li>
+<li><p><strong>name</strong> – name of the model, can be None</p></li>
+<li><p><strong>k_coef_lip</strong> – the Lipschitz coefficient to ensure globally on the model.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="deel.lip.model.Sequential.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param">input_shape=None</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential.build" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds the model based on input shapes received.</p>
+<p>This is to be used for subclassed models, which do not know at instantiation
+time what their inputs look like.</p>
+<p>This method only exists for users who want to call <cite>model.build()</cite> in a
+standalone way (as a substitute for calling the model on real data to
+build it). It will never be called by the framework (and thus it will
+never throw unexpected errors in an unrelated workflow).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_shape</strong> – Single tuple, TensorShape, or list of shapes, where shapes
+are tuples, integers, or TensorShapes.</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – <ol class="arabic simple">
+<li><p>In case of invalid user-provided data (not of type tuple,
+       list, or TensorShape).
+    2. If the model requires call arguments that are agnostic
+       to the input shapes (positional or kwarg in call signature).
+    3. If not all layers were properly built.
+    4. If float type inputs are not supported within the layers.</p></li>
+</ol>
+</p></li>
+<li><p><strong>In each of these cases</strong><strong>, </strong><strong>the user should build their model by calling it</strong> – </p></li>
+<li><p><strong>on real tensor data.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="deel.lip.model.Sequential.condense">
+<code class="sig-name descname">condense</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential.condense" title="Permalink to this definition">¶</a></dt>
+<dd><p>The condense operation allow to overwrite the kernel and ensure that other variables are still consistent.</p>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="deel.lip.model.Sequential.get_config">
+<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential.get_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the config of the layer.</p>
+<p>A layer config is a Python dictionary (serializable)
+containing the configuration of a layer.
+The same layer can be reinstantiated later
+(without its trained weights) from this configuration.</p>
+<p>The config of a layer does not include connectivity
+information, nor the layer class name. These are handled
+by <cite>Network</cite> (one layer of abstraction above).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Python dictionary.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="deel.lip.model.Sequential.set_klip_factor">
+<code class="sig-name descname">set_klip_factor</code><span class="sig-paren">(</span><em class="sig-param">klip_factor</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential.set_klip_factor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allow to set the lipschitz factor of a layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>klip_factor</strong> – the Lipschitz factor the user want to ensure.</p>
+</dd>
+</dl>
+<p>Returns: None</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="deel.lip.model.Sequential.vanilla_export">
+<code class="sig-name descname">vanilla_export</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.Sequential.vanilla_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>This operation allow to turn this Layer to it’s super type, easing storage and serving.</p>
+<p>Returns: self as super type</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="deel.lip.model.vanillaModel">
+<code class="sig-prename descclassname">deel.lip.model.</code><code class="sig-name descname">vanillaModel</code><span class="sig-paren">(</span><em class="sig-param">self</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.model.vanillaModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>This operation allow to turn this Layer to it’s super type, easing storage and serving.</p>
+<p>Returns: self as super type</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="deel.lip.normalizers.html" class="btn btn-neutral float-right" title="deel.lip.normalizers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="deel.lip.losses.html" class="btn btn-neutral float-left" title="deel.lip.losses module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),
+MAMALET Franck (franck.mamalet@irt-saintexupery.com),
+BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

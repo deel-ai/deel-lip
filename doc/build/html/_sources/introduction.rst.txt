@@ -1,0 +1,80 @@
+Building Lipschitz networks with DeelLip
+========================================
+spectral normalization made easy
+
+What is a Lipschitz networks
+---------------------------
+
+Named after the mathematician Rudolf Lipschitz, a function is said to be k-Lipschitz, when it's first derivative is bounded by some constant k. The minimum value for such k is called the Lipschitz constant of the function. Such function has interesting properties, among those:
+Definition of the Lipschitz constantWhich means that the variation of the function's output cannot be more than k times the input's variation.
+
+Why Lipschitz networks matters
+------------------------------
+
+This kind of networks find many usage in modern machine learning: those have been proven to be robust to adversarial attacks, it is also used in Wasserstein distance estimation, wich is mandatory when dealing with WGAN.
+Different kinds of Lipschitz constraints
+As we can see, this tells us that the gradient of our function is at most equal to 1. But enforcing this constraint don't necessarily means that the gradient will effectively reach 1.
+Depending on the use case we might expect different thing from such Lipschitz constraints:
+We want the bound to be strictly enforced: the function gradient never get greater than 1, even if this comes to the price that most of the data points have a gradient below 1. On the other hand we want the function to have a gradient equal to one on average, even if the gradient get greater than 1 at some points. We say that we choose between a "hard" or a "soft" constraint.
+We want the bound to be effectively reached almost everywhere. Although this yield a particular class of functions that are not suitable for traditional ML, it turns to be a weapon of choice when working with Wasserstein distance estimation.
+
+How to ensure such constraint on Neural Networks ?
+--------------------------------------------------
+
+Computing the Lipschitz constant of a neural network is known to be an NP-hard problem. However, several methods have been proposed to enforce such a constraint. Most of these focus on constraining the Lipschitz constant of each layer, and using the composition property we have
+Numerous way of achieving this exists: most techniques works on each layer weights to do so, relying on clipping or normalization.
+
+Weight clipping
+---------------
+
+This is the naive method to enforce the Lipschitz constraint at the level of each linear layer (might be dense or convolution). For instance, a dense layer with m inputs and n outputs, is 1-Lipschitz when clipping it's neurons with
+Is enough to guaranty that the Lipschitz constant of the layer will be lower than 1. By multiplying the clipping factor by the square root of k you obtain a k-Lipschitz layer.
+However this method only ensure that the constraint will always be valid, in practice all data point will yield a gradient much lower that 1.
+
+Spectral Normalization
+----------------------
+
+This method tackle the drawbacks of weight clipping by using the spectral normalization. Mathematically this kind of normalization rely on the singular value decomposition:
+By applying this decomposition on the kernel of a dense layer we can see that
+This gives very strong garanties:
+the gradient cannot be greater than 1
+there exist a set of points in the input domain such that the gradient will be equal to 1
+
+It also provide a formal way to express what it mean for network layer to be 1-Lipschitz almost everywhere:
+
+What about other layers ?
+--------------------------
+
+Layer wise techniques require that each layer respect the constraint, so in order to be applicable, we need all layers to respect the constraint. We showed example for dense layers, but is this applicable to other layers ?
+Convolution layers: we might think that normalizing the kernel of a convolution layer is enough but there is a catch: convolution layers use padding, stride, dilation... All these operations have an effect on the norm of the output, yet changing the layer's Lipschitz constant. In order to catch this phenomenon, a corrective factor can be computed accounting these parameters. An example of such work can be found in [this paper].
+Pooling layers: these layers can be seen as a special case of convolution, applying the corrective factor to those.
+Batch Norm: As it performs standard rescaling, the constraining the multiplicative factor wouldn't make any sense. This kind of layer would only be useful to correct the bias induced after each layer which can be done by disabling the bias for each layer.
+Dropout: from a spectral point of view, dropout allows .. (TODO) 
+
+k-Lipschitz neural nets made easy with DeelLip
+----------------------------------------------
+
+Deelip is a library built on keras, it extends usual keras elements (such as layers, initializers, activations…) allowing you to build 1-Lipschitz networks easily. The provided layers use spectral normalization and, when required, compute the adequate corrective factor.
+How to use it ?
+As we'll see in the following example, building such neural network is quite easy:
+
+
+
+example of NN construction with Deelip and keras
+
+In order to make things simple the following rules have been followed during development:
+ * Deellip follows the same package structure as keras.
+ * All elements (layers, activations, initializers…) are compatible with standard keras elements.
+ * When a layer override a standard keras element, it implement the same interface, all parameters are the same. The only difference is the adding the parameter that allow you to control the lipschitz constant of the layer
+
+What to care about when dealing with Lipschitz layers ?
+-------------------------------------------------------
+
+Firstly, as the Lipschitz constant of the network is the product of the constants of each layer (at least in the sequential case), so every single layer must respect the Lipschitz constraint. Adding a single unconstrained layer, is enough to make the whole network unconstrained.
+In order to make things more convenient, Deellip embark all safe elements from keras: if you can import it from Deellip, then it is safe to use. This is also true for layer's parameters, badly setting a layer will raise an error, if it breaks the Lipschitz constraint.
+
+What is the overhead during backpropagation/inference ?
+-------------------------------------------------------
+
+ * During backpropagation the normalization of the weights add an overhead to each iteration. However, the spectral normalization algorithm is added directly into the graph during backpropagation, which yield much more efficient optimization steps.
+ * During inference, no overhead is added at all: as the normalization is mandatory only during backpropagation. Deellip has a feature that allows to export a model to conventional keras, converting each constrained Dense, Conv2D layers to original keras equivalent. By doing so, using serialized models for inference don't even need to import the Deellip library.
