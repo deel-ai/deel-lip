@@ -32,8 +32,8 @@ from tensorflow.keras.layers import Input, Lambda, Flatten
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
 
-# Sequential_condense model from deel.model has the same properties as any lipschitz layer ( condense,
-# setting of the lipschitz factor etc... It act only as a container. You can also nest Sequential_condense objects.
+# Sequential (resp Model) from deel.model has the same properties as any lipschitz layer ( condense,
+# setting of the lipschitz factor etc...). It act only as a container.
 model = Model(
     [
         Input(shape=(28, 28)),
@@ -71,7 +71,7 @@ model.compile(loss='categorical_crossentropy',
               metrics=['accuracy'])
 ```
 
-See [the full documentation](http://deel-ai.github.io/lipschitz-layers) for a complete API description.
+See [the full documentation](http://deel-ai.github.io/deel-lip) for a complete API description.
 
 ## Installation
 
