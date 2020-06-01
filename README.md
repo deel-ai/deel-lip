@@ -4,14 +4,14 @@ This library is keras extension that adds k-Lipschitz layers. Controlling the Li
 constant of a layer have many applications ranging from adversarial robustness
 to Wasserstein distance estimation.
 
-The library contains:
----------------------
- * k lipschitz variant for Dense, Conv2D and Pooling layers.
+## The library contains:
+
+ * k-Lipschitz variant for `Dense`, `Conv2D` and `Pooling` layers
  * activation functions
  * kernel initializers and kernel constraints
  * lossfunctions when working with Wasserstein distance estimation
- * tools to monitor the singular values of a kernel during training.
- * tools to convert k Lipschitz layer to regular layers once training is finished.
+ * tools to monitor the singular values of a kernel during training
+ * tools to convert k-Lipschitz layer to regular layers once training is finished
 
 ## Example and usage
 
@@ -91,15 +91,15 @@ This paper can can be cited as:
 ````latex
 @misc{deellip,
   title={Achieving robustness in classification using optimaltransport with Hinge regularization},
-  author={ Mathieu Serrurier, Franck Mamalet, Alberto Gonźalez-Sanz,Thibaut Boissin, Jean-Michel Loubes, Eustasio del Barrio},
+  author={Mathieu Serrurier, Franck Mamalet, Alberto Gonźalez-Sanz,Thibaut Boissin, Jean-Michel Loubes, Eustasio del Barrio},
   year={2020},
-  organization={DEEL-AI}
+  organization={DEEL}
 }
 ````
 
-## disclaimer
+## License
 
-Copyright 2020 DEEL-AI
+Copyright 2020 DEEL Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
