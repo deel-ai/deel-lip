@@ -1,27 +1,28 @@
 # deel-lip
 
-This library is keras extension that adds k-Lipschitz layers. Controlling the Lipschitz
-constant of a layer have many applications ranging from adversarial robustness
-to Wasserstein distance estimation.
+Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
+from adversarial robustness to Wasserstein distance estimation.
+
+This library provides implementation of **k-Lispchitz layers for `keras`**. 
 
 ## The library contains:
 
- * k-Lipschitz variant for `Dense`, `Conv2D` and `Pooling` layers
- * activation functions
- * kernel initializers and kernel constraints
- * lossfunctions when working with Wasserstein distance estimation
- * tools to monitor the singular values of a kernel during training
- * tools to convert k-Lipschitz layer to regular layers once training is finished
+ * k-Lipschitz variant of keras layers such as `Dense`, `Conv2D` and `Pooling`,
+ * activation functions compatible with `keras`,
+ * kernel initializers and kernel constraints for `keras`,
+ * loss functions when working with Wasserstein distance estimations,
+ * tools to monitor the singular values of kernels during training,
+ * tools to convert k-Lipschitz network to regular network for faster evaluation.
 
 ## Example and usage
 
 In order to make things simple the following rules have been followed during development:
-* Deellip follows the same package structure as keras.
-* All elements (layers, activations, initializers…) are compatible with standard keras elements.
-* When a layer override a standard keras element, it implement the same interface, all parameters are the same.
-  The only difference is the adding the parameter that allow you to control the lipschitz constant of the layer.
+* `deel-lip` follows the `keras` package structure.
+* All elements (layers, activations, initializers, ...) are compatible with standard the `keras` elements.
+* When a k-Lipschitz layer overrides a standard keras layer, it uses the same interface and the same parameters.
+  The only difference is a new parameter to control the Lipschitz constant of a layer.
   
-Here is a simple example of code showing how to build a 1-Lipschitz network:
+Here is a simple example showing how to build a 1-Lipschitz network:
 ```python
 from deel.lip.initializers import BjorckInitializer
 from deel.lip.layers import ScaledMaxPooling2D, SpectralDense, SpectralConv2D
@@ -70,24 +71,24 @@ model.compile(loss='categorical_crossentropy',
               metrics=['accuracy'])
 ```
 
-Please see also [our complete documentation](http://deel-ai.github.io/lipschitz-layers) for a complete API description.
+See [the full documentation](http://deel-ai.github.io/lipschitz-layers) for a complete API description.
 
 ## Installation
 
-You can install ``deellip`` directly from pypi: 
+You can install ``deel-lip`` directly from pypi: 
 ```bash
-pip3 install deel-lip
+pip install deel-lip
 ```
 
-pip will take care of the two dependencies which are:
- - tensorflow >=2.0 (compatibility has been checked against `tf2.0` and `tf2.1`)
- - numpy
+In order to use `deel-lip`, you also need a [valid tensorflow installation](https://www.tensorflow.org/install). 
+`deel-lip` supports tensorflow 2.0 and tensorflow 2.1.
 
 ## Cite this work
 
-This library has been built to support the work done in the paper 
-``Achieving robustness in classification using optimaltransport with Hinge regularization``.
-This paper can can be cited as:
+This library has been built to support the work presented in the paper 
+*Achieving robustness in classification using optimaltransport with Hinge regularization*.
+
+This work can be cited as:
 ````latex
 @misc{deellip,
   title={Achieving robustness in classification using optimaltransport with Hinge regularization},
