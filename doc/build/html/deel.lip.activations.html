@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -94,6 +95,9 @@
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.model.html">deel.lip.model module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wasserstein_toy.html">Demo 1: Wasserstein distance estimation on toy example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_toy.html">Demo 2: HKR Classifier on toy dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_MNIST08.html">Demo 3: HKR classifier on MNIST dataset</a></li>
 </ul>
 
             
@@ -164,7 +168,7 @@
 or it can be used in the “activation” params for other layers.</p>
 <dl class="class">
 <dt id="deel.lip.activations.FullSort">
-<em class="property">class </em><code class="sig-prename descclassname">deel.lip.activations.</code><code class="sig-name descname">FullSort</code><a class="headerlink" href="#deel.lip.activations.FullSort" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">deel.lip.activations.</code><code class="sig-name descname">FullSort</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.activations.FullSort" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#deel.lip.activations.GroupSort" title="deel.lip.activations.GroupSort"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.activations.GroupSort</span></code></a></p>
 <p>FullSort activation. Special case of GroupSort where the entire input is sorted.</p>
 <dl class="simple">
@@ -275,7 +279,7 @@ by <cite>Network</cite> (one layer of abstraction above).</p>
 
 <dl class="class">
 <dt id="deel.lip.activations.GroupSort2">
-<em class="property">class </em><code class="sig-prename descclassname">deel.lip.activations.</code><code class="sig-name descname">GroupSort2</code><a class="headerlink" href="#deel.lip.activations.GroupSort2" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">deel.lip.activations.</code><code class="sig-name descname">GroupSort2</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.activations.GroupSort2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#deel.lip.activations.GroupSort" title="deel.lip.activations.GroupSort"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.activations.GroupSort</span></code></a></p>
 <p>GroupSort2 activation. Special case of GroupSort with group of size 2.</p>
 <dl class="simple">

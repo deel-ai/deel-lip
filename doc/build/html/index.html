@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -93,6 +94,9 @@
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.model.html">deel.lip.model module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wasserstein_toy.html">Demo 1: Wasserstein distance estimation on toy example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_toy.html">Demo 2: HKR Classifier on toy dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_MNIST08.html">Demo 3: HKR classifier on MNIST dataset</a></li>
 </ul>
 
             
@@ -162,40 +166,40 @@
 </div>
 <div class="section" id="deel-lip">
 <h1>deel-lip<a class="headerlink" href="#deel-lip" title="Permalink to this headline">¶</a></h1>
-<p>This library is keras extension that adds k-Lipschitz layers. Controlling the Lipschitz
-constant of a layer have many applications ranging from adversarial robustness
-to Wasserstein distance estimation.</p>
+<p>Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
+from adversarial robustness to Wasserstein distance estimation.</p>
+<p>This library provides implementation of <a href="#id1"><span class="problematic" id="id2">**</span></a>k-Lispchitz layers for <code class="docutils literal notranslate"><span class="pre">keras</span></code><a href="#id3"><span class="problematic" id="id4">**</span></a>.</p>
 <div class="section" id="the-library-contains">
 <h2>The library contains:<a class="headerlink" href="#the-library-contains" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>k lipschitz variant for Dense, Conv2D and Pooling layers.</p></li>
-<li><p>activation functions</p></li>
-<li><p>kernel initializers and kernel constraints</p></li>
-<li><p>lossfunctions when working with Wasserstein distance estimation</p></li>
-<li><p>tools to monitor the singular values of a kernel during training.</p></li>
-<li><p>tools to convert k Lipschitz layer to regular layers once training is finished.</p></li>
+<li><p>k-Lipschitz variant of keras layers such as <code class="docutils literal notranslate"><span class="pre">Dense</span></code>, <code class="docutils literal notranslate"><span class="pre">Conv2D</span></code> and <code class="docutils literal notranslate"><span class="pre">Pooling</span></code>,</p></li>
+<li><p>activation functions compatible with <code class="docutils literal notranslate"><span class="pre">keras</span></code>,</p></li>
+<li><p>kernel initializers and kernel constraints for <code class="docutils literal notranslate"><span class="pre">keras</span></code>,</p></li>
+<li><p>loss functions when working with Wasserstein distance estimations,</p></li>
+<li><p>tools to monitor the singular values of kernels during training,</p></li>
+<li><p>tools to convert k-Lipschitz network to regular network for faster evaluation.</p></li>
 </ul>
 </div>
 <div class="section" id="example-and-usage">
 <h2>Example and usage<a class="headerlink" href="#example-and-usage" title="Permalink to this headline">¶</a></h2>
 <p>In order to make things simple the following rules have been followed during development:</p>
 <ul class="simple">
-<li><p>Deellip follows the same package structure as keras.</p></li>
-<li><p>All elements (layers, activations, initializers…) are compatible with standard keras elements.</p></li>
-<li><p>When a layer override a standard keras element, it implement the same interface, all parameters are the same.
-The only difference is the adding the parameter that allow you to control the lipschitz constant of the layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deel-lip</span></code> follows the <code class="docutils literal notranslate"><span class="pre">keras</span></code> package structure.</p></li>
+<li><p>All elements (layers, activations, initializers, …) are compatible with standard the <code class="docutils literal notranslate"><span class="pre">keras</span></code> elements.</p></li>
+<li><p>When a k-Lipschitz layer overrides a standard keras layer, it uses the same interface and the same parameters.
+The only difference is a new parameter to control the Lipschitz constant of a layer.</p></li>
 </ul>
-<p>Here is a simple example of code showing how to build a 1-Lipschitz network:</p>
+<p>Here is a simple example showing how to build a 1-Lipschitz network:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">deel.lip.initializers</span> <span class="kn">import</span> <span class="n">BjorckInitializer</span>
-<span class="kn">from</span> <span class="nn">deel.lip.layers</span> <span class="kn">import</span> <span class="n">ScaledMaxPooling2D</span><span class="p">,</span> <span class="n">SpectralDense</span><span class="p">,</span> <span class="n">SpectralConv2D</span>
+<span class="kn">from</span> <span class="nn">deel.lip.layers</span> <span class="kn">import</span> <span class="n">SpectralDense</span><span class="p">,</span> <span class="n">SpectralConv2D</span><span class="p">,</span> <span class="n">ScaledL2NormPooling2D</span>
 <span class="kn">from</span> <span class="nn">deel.lip.model</span> <span class="kn">import</span> <span class="n">Model</span>
 <span class="kn">from</span> <span class="nn">deel.lip.activations</span> <span class="kn">import</span> <span class="n">PReLUlip</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.layers</span> <span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Lambda</span><span class="p">,</span> <span class="n">Flatten</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">Adam</span>
 
-<span class="c1"># Sequential_condense model from deel.model has the same properties as any lipschitz layer ( condense,</span>
-<span class="c1"># setting of the lipschitz factor etc... It act only as a container. You can also nest Sequential_condense objects.</span>
+<span class="c1"># Sequential (resp Model) from deel.model has the same properties as any lipschitz layer ( condense,</span>
+<span class="c1"># setting of the lipschitz factor etc...). It act only as a container.</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span>
     <span class="p">[</span>
         <span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">)),</span>
@@ -209,7 +213,7 @@ The only difference is the adding the parameter that allow you to control the li
         <span class="n">SpectralConv2D</span><span class="p">(</span>
             <span class="n">filters</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">PReLUlip</span><span class="p">(),</span> <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
             <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">,</span> <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">BjorckInitializer</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">50</span><span class="p">)),</span>
-        <span class="n">ScaledMaxPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">),</span>
+        <span class="n">ScaledL2NormPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">),</span>
 
         <span class="n">SpectralConv2D</span><span class="p">(</span>
             <span class="n">filters</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">PReLUlip</span><span class="p">(),</span> <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
@@ -217,7 +221,7 @@ The only difference is the adding the parameter that allow you to control the li
         <span class="n">SpectralConv2D</span><span class="p">(</span>
             <span class="n">filters</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;same&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">PReLUlip</span><span class="p">(),</span> <span class="n">input_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
             <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">,</span> <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">BjorckInitializer</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">50</span><span class="p">)),</span>
-        <span class="n">ScaledMaxPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">),</span>
+        <span class="n">ScaledL2NormPooling2D</span><span class="p">(</span><span class="n">pool_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;channels_last&#39;</span><span class="p">),</span>
 
         <span class="n">Flatten</span><span class="p">(),</span>
         <span class="n">SpectralDense</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span> <span class="n">kernel_initializer</span><span class="o">=</span><span class="n">BjorckInitializer</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">50</span><span class="p">)),</span>
@@ -233,37 +237,34 @@ The only difference is the adding the parameter that allow you to control the li
               <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
 </pre></div>
 </div>
-<p>Please see also <a class="reference external" href="http://deel-ai.github.io/lipschitz-layers">our complete documentation</a> for a complete API description.</p>
+<p>See <a class="reference external" href="http://deel-ai.github.io/deel-lip">the full documentation</a> for a complete API description.</p>
 </div>
 <div class="section" id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<p>You can install <code class="docutils literal notranslate"><span class="pre">deellip</span></code> directly from pypi:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip3 install deel-lip
+<p>You can install <code class="docutils literal notranslate"><span class="pre">deel-lip</span></code> directly from pypi:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install deel-lip
 </pre></div>
 </div>
-<p>pip will take care of the two dependencies which are:</p>
-<ul class="simple">
-<li><p>tensorflow &gt;=2.0 (compatibility has been checked against <code class="docutils literal notranslate"><span class="pre">tf2.0</span></code> and <code class="docutils literal notranslate"><span class="pre">tf2.1</span></code>)</p></li>
-<li><p>numpy</p></li>
-</ul>
+<p>In order to use <code class="docutils literal notranslate"><span class="pre">deel-lip</span></code>, you also need a <a class="reference external" href="https://www.tensorflow.org/install">valid tensorflow installation</a>.
+<code class="docutils literal notranslate"><span class="pre">deel-lip</span></code> supports tensorflow 2.0 and tensorflow 2.1.</p>
 </div>
 <div class="section" id="cite-this-work">
 <h2>Cite this work<a class="headerlink" href="#cite-this-work" title="Permalink to this headline">¶</a></h2>
-<p>This library has been built to support the work done in the paper
-<code class="docutils literal notranslate"><span class="pre">Achieving</span> <span class="pre">robustness</span> <span class="pre">in</span> <span class="pre">classification</span> <span class="pre">using</span> <span class="pre">optimaltransport</span> <span class="pre">with</span> <span class="pre">Hinge</span> <span class="pre">regularization</span></code>.
-This paper can can be cited as:</p>
-<div class="highlight-latex notranslate"><div class="highlight"><pre><span></span>@misc<span class="nb">{</span>deellip,
-  title=<span class="nb">{</span>Achieving robustness in classification using optimaltransport with Hinge regularization<span class="nb">}</span>,
-  author=<span class="nb">{</span> Mathieu Serrurier, Franck Mamalet, Alberto Gonźalez-Sanz,Thibaut Boissin, Jean-Michel Loubes, Eustasio del Barrio<span class="nb">}</span>,
-  year=<span class="nb">{</span>2020<span class="nb">}</span>,
-  organization=<span class="nb">{</span>DEEL-AI<span class="nb">}</span>
+<p>This library has been built to support the work presented in the paper
+<em>Achieving robustness in classification using optimaltransport with Hinge regularization</em>.</p>
+<p>This work can be cited as:</p>
+<div class="highlight-latex notranslate"><div class="highlight"><pre><span></span>@misc<span class="nb">{</span>2006.06520,
+Author = <span class="nb">{</span>Mathieu Serrurier and Franck Mamalet and Alberto González-Sanz and Thibaut Boissin and Jean-Michel Loubes and Eustasio del Barrio<span class="nb">}</span>,
+Title = <span class="nb">{</span>Achieving robustness in classification using optimal transport with hinge regularization<span class="nb">}</span>,
+Year = <span class="nb">{</span>2020<span class="nb">}</span>,
+Eprint = <span class="nb">{</span>arXiv:2006.06520<span class="nb">}</span>,
 <span class="nb">}</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="disclaimer">
-<h2>disclaimer<a class="headerlink" href="#disclaimer" title="Permalink to this headline">¶</a></h2>
-<p>Copyright 2020 DEEL-AI</p>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>Copyright 2020 DEEL Team</p>
 <p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:</p>
 <p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.</p>
 <p>THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
@@ -294,6 +295,9 @@ project</a>.</p>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.model.html">deel.lip.model module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wasserstein_toy.html">Demo 1: Wasserstein distance estimation on toy example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_toy.html">Demo 2: HKR Classifier on toy dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_MNIST08.html">Demo 3: HKR classifier on MNIST dataset</a></li>
 </ul>
 </div>
 </div>

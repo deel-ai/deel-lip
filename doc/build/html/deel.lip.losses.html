@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -94,6 +95,9 @@
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.model.html">deel.lip.model module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wasserstein_toy.html">Demo 1: Wasserstein distance estimation on toy example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_toy.html">Demo 2: HKR Classifier on toy dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_MNIST08.html">Demo 3: HKR classifier on MNIST dataset</a></li>
 </ul>
 
             
@@ -198,7 +202,7 @@
 <dd class="field-odd"><p><strong>min_margin</strong> – the minimal margin to enforce.</p>
 </dd>
 </dl>
-<p>Returns:</p>
+<p>Returns: a function that compute the hinge loss</p>
 </dd></dl>
 
 <dl class="function">

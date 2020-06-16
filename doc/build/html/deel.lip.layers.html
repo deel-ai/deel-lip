@@ -25,6 +25,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/language_data.js"></script>
+        <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
     
     <script type="text/javascript" src="_static/js/theme.js"></script>
 
@@ -94,6 +95,9 @@
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.model.html">deel.lip.model module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.normalizers.html">deel.lip.normalizers module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="deel.lip.utils.html">deel.lip.utils module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wasserstein_toy.html">Demo 1: Wasserstein distance estimation on toy example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_toy.html">Demo 2: HKR Classifier on toy dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wassersteinClassif_MNIST08.html">Demo 3: HKR classifier on MNIST dataset</a></li>
 </ul>
 
             
@@ -167,7 +171,6 @@ Currently, are implemented:</p>
 <li><p>Conv2D layer: as SpectralConv2D ( and as FrobeniusConv2D when the layer has a single output )</p></li>
 <li><p>AveragePooling: as ScaledAveragePooling</p></li>
 <li><p>GlobalAveragePooling2D: as ScaledGlobalAveragePooling2D</p></li>
-<li><p>MaxPooling2D: as ScaledMaxPooling2D</p></li>
 </ul>
 <p>By default the layers are 1 Lipschitz almost everywhere, which is efficient for wasserstein distance estimation. However
 for other problems (such as adversarial robustness ) the user may want to use layers that are at most 1 lipschitz, this
@@ -540,47 +543,69 @@ by <cite>Network</cite> (one layer of abstraction above).</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="deel.lip.layers.ScaledMaxPooling2D">
-<em class="property">class </em><code class="sig-prename descclassname">deel.lip.layers.</code><code class="sig-name descname">ScaledMaxPooling2D</code><span class="sig-paren">(</span><em class="sig-param">pool_size=(2</em>, <em class="sig-param">2)</em>, <em class="sig-param">strides=None</em>, <em class="sig-param">padding='valid'</em>, <em class="sig-param">data_format=None</em>, <em class="sig-param">k_coef_lip=1.0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledMaxPooling2D" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.layers.pooling.MaxPooling2D</span></code>, <a class="reference internal" href="#deel.lip.layers.LipschitzLayer" title="deel.lip.layers.LipschitzLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.layers.LipschitzLayer</span></code></a></p>
-<p>Global Max pooling operation for 3D data. Same as keras.MaxPooling2D but with lipschitz corrective factor.</p>
+<dt id="deel.lip.layers.ScaledL2NormPooling2D">
+<em class="property">class </em><code class="sig-prename descclassname">deel.lip.layers.</code><code class="sig-name descname">ScaledL2NormPooling2D</code><span class="sig-paren">(</span><em class="sig-param">pool_size=(2</em>, <em class="sig-param">2)</em>, <em class="sig-param">strides=None</em>, <em class="sig-param">padding='valid'</em>, <em class="sig-param">data_format=None</em>, <em class="sig-param">k_coef_lip=1.0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledL2NormPooling2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.keras.layers.pooling.AveragePooling2D</span></code>, <a class="reference internal" href="#deel.lip.layers.LipschitzLayer" title="deel.lip.layers.LipschitzLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">deel.lip.layers.LipschitzLayer</span></code></a></p>
+<p>Average pooling operation for spatial data, with a lipschitz bound. This pooling operation is norm preserving
+(aka gradient=1 almost everywhere).</p>
+<p>[1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature Pooling in Visual Recognition »,p.8.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>data_format</strong> – A string,
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pool_size</strong> – integer or tuple of 2 integers,
+factors by which to downscale (vertical, horizontal).
+<cite>(2, 2)</cite> will halve the input in both spatial dimension.
+If only one integer is specified, the same window length
+will be used for both dimensions.</p></li>
+<li><p><strong>strides</strong> – Integer, tuple of 2 integers, or None.
+Strides values.
+If None, it will default to <cite>pool_size</cite>.</p></li>
+<li><p><strong>padding</strong> – One of <cite>“valid”</cite> or <cite>“same”</cite> (case-insensitive).</p></li>
+<li><p><strong>data_format</strong> – A string,
 one of <cite>channels_last</cite> (default) or <cite>channels_first</cite>.
 The ordering of the dimensions in the inputs.
 <cite>channels_last</cite> corresponds to inputs with shape
-<cite>(batch, spatial_dim1, spatial_dim2, spatial_dim3, channels)</cite>
-while <cite>channels_first</cite> corresponds to inputs with shape
-<cite>(batch, channels, spatial_dim1, spatial_dim2, spatial_dim3)</cite>.
+<cite>(batch, height, width, channels)</cite> while <cite>channels_first</cite>
+corresponds to inputs with shape
+<cite>(batch, channels, height, width)</cite>.
 It defaults to the <cite>image_data_format</cite> value found in your
 Keras config file at <cite>~/.keras/keras.json</cite>.
-If you never set it, then it will be “channels_last”.</p>
+If you never set it, then it will be “channels_last”.</p></li>
+<li><p><strong>k_coef_lip</strong> – the lipschitz factor to ensure</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="simple">
 <dt>Input shape:</dt><dd><ul class="simple">
 <li><dl class="simple">
-<dt>If <cite>data_format=’channels_last’</cite>:</dt><dd><p>5D tensor with shape:
-<cite>(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, channels)</cite></p>
+<dt>If <cite>data_format=’channels_last’</cite>:</dt><dd><p>4D tensor with shape <cite>(batch_size, rows, cols, channels)</cite>.</p>
 </dd>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>If <cite>data_format=’channels_first’</cite>:</dt><dd><p>5D tensor with shape:
-<cite>(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3)</cite></p>
+<dt>If <cite>data_format=’channels_first’</cite>:</dt><dd><p>4D tensor with shape <cite>(batch_size, channels, rows, cols)</cite>.</p>
 </dd>
 </dl>
 </li>
 </ul>
 </dd>
-<dt>Output shape:</dt><dd><p>2D tensor with shape <cite>(batch_size, channels)</cite>.</p>
+<dt>Output shape:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>If <cite>data_format=’channels_last’</cite>:</dt><dd><p>4D tensor with shape <cite>(batch_size, pooled_rows, pooled_cols, channels)</cite>.</p>
 </dd>
 </dl>
-<p>This documentation reuse the body of the original keras.layers.MaxPooling doc.</p>
+</li>
+<li><dl class="simple">
+<dt>If <cite>data_format=’channels_first’</cite>:</dt><dd><p>4D tensor with shape <cite>(batch_size, channels, pooled_rows, pooled_cols)</cite>.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
-<dt id="deel.lip.layers.ScaledMaxPooling2D.build">
-<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param">input_shape</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledMaxPooling2D.build" title="Permalink to this definition">¶</a></dt>
+<dt id="deel.lip.layers.ScaledL2NormPooling2D.build">
+<code class="sig-name descname">build</code><span class="sig-paren">(</span><em class="sig-param">input_shape</em><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledL2NormPooling2D.build" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates the variables of the layer (optional, for subclass implementers).</p>
 <p>This is a method that implementers of subclasses of <cite>Layer</cite> or <cite>Model</cite>
 can override if they need a state-creation step in-between
@@ -596,13 +621,13 @@ layer instantiation and layer call.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="deel.lip.layers.ScaledMaxPooling2D.call">
-<code class="sig-name descname">call</code><a class="headerlink" href="#deel.lip.layers.ScaledMaxPooling2D.call" title="Permalink to this definition">¶</a></dt>
+<dt id="deel.lip.layers.ScaledL2NormPooling2D.call">
+<code class="sig-name descname">call</code><a class="headerlink" href="#deel.lip.layers.ScaledL2NormPooling2D.call" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="deel.lip.layers.ScaledMaxPooling2D.get_config">
-<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledMaxPooling2D.get_config" title="Permalink to this definition">¶</a></dt>
+<dt id="deel.lip.layers.ScaledL2NormPooling2D.get_config">
+<code class="sig-name descname">get_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#deel.lip.layers.ScaledL2NormPooling2D.get_config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the config of the layer.</p>
 <p>A layer config is a Python dictionary (serializable)
 containing the configuration of a layer.
