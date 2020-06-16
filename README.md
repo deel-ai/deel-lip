@@ -25,7 +25,7 @@ In order to make things simple the following rules have been followed during dev
 Here is a simple example showing how to build a 1-Lipschitz network:
 ```python
 from deel.lip.initializers import BjorckInitializer
-from deel.lip.layers import ScaledMaxPooling2D, SpectralDense, SpectralConv2D
+from deel.lip.layers import SpectralDense, SpectralConv2D, ScaledL2NormPooling2D
 from deel.lip.model import Model
 from deel.lip.activations import PReLUlip
 from tensorflow.keras.layers import Input, Lambda, Flatten
@@ -47,7 +47,7 @@ model = Model(
         SpectralConv2D(
             filters=32, kernel_size=(3, 3), padding='same', activation=PReLUlip(), input_shape=(28, 28, 1),
             data_format='channels_last', kernel_initializer=BjorckInitializer(15, 50)),
-        ScaledMaxPooling2D(pool_size=(2, 2), data_format='channels_last'),
+        ScaledL2NormPooling2D(pool_size=(2, 2), data_format='channels_last'),
 
         SpectralConv2D(
             filters=64, kernel_size=(3, 3), padding='same', activation=PReLUlip(), input_shape=(28, 28, 1),
@@ -55,7 +55,7 @@ model = Model(
         SpectralConv2D(
             filters=64, kernel_size=(3, 3), padding='same', activation=PReLUlip(), input_shape=(28, 28, 1),
             data_format='channels_last', kernel_initializer=BjorckInitializer(15, 50)),
-        ScaledMaxPooling2D(pool_size=(2, 2), data_format='channels_last'),
+        ScaledL2NormPooling2D(pool_size=(2, 2), data_format='channels_last'),
 
         Flatten(),
         SpectralDense(256, activation="relu", kernel_initializer=BjorckInitializer(15, 50)),

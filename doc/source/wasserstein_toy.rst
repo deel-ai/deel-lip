@@ -18,7 +18,7 @@ representation.
     from tensorflow.keras.layers import Input, Flatten, ReLU
     from tensorflow.keras.optimizers import Adam
     
-    from deel.lip.layers import SpectralConv2D, ScaledMaxPooling2D, SpectralDense, FrobeniusDense
+    from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, FullSort
     from deel.lip.utils import load_model
     from deel.lip.losses import KR_loss

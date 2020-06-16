@@ -10,8 +10,6 @@ Currently, are implemented:
 
 * GlobalAveragePooling2D: as ScaledGlobalAveragePooling2D
 
-* MaxPooling2D: as ScaledMaxPooling2D
-
 By default the layers are 1 Lipschitz almost everywhere, which is efficient for wasserstein distance estimation. However
 for other problems (such as adversarial robustness ) the user may want to use layers that are at most 1 lipschitz, this
 can be done by setting the param `niter_bjorck=0`.
@@ -867,73 +865,6 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
             "k_coef_lip": self.k_coef_lip,
         }
         base_config = super(ScaledAveragePooling2D, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
-
-
-@deel_export
-class ScaledMaxPooling2D(KerasMaxPooling2D, LipschitzLayer):
-    def __init__(
-        self,
-        pool_size=(2, 2),
-        strides=None,
-        padding="valid",
-        data_format=None,
-        k_coef_lip=1.0,
-        **kwargs
-    ):
-        """
-        Global Max pooling operation for 3D data. Same as keras.MaxPooling2D but with lipschitz corrective factor.
-
-        Arguments:
-            data_format: A string,
-                one of `channels_last` (default) or `channels_first`.
-                The ordering of the dimensions in the inputs.
-                `channels_last` corresponds to inputs with shape
-                `(batch, spatial_dim1, spatial_dim2, spatial_dim3, channels)`
-                while `channels_first` corresponds to inputs with shape
-                `(batch, channels, spatial_dim1, spatial_dim2, spatial_dim3)`.
-                It defaults to the `image_data_format` value found in your
-                Keras config file at `~/.keras/keras.json`.
-                If you never set it, then it will be "channels_last".
-
-        Input shape:
-            - If `data_format='channels_last'`:
-                5D tensor with shape:
-                `(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, channels)`
-            - If `data_format='channels_first'`:
-                5D tensor with shape:
-                `(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3)`
-
-        Output shape:
-            2D tensor with shape `(batch_size, channels)`.
-
-        This documentation reuse the body of the original keras.layers.MaxPooling doc.
-        """
-        if not ((strides == pool_size) or (strides is None)):
-            raise RuntimeError("stride must be equal to pool_size")
-        if padding != "valid":
-            raise RuntimeError("ScaledMaxPooling only support padding='valid'")
-        self.set_klip_factor(k_coef_lip)
-        self._kwargs = kwargs
-        super().__init__(pool_size, pool_size, padding, data_format, **kwargs)
-
-    def build(self, input_shape):
-        super(ScaledMaxPooling2D, self).build(input_shape)
-        self._init_lip_coef(input_shape)
-        self.built = True
-
-    def _compute_lip_coef(self, input_shape=None):
-        return 1.0
-
-    @tf.function
-    def call(self, x, training=None):
-        return super(ScaledMaxPooling2D, self).call(x) * self._get_coef()
-
-    def get_config(self):
-        config = {
-            "k_coef_lip": self.k_coef_lip,
-        }
-        base_config = super(ScaledMaxPooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
