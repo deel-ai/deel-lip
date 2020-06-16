@@ -90,11 +90,11 @@ This library has been built to support the work presented in the paper
 
 This work can be cited as:
 ````latex
-@misc{deellip,
-  title={Achieving robustness in classification using optimaltransport with Hinge regularization},
-  author={Mathieu Serrurier, Franck Mamalet, Alberto Gonźalez-Sanz,Thibaut Boissin, Jean-Michel Loubes, Eustasio del Barrio},
-  year={2020},
-  organization={DEEL}
+@misc{2006.06520,
+Author = {Mathieu Serrurier and Franck Mamalet and Alberto González-Sanz and Thibaut Boissin and Jean-Michel Loubes and Eustasio del Barrio},
+Title = {Achieving robustness in classification using optimal transport with hinge regularization},
+Year = {2020},
+Eprint = {arXiv:2006.06520},
 }
 ````
 
