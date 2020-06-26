@@ -10,6 +10,7 @@ with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 dev_requires = [
+    "tox",
     "black",
     "flake8",
     "flake8-black",
