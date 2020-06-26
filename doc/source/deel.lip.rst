@@ -1,3 +1,5 @@
+.. _deel-lip-api:
+
 deel.lip package
 ================
 
