@@ -239,6 +239,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             name="sigma",
             trainable=False,
         )
+        self.sig.assign([[1.0]])
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -451,6 +452,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             name="sigma",
             trainable=False,
         )
+        self.sig.assign([[1.0]])
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
