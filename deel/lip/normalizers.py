@@ -22,7 +22,8 @@ def bjorck_normalization(w, niter=DEFAULT_NITER_BJORCK):
             max_eigenval(w) ~= 1
         niter: number of iterations
 
-    Returns: the orthonormal weights
+    Returns:
+        the orthonormal weights
 
     """
     for i in range(niter):
@@ -40,7 +41,8 @@ def _power_iteration(w, u, niter=DEFAULT_NITER_SPECTRAL):
         u: initialization of the eigen vector
         niter: number of iteration, must be greater than 0
 
-    Returns: u and v corresponding to the maximum eigenvalue
+    Returns:
+         u and v corresponding to the maximum eigenvalue
 
     """
     _u = u

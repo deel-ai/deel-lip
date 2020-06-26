@@ -6,12 +6,16 @@
 This module extends original keras layers, in order to add k lipschitz constraint via
 reparametrization. Currently, are implemented:
 
-* Dense layer: as SpectralDense (and as FrobeniusDense when the layer has a single
+* Dense layer:
+    as SpectralDense (and as FrobeniusDense when the layer has a single
     output)
-* Conv2D layer: as SpectralConv2D (and as FrobeniusConv2D when the layer has a single
+* Conv2D layer:
+    as SpectralConv2D (and as FrobeniusConv2D when the layer has a single
     output)
-* AveragePooling: as ScaledAveragePooling
-* GlobalAveragePooling2D: as ScaledGlobalAveragePooling2D
+* AveragePooling:
+    as ScaledAveragePooling
+* GlobalAveragePooling2D:
+    as ScaledGlobalAveragePooling2D
 
 By default the layers are 1 Lipschitz almost everywhere, which is efficient for
 wasserstein distance estimation. However for other problems (such as adversarial
@@ -67,7 +71,8 @@ class LipschitzLayer(abc.ABC):
         Args:
             klip_factor: the Lipschitz factor the user want to ensure.
 
-        Returns: None
+        Returns:
+            None
 
         """
         self.k_coef_lip = klip_factor
@@ -82,7 +87,8 @@ class LipschitzLayer(abc.ABC):
         Args:
             input_shape: the shape of the input of the layer.
 
-        Returns: the bounding factor.
+        Returns:
+            the bounding factor.
 
         """
         pass
@@ -94,7 +100,8 @@ class LipschitzLayer(abc.ABC):
         Args:
             input_shape: the layers input shape
 
-        Returns: None
+        Returns:
+            None
 
         """
         self.coef_lip = self._compute_lip_coef(input_shape)
@@ -128,6 +135,7 @@ class Condensable(abc.ABC):
         variables are still consistent.
 
         Returns:
+            None
 
         """
         pass
@@ -138,7 +146,8 @@ class Condensable(abc.ABC):
         This operation allow to turn this Layer to it's super type, easing storage and
         serving.
 
-        Returns: self as super type
+        Returns:
+             self as super type
 
         """
         pass
