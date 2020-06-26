@@ -3,8 +3,9 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains extra activation functions which respect the Lipschitz constant. It can be added as a layer,
-or it can be used in the "activation" params for other layers.
+This module contains extra activation functions which respect the Lipschitz constant.
+It can be added as a layer, or it can be used in the "activation" params for other
+layers.
 """
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -27,15 +28,17 @@ class MaxMin(Layer, LipschitzLayer):
             **kwargs: params passed to layers (named fashion)
 
         Input shape:
-            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does not include the samples axis)
-            when using this layer as the first layer in a model.
+            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
+            not include the samples axis) when using this layer as the first layer in a
+            model.
 
         Output shape:
             Double channel size as input.
 
         References:
-            ([M. Blot, M. Cord, et N. Thome, « Max-min convolutional neural networks for image classification »,
-            in 2016 IEEE International Conference on Image Processing (ICIP), Phoenix, AZ, USA, 2016, p. 3678‑3682.)
+            ([M. Blot, M. Cord, et N. Thome, « Max-min convolutional neural networks
+            for image classification », in 2016 IEEE International Conference on Image
+            Processing (ICIP), Phoenix, AZ, USA, 2016, p. 3678‑3682.)
 
         """
         self.set_klip_factor(k_coef_lip)
@@ -86,15 +89,17 @@ class GroupSort(Layer, LipschitzLayer):
         GroupSort activation
 
         Args:
-            n: group size used when sorting. When None group size is set to input size (fullSort behavior)
+            n: group size used when sorting. When None group size is set to input
+                size (fullSort behavior)
             data_format: either channels_first or channels_last
             k_coef_lip: the lipschitz coefficient to be enforced
             *args: params passed to Layers
             **kwargs: params passed to layers (named fashion)
 
         Input shape:
-            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does not include the samples axis)
-            when using this layer as the first layer in a model.
+            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
+            not include the samples axis) when using this layer as the first layer in a
+            model.
 
         Output shape:
             Same size as input.
@@ -158,8 +163,9 @@ class GroupSort2(GroupSort):
         GroupSort2 activation. Special case of GroupSort with group of size 2.
 
         Input shape:
-            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does not include the samples axis)
-            when using this layer as the first layer in a model.
+            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
+            not include the samples axis) when using this layer as the first layer in a
+            model.
 
         Output shape:
             Same size as input.
@@ -176,8 +182,9 @@ class FullSort(GroupSort):
         FullSort activation. Special case of GroupSort where the entire input is sorted.
 
         Input shape:
-            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does not include the samples axis)
-            when using this layer as the first layer in a model.
+            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
+            not include the samples axis) when using this layer as the first layer in a
+            model.
 
         Output shape:
             Same size as input.

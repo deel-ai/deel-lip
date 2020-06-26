@@ -35,7 +35,8 @@ def KR_loss(true_values=(0, 1)):
 @_deel_export
 def neg_KR_loss(true_values=(1, -1)):
     """
-    Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein duality.
+    Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
+    duality.
 
     Args:
         true_values: tuple containing the two label for each predicted class
@@ -70,7 +71,8 @@ def HKR_loss(alpha, min_margin=1, true_values=(1, -1)):
         if alpha == np.inf:  # alpha negative hinge only
             return hinge_margin_loss(min_margin)(y_true, y_pred)
         else:
-            # true value: positive value should be the first to be coherent with the ihinge loss (positive y_pred)
+            # true value: positive value should be the first to be coherent with the
+            # hinge loss (positive y_pred)
             return alpha * hinge_margin_loss(min_margin)(y_true, y_pred) - KR_loss(
                 true_values
             )(y_true, y_pred)

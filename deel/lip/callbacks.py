@@ -6,39 +6,43 @@
 This module contains callbacks that can be added to keras training process.
 """
 import os
+from typing import Optional, Dict, Iterable
+
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from .layers import Condensable
 
 
 class CondenseCallback(Callback):
-    def __init__(self, on_epoch=True, on_batch=False):
+    def __init__(self, on_epoch: bool = True, on_batch: bool = False):
         """
-        Automatically condense layers of a model on batches/epochs. Condensing a layer consist in overwriting the kernel
-        with the constrained weights. This prevent the explosion/vanishing of values inside the original kernel.
+        Automatically condense layers of a model on batches/epochs. Condensing a layer
+        consists in overwriting the kernel with the constrained weights. This prevents
+        the explosion/vanishing of values inside the original kernel.
 
         Warning:
-            Overwriting the kernel may disturb the optimizer, especially if it has a non zero momentum.
+            Overwriting the kernel may disturb the optimizer, especially if it has a
+            non-zero momentum.
 
         Args:
             on_epoch: if True apply the constraint between epochs
             on_batch: if True apply constraints between batches
         """
+        super().__init__()
         self.on_epoch = on_epoch
         self.on_batch = on_batch
-        super().__init__()
 
     def _condense_model(self):
         for layer in self.model.layers:
             if isinstance(layer, Condensable):
                 layer.condense()
 
-    def on_train_batch_end(self, batch, logs=None):
+    def on_train_batch_end(self, batch: int, logs: Optional[Dict[str, float]] = None):
         if self.on_batch:
             self._condense_model()
         super(CondenseCallback, self).on_train_batch_end(batch, logs)
 
-    def on_epoch_end(self, epoch, logs=None):
+    def on_epoch_end(self, epoch: int, logs: Optional[Dict[str, float]] = None):
         if self.on_epoch:
             self._condense_model()
         super(CondenseCallback, self).on_epoch_end(epoch, logs)
@@ -51,18 +55,26 @@ class CondenseCallback(Callback):
 
 class MonitorCallback(Callback):
     def __init__(
-        self, monitored_layers: [str], logdir, what="max", on_epoch=True, on_batch=False
+        self,
+        monitored_layers: Iterable[str],
+        logdir: str,
+        what: str = "max",
+        on_epoch: bool = True,
+        on_batch: bool = False,
     ):
         """
-        Allow to monitor the singular values of specified layers during training. This analyze the singular values of the
-        original kernel (before reparametrization). Two modes can be chosen: "max" plots the largest singular value over
-        training, while "all" plots the distribution of the singular values over training (series of distribution).
+        Allow to monitor the singular values of specified layers during training. This
+        analyze the singular values of the original kernel (before reparametrization).
+        Two modes can be chosen: "max" plots the largest singular value over training,
+        while "all" plots the distribution of the singular values over training (series
+        of distribution).
 
         Args:
             monitored_layers: list of layer name to monitor.
             logdir: path to the logging directory.
-            what: either "max", which display the largest singular value over the training process, or "all", which plot the
-            distribution of all singular values.
+            what: either "max", which display the largest singular value over the
+                training process, or "all", which plot the distribution of all singular
+                values.
             on_epoch: if True apply the constraint between epochs.
             on_batch: if True apply constraints between batches.
         """

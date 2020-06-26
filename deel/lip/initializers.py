@@ -17,11 +17,13 @@ class SpectralInitializer(Initializer):
         base_initializer=RandomUniform(minval=0.0, maxval=0.5, seed=None),
     ) -> None:
         """
-        Initialize a kernel to be 1-lipschitz using spectral normalization ( iterative power method ).
+        Initialize a kernel to be 1-lipschitz using spectral normalization (iterative
+        power method).
 
         Args:
             niter_spectral: number of iteration to do with the iterative power method
-            base_initializer: method used to generat weights before applying iterative power method
+            base_initializer: method used to generat weights before applying iterative
+                power method
         """
         self.niter_spectral = niter_spectral
         self.base_initializer = initializers.get(base_initializer)
@@ -49,12 +51,14 @@ class BjorckInitializer(Initializer):
         base_initializer=RandomUniform(minval=0.0, maxval=0.5, seed=None),
     ) -> None:
         """
-        Initialize a kernel to be 1-lipschitz almost everywhere using bjorck normalization.
+        Initialize a kernel to be 1-lipschitz almost everywhere using bjorck
+        normalization.
 
         Args:
             niter_spectral: number of iteration to do with the iterative power method
             niter_bjorck: number of iteration to do with the bjorck algorithm
-            base_initializer: method used to generat weights before applying the orthonormalization
+            base_initializer: method used to generat weights before applying the
+                orthonormalization
         """
         self.niter_spectral = niter_spectral
         self.niter_bjorck = niter_bjorck

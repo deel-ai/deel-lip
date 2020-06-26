@@ -3,7 +3,8 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains computation function, for BjorckNormalizer and spectral normalization. This is done for internal use only.
+This module contains computation function, for BjorckNormalizer and spectral
+normalization. This is done for internal use only.
 """
 from tensorflow.keras import backend as K
 
@@ -17,7 +18,8 @@ def bjorck_normalization(w, niter=DEFAULT_NITER_BJORCK):
     apply Bjorck normalization on w.
 
     Args:
-        w: weight to normalize, in order to work properly, we must have max_eigenval(w) ~= 1
+        w: weight to normalize, in order to work properly, we must have
+            max_eigenval(w) ~= 1
         niter: number of iterations
 
     Returns: the orthonormal weights
@@ -57,7 +59,9 @@ def spectral_normalization(kernel, u=None, niter=DEFAULT_NITER_SPECTRAL):
         u: initialization for the max eigen vector
         niter: number of iteration
 
-    Returns: the normalized kernel w_bar, it's shape, the maximum eigen vector, and the maximum eigen value
+    Returns:
+        the normalized kernel w_bar, it's shape, the maximum eigen vector, and the
+        maximum eigen value
 
     """
     W_shape = kernel.shape
