@@ -7,10 +7,10 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import Constraint
 from .normalizers import bjorck_normalization, spectral_normalization
-from .utils import deel_export
+from .utils import _deel_export
 
 
-@deel_export
+@_deel_export
 class WeightClip(Constraint):
     def __init__(self, c=2):
         """
@@ -28,7 +28,7 @@ class WeightClip(Constraint):
         return {"name": self.__class__.__name__, "c": self.c}
 
 
-@deel_export
+@_deel_export
 class AutoWeightClip(Constraint):
     def __init__(self, scale=1):
         """
@@ -48,7 +48,7 @@ class AutoWeightClip(Constraint):
         return {"name": self.__class__.__name__, "scale": self.scale, "c": self.c}
 
 
-@deel_export
+@_deel_export
 class FrobeniusNormalizer(Constraint):
     # todo: duplicate of keras/constraints/UnitNorm ?
 
@@ -62,7 +62,7 @@ class FrobeniusNormalizer(Constraint):
         return w * tf.sqrt(tf.reduce_sum(tf.square(w), keepdims=False))
 
 
-@deel_export
+@_deel_export
 class SpectralNormalizer(Constraint):
     def __init__(self, niter_spectral=3, u=None) -> None:
         """
@@ -96,7 +96,7 @@ class SpectralNormalizer(Constraint):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
+@_deel_export
 class BjorckNormalizer(SpectralNormalizer):
     def __init__(self, niter_spectral=3, niter_bjorck=15, u=None) -> None:
         """

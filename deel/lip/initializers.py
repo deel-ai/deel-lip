@@ -4,10 +4,10 @@ from tensorflow.keras.initializers import Initializer, RandomUniform
 from tensorflow.keras import backend as K
 from tensorflow.keras import initializers
 from .normalizers import spectral_normalization, bjorck_normalization
-from .utils import deel_export
+from .utils import _deel_export
 
 
-@deel_export
+@_deel_export
 class SpectralInitializer(Initializer):
     def __init__(
         self,
@@ -38,7 +38,7 @@ class SpectralInitializer(Initializer):
         }
 
 
-@deel_export
+@_deel_export
 class BjorckInitializer(Initializer):
     def __init__(
         self,

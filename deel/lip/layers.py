@@ -35,7 +35,7 @@ from .normalizers import (
     DEFAULT_NITER_SPECTRAL_INIT,
 )
 from .normalizers import bjorck_normalization, spectral_normalization
-from .utils import deel_export
+from .utils import _deel_export
 
 
 class LipschitzLayer:
@@ -139,7 +139,7 @@ class Condensable:
         )
 
 
-@deel_export
+@_deel_export
 class SpectralDense(Dense, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -314,7 +314,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -593,7 +593,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
     Same a SpectralDense, but in the case of a single output.
@@ -681,7 +681,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     """
     Same as SpectralConv2D but in the case of a single output.
@@ -788,7 +788,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return SpectralConv2D.vanilla_export(self)
 
 
-@deel_export
+@_deel_export
 class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -872,7 +872,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
+@_deel_export
 class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
     def __init__(self,
@@ -951,7 +951,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
+@_deel_export
 class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.

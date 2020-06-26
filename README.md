@@ -86,7 +86,7 @@ pip install deel-lip
 ```
 
 In order to use `deel-lip`, you also need a [valid tensorflow installation](https://www.tensorflow.org/install). 
-`deel-lip` supports tensorflow 2.0 and tensorflow 2.1.
+`deel-lip` supports tensorflow from 2.0 to 2.2.
 
 ## Cite this work
 
