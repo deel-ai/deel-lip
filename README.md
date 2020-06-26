@@ -3,7 +3,7 @@
 Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
 from adversarial robustness to Wasserstein distance estimation.
 
-This library provides implementation of **k-Lispchitz layers for `keras`**. 
+This library provides implementation of **k-Lispchitz layers for `keras`**.
 
 ## The library contains:
 
@@ -21,7 +21,7 @@ In order to make things simple the following rules have been followed during dev
 * All elements (layers, activations, initializers, ...) are compatible with standard the `keras` elements.
 * When a k-Lipschitz layer overrides a standard keras layer, it uses the same interface and the same parameters.
   The only difference is a new parameter to control the Lipschitz constant of a layer.
-  
+
 Here is a simple example showing how to build a 1-Lipschitz network:
 ```python
 from deel.lip.initializers import BjorckInitializer
@@ -32,7 +32,7 @@ from tensorflow.keras.layers import Input, Lambda, Flatten
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
 
-# Sequential (resp Model) from deel.model has the same properties as any lipschitz 
+# Sequential (resp Model) from deel.model has the same properties as any lipschitz
 # layer ( condense, setting of the lipschitz factor etc...). It act only as a container.
 model = Model(
     [
@@ -80,28 +80,45 @@ See [the full documentation](http://deel-ai.github.io/deel-lip) for a complete A
 
 ## Installation
 
-You can install ``deel-lip`` directly from pypi: 
+You can install ``deel-lip`` directly from pypi:
 ```bash
 pip install deel-lip
 ```
 
-In order to use `deel-lip`, you also need a [valid tensorflow installation](https://www.tensorflow.org/install). 
+In order to use `deel-lip`, you also need a [valid tensorflow installation](https://www.tensorflow.org/install).
 `deel-lip` supports tensorflow from 2.0 to 2.2.
 
 ## Cite this work
 
-This library has been built to support the work presented in the paper 
+This library has been built to support the work presented in the paper
 *Achieving robustness in classification using optimaltransport with Hinge regularization*.
 
 This work can be cited as:
-````latex
+```latex
 @misc{2006.06520,
 Author = {Mathieu Serrurier and Franck Mamalet and Alberto González-Sanz and Thibaut Boissin and Jean-Michel Loubes and Eustasio del Barrio},
 Title = {Achieving robustness in classification using optimal transport with hinge regularization},
 Year = {2020},
 Eprint = {arXiv:2006.06520},
 }
-````
+```
+
+## Contributing
+
+To contribute, you can open an [issue](https://github.com/deel-ai/deel-lip/issues), or fork this repository and then submit
+changes through a [pull-request](https://github.com/deel-ai/deel-lip/pulls).
+We use [`black`](https://pypi.org/project/black/) to format the code and follow PEP-8 convention. To check
+that your code will pass the lint-checks, you can run:
+
+```bash
+tox -e py36-lint
+```
+
+You need [`tox`](https://tox.readthedocs.io/en/latest/) in order to run this. You can install it via `pip`:
+
+```bash
+pip install tox
+```
 
 ## License
 
@@ -117,6 +134,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Acknowledgments
 
-This project received funding from the French ”Investing for the Future – PIA3” program within the Artiﬁcial and 
-Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the [DEEL 
+This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and
+Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the [DEEL
 project](https://www.deel.ai/).
