@@ -1,8 +1,9 @@
 # deel-lip
 
-[![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://badge.fury.io/py/deel-lip)
-[![PyPI](https://badge.fury.io/py/deel-lip.svg)](https://badge.fury.io/py/deel-lip)
+[![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://pypi.org/project/deel-lip)
+[![PyPI](https://img.shields.io/pypi/v/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://deel-lip.readthedocs.io)
+[![GitHub license](https://img.shields.io/github/license/deel-ai/deel-lip.svg)](https://github.com/deel-ai/deel-lip/blob/master/LICENSE)
 
 Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
 from adversarial robustness to Wasserstein distance estimation.
@@ -80,7 +81,7 @@ model.compile(loss='categorical_crossentropy',
               metrics=['accuracy'])
 ```
 
-See [the full documentation](http://deel-ai.github.io/deel-lip) for a complete API description.
+See [the full documentation](https://deel-lip.readthedocs.io) for a complete API description.
 
 ## Installation
 
