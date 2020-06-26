@@ -1,6 +1,6 @@
 # deel-lip
 
-[![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg?style=plastic)](https://badge.fury.io/py/deel-lip)
+[![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://badge.fury.io/py/deel-lip)
 [![PyPI](https://badge.fury.io/py/deel-lip.svg)](https://badge.fury.io/py/deel-lip)
 [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://deel-lip.readthedocs.io)
 
