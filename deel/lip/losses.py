@@ -69,9 +69,9 @@ def HKR_loss(alpha, min_margin=1, true_values=(1, -1)):
             return hinge_margin_loss(min_margin)(y_true, y_pred)
         else:
             # true value: positive value should be the first to be coherent with the ihinge loss (positive y_pred)
-            return alpha * hinge_margin_loss(min_margin)(
-                y_true, y_pred
-            ) - KR_loss(true_values)(y_true, y_pred)
+            return alpha * hinge_margin_loss(min_margin)(y_true, y_pred) - KR_loss(
+                true_values
+            )(y_true, y_pred)
 
     return HKR_loss_fct
 

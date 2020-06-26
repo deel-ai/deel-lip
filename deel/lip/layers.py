@@ -874,14 +874,15 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
 
 @_deel_export
 class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
-
-    def __init__(self,
-                 pool_size=(2, 2),
-                 strides=None,
-                 padding='valid',
-                 data_format=None,
-                 k_coef_lip=1.0,
-                 **kwargs):
+    def __init__(
+        self,
+        pool_size=(2, 2),
+        strides=None,
+        padding="valid",
+        data_format=None,
+        k_coef_lip=1.0,
+        **kwargs
+    ):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This pooling operation is norm preserving
         (aka gradient=1 almost everywhere).
@@ -926,8 +927,13 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
             raise RuntimeError("NormalizedConv only support padding='valid'")
-        super(ScaledL2NormPooling2D, self).__init__(pool_size=pool_size, strides=pool_size, padding=padding,
-                                                     data_format=data_format, **kwargs)
+        super(ScaledL2NormPooling2D, self).__init__(
+            pool_size=pool_size,
+            strides=pool_size,
+            padding=padding,
+            data_format=data_format,
+            **kwargs
+        )
         self.set_klip_factor(k_coef_lip)
         self._kwargs = kwargs
 
@@ -941,11 +947,13 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
     @tf.function
     def call(self, x, training=None):
-        return tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+        return (
+            tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+        )
 
     def get_config(self):
         config = {
-            'k_coef_lip': self.k_coef_lip,
+            "k_coef_lip": self.k_coef_lip,
         }
         base_config = super(AveragePooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

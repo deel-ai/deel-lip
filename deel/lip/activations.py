@@ -151,7 +151,6 @@ class GroupSort(Layer, LipschitzLayer):
 
 @_deel_export
 class GroupSort2(GroupSort):
-
     def __init__(self, **kwargs):
         """
         GroupSort2 activation. Special case of GroupSort with group of size 2.
@@ -170,7 +169,6 @@ class GroupSort2(GroupSort):
 
 @_deel_export
 class FullSort(GroupSort):
-
     def __init__(self, **kwargs):
         """
         FullSort activation. Special case of GroupSort where the entire input is sorted.
