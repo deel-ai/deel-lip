@@ -1,8 +1,10 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 """
-This module contains equivalents for Model and Sequential. These classes add support for condensation and vanilla
-exportation.
+This module contains equivalents for Model and Sequential. These classes add support
+for condensation and vanilla exportation.
 """
 import math
 from warnings import warn
@@ -19,9 +21,10 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         self, layers=None, name=None, k_coef_lip=1.0,
     ):
         """
-        Equivalent of keras.Sequential but allow to set k-lip factor globally. Also support condensation and vanilla
-        exportation.
-        For now constant repartition is implemented ( each layer get n_sqrt(k_lip_factor), where n is the number of layers )
+        Equivalent of keras.Sequential but allow to set k-lip factor globally. Also
+        support condensation and vanilla exportation.
+        For now constant repartition is implemented (each layer
+        get n_sqrt(k_lip_factor), where n is the number of layers)
         But in the future other repartition function may be implemented.
 
         Args:
@@ -44,8 +47,9 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: %s"
-                    % layer.name
+                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                        layer.name
+                    )
                 )
 
     def _compute_lip_coef(self, input_shape=None):
@@ -54,8 +58,9 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._compute_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: %s"
-                    % layer.name
+                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                        layer.name
+                    )
                 )
 
     def _init_lip_coef(self, input_shape):
@@ -64,8 +69,9 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._init_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: %s"
-                    % layer.name
+                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                        layer.name
+                    )
                 )
 
     def _get_coef(self):
@@ -75,8 +81,9 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 global_coef *= layer._get_coef()
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: %s"
-                    % layer.name
+                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                        layer.name
+                    )
                 )
                 global_coef = None
         return global_coef
@@ -113,8 +120,9 @@ class Model(KerasModel, Condensable):
         Equivalent of keras.Model but support condensation and vanilla exportation.
 
         Warning:
-             As lipschitz constant are multiplicative along layer, the Model class cannot set a global Lipschitz
-             constant ( Problem with branching inside a model ).
+             As lipschitz constant are multiplicative along layer, the Model class
+             cannot set a global Lipschitz constant (problem with branching inside a
+             model).
         """
         super().__init__(*args, **kwargs)
 

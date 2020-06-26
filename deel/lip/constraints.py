@@ -1,7 +1,10 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 """
-This module contains extra constraint objects. These object can be added as params to regular layers.
+This module contains extra constraint objects. These object can be added as params to
+regular layers.
 """
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -32,7 +35,8 @@ class WeightClip(Constraint):
 class AutoWeightClip(Constraint):
     def __init__(self, scale=1):
         """
-        Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`. With c = 1/sqrt(size(kernel)).
+        Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
+        With c = 1/sqrt(size(kernel)).
 
         Args:
             scale: scaling factor to increase/decrease clipping value.
@@ -54,7 +58,8 @@ class FrobeniusNormalizer(Constraint):
 
     def __init__(self, **kwargs):
         """
-        Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`. With c = 1/norm(kernel).
+        Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
+        With c = 1/norm(kernel).
         """
         super(FrobeniusNormalizer, self).__init__(**kwargs)
 
@@ -66,12 +71,13 @@ class FrobeniusNormalizer(Constraint):
 class SpectralNormalizer(Constraint):
     def __init__(self, niter_spectral=3, u=None) -> None:
         """
-        Ensure that the weights matrix have sigma_max == 1 ( maximum singular value of the weights matrix).
+        Ensure that the weights matrix have sigma_max == 1 (maximum singular value of
+        the weights matrix).
 
         Args:
             niter_spectral: number of iteration to find the maximum singular value.
-            u: vector used for iterated power method, can be set to None ( used for serialization/deserialization
-            purposes).
+            u: vector used for iterated power method, can be set to None (used for
+                serialization/deserialization purposes).
         """
         self.niter_spectral = niter_spectral
         if not (isinstance(u, tf.Tensor) or (u is None)):
@@ -100,8 +106,8 @@ class SpectralNormalizer(Constraint):
 class BjorckNormalizer(SpectralNormalizer):
     def __init__(self, niter_spectral=3, niter_bjorck=15, u=None) -> None:
         """
-        Ensure that *all* singular values of the weight matrix equals to 1. Computation based on BjorckNormalizer algorithm.
-        The computation is done in two steps:
+        Ensure that *all* singular values of the weight matrix equals to 1. Computation
+        based on BjorckNormalizer algorithm. The computation is done in two steps:
 
         1. reduce the larget singular value to 1, using iterated power method.
         2. increase other singular values to 1, using BjorckNormalizer algorithm.
@@ -109,8 +115,8 @@ class BjorckNormalizer(SpectralNormalizer):
         Args:
             niter_spectral: number of iteration to find the maximum singular value.
             niter_bjorck: number of iteration with BjorckNormalizer algorithm..
-            u: vector used for iterated power method, can be set to None ( used for serialization/deserialization
-            purposes).
+            u: vector used for iterated power method, can be set to None (used for
+                serialization/deserialization purposes).
         """
         self.niter_bjorck = niter_bjorck
         super(BjorckNormalizer, self).__init__(niter_spectral, u)

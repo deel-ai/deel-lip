@@ -4,6 +4,10 @@ __pycache__
 .mypy_cache
 *.egg-info
 
+# IDE / Tools files
+.vscode
+.tox
+
 # Files generated:
 logs
 export-wass

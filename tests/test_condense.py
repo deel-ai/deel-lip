@@ -1,5 +1,7 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 import os
 import pprint
 import unittest
@@ -29,7 +31,8 @@ class MyTestCase(unittest.TestCase):
         input_shape = (5, 5, 3)
         model = Sequential(
             [
-                # the bug occurs only when using the "as_supertype_export" function with:
+                # the bug occurs only when using the "as_supertype_export" function
+                # with:
                 # - lipschitz coef != 1.0
                 # - Frobenius layer ( not the Spectral ones )
                 # - Sequential model ( not Model )

@@ -1,5 +1,7 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 """
 Contains utility functions.
 """
@@ -18,8 +20,9 @@ CUSTOM_OBJECTS = dict()
 
 def _deel_export(f):
     """
-    Annotation, allows to automatically add deel custom objects to the deel.lip.utils.CUSTOM_OBJECTS variable, which
-    is useful when working with custom layers.
+    Annotation, allows to automatically add deel custom objects to the
+    deel.lip.utils.CUSTOM_OBJECTS variable, which is useful when working with custom
+    layers.
     """
     global CUSTOM_OBJECTS
     CUSTOM_OBJECTS[f.__name__] = f
@@ -31,10 +34,10 @@ def load_model(filepath, custom_objects=None, compile=True) -> Model:
     Equivalent to load_model from keras, but custom_objects are already known
 
     Args:
-        filepath: One of the following: - String, path to the saved model - `h5py.File` object from which to load the
-        model.
-        custom_objects: Optional dictionary mapping names (strings) to custom classes or functions to be considered
-        during deserialization.
+        filepath: One of the following: - String, path to the saved model - `h5py.File`
+            object from which to load the model.
+        custom_objects: Optional dictionary mapping names (strings) to custom classes
+            or functions to be considered during deserialization.
         compile: Boolean, whether to compile the model after loading.
 
     Returns: A Keras model instance. If an optimizer was found
@@ -52,8 +55,8 @@ def model_from_json(json_string, custom_objects=None) -> Model:
 
     Args:
         json_string: JSON string encoding a model configuration.
-        custom_objects: Optional dictionary mapping names (strings) to custom classes or functions to be considered
-        during deserialization.
+        custom_objects: Optional dictionary mapping names (strings) to custom classes
+            or functions to be considered during deserialization.
 
     Returns: A Keras model instance (uncompiled).
 
@@ -72,8 +75,8 @@ def model_from_yaml(yaml_string, custom_objects=None) -> Model:
 
     Args:
         yaml_string: YAML string encoding a model configuration.
-        custom_objects: Optional dictionary mapping names (strings) to custom classes or functions to be considered
-        during deserialization.
+        custom_objects: Optional dictionary mapping names (strings) to custom classes
+            or functions to be considered during deserialization.
 
     Returns: A Keras model instance (uncompiled).
 
@@ -94,9 +97,9 @@ def evaluate_lip_const_gen(
 ):
     """
     Evaluate the Lipschitz constant of a model, with the naive method.
-    Please note that the estimation of the lipschitz constant is done locally around input sample. This may not
-    correctly estimate the behaviour in the whole domain. The computation might also be inaccurate in high dimensional
-    space.
+    Please note that the estimation of the lipschitz constant is done locally around
+    input sample. This may not correctly estimate the behaviour in the whole domain.
+     The computation might also be inaccurate in high dimensional space.
 
     This is the generator version of evaluate_lip_const.
 
@@ -116,8 +119,8 @@ def evaluate_lip_const_gen(
 def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     """
     Evaluate the Lipschitz constant of a model, with the naive method.
-    Please note that the estimation of the lipschitz constant is done locally around input sample. This may not
-    correctly estimate the behaviour in the whole domain.
+    Please note that the estimation of the lipschitz constant is done locally around
+    input sample. This may not correctly estimate the behaviour in the whole domain.
 
     Args:
         model: built keras model used to make predictions
@@ -125,8 +128,9 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
         eps: magnitude of noise to add to input in order to compute the constant
         seed: seed used when generating the noise ( can be set to None )
 
-    Returns: the empirically evaluated lipschitz constant. The computation might also be inaccurate in high dimensional
-    space.
+    Returns:
+        the empirically evaluated lipschitz constant. The computation might also be
+        inaccurate in high dimensional space.
 
     """
     y_pred = model.predict(x)

@@ -1,21 +1,25 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 """
-This module extends original keras layers, in order to add k lipschitz constraint via reparametrization.
-Currently, are implemented:
+This module extends original keras layers, in order to add k lipschitz constraint via
+reparametrization. Currently, are implemented:
 
-* Dense layer: as SpectralDense ( and as FrobeniusDense when the layer has a single output )
-
-* Conv2D layer: as SpectralConv2D ( and as FrobeniusConv2D when the layer has a single output )
-
+* Dense layer: as SpectralDense (and as FrobeniusDense when the layer has a single
+    output)
+* Conv2D layer: as SpectralConv2D (and as FrobeniusConv2D when the layer has a single
+    output)
 * AveragePooling: as ScaledAveragePooling
-
 * GlobalAveragePooling2D: as ScaledGlobalAveragePooling2D
 
-By default the layers are 1 Lipschitz almost everywhere, which is efficient for wasserstein distance estimation. However
-for other problems (such as adversarial robustness ) the user may want to use layers that are at most 1 lipschitz, this
-can be done by setting the param `niter_bjorck=0`.
+By default the layers are 1 Lipschitz almost everywhere, which is efficient for
+wasserstein distance estimation. However for other problems (such as adversarial
+robustness) the user may want to use layers that are at most 1 lipschitz, this can
+be done by setting the param `niter_bjorck=0`.
 """
+
+import abc
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -25,7 +29,6 @@ from tensorflow.keras.layers import (
     Conv2D,
     AveragePooling2D,
     GlobalAveragePooling2D,
-    MaxPooling2D as KerasMaxPooling2D,
 )
 from .constraints import SpectralNormalizer, BjorckNormalizer
 from .initializers import BjorckInitializer, SpectralInitializer
@@ -38,22 +41,22 @@ from .normalizers import bjorck_normalization, spectral_normalization
 from .utils import _deel_export
 
 
-class LipschitzLayer:
+class LipschitzLayer(abc.ABC):
     """
-    This class allow to set lipschitz factor of a layer. Lipschitz layer must inherit this class to allow user to set
-    the lipschitz factor.
+    This class allow to set lipschitz factor of a layer. Lipschitz layer must inherit
+    this class to allow user to set the lipschitz factor.
 
     Warning:
-         This class only regroup useful functions when developing new Lipschitz layers. But it does not ensure any
-         property about the layer. This means that inheriting from this class won't ensure anything about the lipschitz
-         constant.
+         This class only regroup useful functions when developing new Lipschitz layers.
+         But it does not ensure any property about the layer. This means that
+         inheriting from this class won't ensure anything about the lipschitz constant.
     """
 
     k_coef_lip = 1.0
     """variable used to store the lipschitz factor"""
     coef_lip = None
     """
-    define correction coefficient (ie. Lipschitz bound ) of the layer 
+    define correction coefficient (ie. Lipschitz bound ) of the layer
     ( multiply the output of the layer by this constant )
     """
 
@@ -69,11 +72,12 @@ class LipschitzLayer:
         """
         self.k_coef_lip = klip_factor
 
+    @abc.abstractmethod
     def _compute_lip_coef(self, input_shape=None):
         """
-        Some layers ( like convolution ) cannot ensure a strict lipschitz constant ( as the Lipschitz factor depends on
-        the input data ). Those layers then rely on the computation of a bounding factor. This function allow to
-        compute this factor.
+        Some layers (like convolution) cannot ensure a strict lipschitz constant (as
+        the Lipschitz factor depends on the input data). Those layers then rely on the
+        computation of a bounding factor. This function allow to compute this factor.
 
         Args:
             input_shape: the shape of the input of the layer.
@@ -81,9 +85,7 @@ class LipschitzLayer:
         Returns: the bounding factor.
 
         """
-        raise NotImplementedError(
-            "classes that inherits from LipschitzLayer must implement the compute_coef function"
-        )
+        pass
 
     def _init_lip_coef(self, input_shape):
         """
@@ -99,44 +101,47 @@ class LipschitzLayer:
 
     def _get_coef(self):
         """
-        Returns: the multiplicative coefficient to be used on the result in order to ensure k Lipschitzity.
+        Returns:
+            the multiplicative coefficient to be used on the result in order to ensure
+            k-Lipschitzity.
         """
         if self.coef_lip is None:
             raise RuntimeError("compute_coef must be called before calling get_coef")
         return self.coef_lip * self.k_coef_lip
 
 
-class Condensable:
+class Condensable(abc.ABC):
     """
-    Some Layers don't optimize directly the kernel, this means that the kernel stored in the layer is not the kernel
-    used to make predictions (called W_bar), to address this, these layers can implement the condense() function that
-    make self.kernel equal to W_bar.
+    Some Layers don't optimize directly the kernel, this means that the kernel stored
+    in the layer is not the kernel used to make predictions (called W_bar), to address
+    this, these layers can implement the condense() function that make self.kernel equal
+    to W_bar.
 
-    This operation also allow the turn the lipschitz layer to it keras equivalent ie. The Dense layer that have the same
-    predictions as the trained SpectralDense.
+    This operation also allow the turn the lipschitz layer to it keras equivalent ie.
+    The Dense layer that have the same predictions as the trained SpectralDense.
     """
 
+    @abc.abstractmethod
     def condense(self):
         """
-        The condense operation allow to overwrite the kernel and ensure that other variables are still consistent.
+        The condense operation allow to overwrite the kernel and ensure that other
+        variables are still consistent.
 
         Returns:
 
         """
-        raise NotImplementedError(
-            "condense function must be implemented by condenseable layers"
-        )
+        pass
 
+    @abc.abstractmethod
     def vanilla_export(self):
         """
-        This operation allow to turn this Layer to it's super type, easing storage and serving.
+        This operation allow to turn this Layer to it's super type, easing storage and
+        serving.
 
         Returns: self as super type
 
         """
-        raise NotImplementedError(
-            "condense function must be implemented by condenseable layers"
-        )
+        pass
 
 
 @_deel_export
@@ -162,12 +167,12 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         **kwargs
     ):
         """
-        This class is a Dense Layer constrained such that all singular of it's kernel are 1. The computation based on
-        BjorckNormalizer algorithm.
+        This class is a Dense Layer constrained such that all singular of it's kernel
+        are 1. The computation based on BjorckNormalizer algorithm.
         The computation is done in two steps:
 
-        #. reduce the larget singular value to 1, using iterated power method.
-        #. increase other singular values to 1, using BjorckNormalizer algorithm.
+        1. reduce the larget singular value to 1, using iterated power method.
+        2. increase other singular values to 1, using BjorckNormalizer algorithm.
 
         Args:
             units: Positive integer, dimensionality of the output space.
@@ -342,14 +347,15 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         **kwargs
     ):
         """
-        This class is a Conv2D Layer constrained such that all singular of it's kernel are 1. The computation based on
-        BjorckNormalizer algorithm. As this is not enough to ensure 1 Lipschitzity a coertive coefficient is applied on the
+        This class is a Conv2D Layer constrained such that all singular of it's kernel
+        are 1. The computation based on BjorckNormalizer algorithm. As this is not
+        enough to ensure 1 Lipschitzity a coertive coefficient is applied on the
         output.
         The computation is done in three steps:
 
-        #. reduce the largest singular value to 1, using iterated power method.
-        #. increase other singular values to 1, using BjorckNormalizer algorithm.
-        #. divide the output by the Lipschitz bound to ensure k Lipschitzity.
+        1. reduce the largest singular value to 1, using iterated power method.
+        2. increase other singular values to 1, using BjorckNormalizer algorithm.
+        3. divide the output by the Lipschitz bound to ensure k Lipschitzity.
 
         Args:
             filters: Integer, the dimensionality of the output space
@@ -725,7 +731,8 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             or isinstance(kernel_constraint, SpectralNormalizer)
         ):
             raise RuntimeError(
-                "only deellip constraints are allowed as constraints could break 1 lipschitz condition"
+                "only deellip constraints are allowed as other constraints could break"
+                " 1 lipschitz condition"
             )
         super(FrobeniusConv2D, self).__init__(
             filters,
@@ -836,7 +843,8 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
             - If `data_format='channels_first'`:
                 4D tensor with shape `(batch_size, channels, pooled_rows, pooled_cols)`.
 
-        This documentation reuse the body of the original keras.layers.AveragePooling2D doc.
+        This documentation reuse the body of the original keras.layers.AveragePooling2D
+        doc.
         """
         if not ((strides == pool_size) or (strides is None)):
             raise RuntimeError("stride must be equal to pool_size")
@@ -874,19 +882,21 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
 
 @_deel_export
 class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
-
-    def __init__(self,
-                 pool_size=(2, 2),
-                 strides=None,
-                 padding='valid',
-                 data_format=None,
-                 k_coef_lip=1.0,
-                 **kwargs):
+    def __init__(
+        self,
+        pool_size=(2, 2),
+        strides=None,
+        padding="valid",
+        data_format=None,
+        k_coef_lip=1.0,
+        **kwargs
+    ):
         """
-        Average pooling operation for spatial data, with a lipschitz bound. This pooling operation is norm preserving
-        (aka gradient=1 almost everywhere).
+        Average pooling operation for spatial data, with a lipschitz bound. This
+        pooling operation is norm preserving (aka gradient=1 almost everywhere).
 
-        [1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature Pooling in Visual Recognition »,p.8.
+        [1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature
+        Pooling in Visual Recognition »,p.8.
 
         Arguments:
             pool_size: integer or tuple of 2 integers,
@@ -926,8 +936,13 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
             raise RuntimeError("NormalizedConv only support padding='valid'")
-        super(ScaledL2NormPooling2D, self).__init__(pool_size=pool_size, strides=pool_size, padding=padding,
-                                                     data_format=data_format, **kwargs)
+        super(ScaledL2NormPooling2D, self).__init__(
+            pool_size=pool_size,
+            strides=pool_size,
+            padding=padding,
+            data_format=data_format,
+            **kwargs
+        )
         self.set_klip_factor(k_coef_lip)
         self._kwargs = kwargs
 
@@ -941,11 +956,13 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
     @tf.function
     def call(self, x, training=None):
-        return tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+        return (
+            tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+        )
 
     def get_config(self):
         config = {
-            'k_coef_lip': self.k_coef_lip,
+            "k_coef_lip": self.k_coef_lip,
         }
         base_config = super(AveragePooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -977,7 +994,8 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
         Output shape:
         2D tensor with shape `(batch_size, channels)`.
 
-        This documentation reuse the body of the original keras.layers.GlobalAveragePooling doc.
+        This documentation reuse the body of the original
+        keras.layers.GlobalAveragePooling doc.
         """
         super(ScaledGlobalAveragePooling2D, self).__init__(
             data_format=data_format, **kwargs

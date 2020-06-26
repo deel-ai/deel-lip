@@ -1,5 +1,7 @@
-# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
-# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+# =====================================================================================
 import os
 import pprint
 import unittest
@@ -24,7 +26,8 @@ from deel.lip.layers import (
     FrobeniusConv2D,
     ScaledAveragePooling2D,
     ScaledGlobalAveragePooling2D,
-    ScaledL2NormPooling2D)
+    ScaledL2NormPooling2D,
+)
 from deel.lip.model import Sequential
 from deel.lip.utils import load_model, evaluate_lip_const
 
@@ -60,7 +63,8 @@ def linear_generator(batch_size, input_shape: tuple, kernel):
     Args:
         batch_size: size of each batch
         input_shape: shape of the desired input
-        kernel: kernel used to generate data, must match the last dimensions of input_shape
+        kernel: kernel used to generate data, must match the last dimensions of
+            `input_shape`
 
     Returns: a generator for the data
 
@@ -103,7 +107,7 @@ def build_kernel(input_shape: tuple, output_shape: tuple, k=1.0):
     kernel = (
         kernel * k / np.linalg.norm(kernel)
     )  # assuming lipschitz constraint is independent with respect to the chosen metric
-    # b = np.array(np.random.random_sample((batch_size,) + output_shape), dtype=np.float16)
+
     return kernel
 
 
@@ -251,7 +255,7 @@ class LipschitzLayersTest(unittest.TestCase):
             self.assertLess(
                 emp_lip_const,
                 test_params["k_lip_model"] * 1.02,
-                msg=" the lip const of the network must be lower than the specified boundary",
+                msg=" the lip const of the network must be lower than the specified boundary",  # noqa: E501
             )
 
     def _apply_tests_bank(self, tests_bank):
