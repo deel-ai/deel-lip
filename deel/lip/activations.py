@@ -1,3 +1,5 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 """
 This module contains extra activation functions which respect the Lipschitz constant. It can be added as a layer,
 or it can be used in the "activation" params for other layers.
@@ -7,10 +9,10 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import MinMaxNorm
 from tensorflow.keras.layers import Layer, PReLU
 from .layers import LipschitzLayer
-from .utils import deel_export
+from .utils import _deel_export
 
 
-@deel_export
+@_deel_export
 class MaxMin(Layer, LipschitzLayer):
     def __init__(self, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs):
         """
@@ -73,7 +75,7 @@ class MaxMin(Layer, LipschitzLayer):
         return new_shape
 
 
-@deel_export
+@_deel_export
 class GroupSort(Layer, LipschitzLayer):
     def __init__(
         self, n=None, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs
@@ -147,7 +149,7 @@ class GroupSort(Layer, LipschitzLayer):
         return input_shape
 
 
-@deel_export
+@_deel_export
 class GroupSort2(GroupSort):
 
     def __init__(self, **kwargs):
@@ -166,7 +168,7 @@ class GroupSort2(GroupSort):
         super().__init__(**kwargs)
 
 
-@deel_export
+@_deel_export
 class FullSort(GroupSort):
 
     def __init__(self, **kwargs):
@@ -185,7 +187,7 @@ class FullSort(GroupSort):
         super().__init__(**kwargs)
 
 
-@deel_export
+@_deel_export
 def PReLUlip(k_coef_lip=1.0):
     """
     PreLu activation, with Lipschitz constraint.

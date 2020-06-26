@@ -1,3 +1,8 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
+"""
+Contains utility functions.
+"""
 from typing import Generator, Tuple, Any
 import numpy as np
 from tensorflow.keras import Model
@@ -11,7 +16,11 @@ from tensorflow.keras.models import (
 CUSTOM_OBJECTS = dict()
 
 
-def deel_export(f):
+def _deel_export(f):
+    """
+    Annotation, allows to automatically add deel custom objects to the deel.lip.utils.CUSTOM_OBJECTS variable, which
+    is useful when working with custom layers.
+    """
     global CUSTOM_OBJECTS
     CUSTOM_OBJECTS[f.__name__] = f
     return f
@@ -39,7 +48,7 @@ def load_model(filepath, custom_objects=None, compile=True) -> Model:
 
 def model_from_json(json_string, custom_objects=None) -> Model:
     """
-    Equivalent to model_from_json from keras, but custom_objects are already known
+    Equivalent to model_from_json from keras, but custom_objects are already known.
 
     Args:
         json_string: JSON string encoding a model configuration.
@@ -77,30 +86,9 @@ def model_from_yaml(yaml_string, custom_objects=None) -> Model:
     )
 
 
-def _compute_fans(shape, data_format="channels_last"):
-    if len(shape) == 2:
-        fan_in = shape[0]
-        fan_out = shape[1]
-    elif len(shape) in {3, 4, 5}:
-        if data_format == "channels_first":
-            receptive_field_size = np.prod(shape[2:])
-            fan_in = shape[1] * receptive_field_size
-            fan_out = shape[0] * receptive_field_size
-        elif data_format == "channels_last":
-            receptive_field_size = np.prod(shape[:-2])
-            fan_in = shape[-2] * receptive_field_size
-            fan_out = shape[-1] * receptive_field_size
-        else:
-            raise ValueError("Invalid data_format: " + data_format)
-    else:
-        fan_in = np.sqrt(np.prod(shape))
-        fan_out = np.sqrt(np.prod(shape))
-    return fan_in, fan_out
-
-
 def evaluate_lip_const_gen(
     model: Model,
-    generator: Generator[Tuple[np.ndarray, np.ndarray, np.ndarray], Any, None],
+    generator: Generator[Tuple[np.ndarray, np.ndarray], Any, None],
     eps=1e-4,
     seed=None,
 ):
@@ -114,14 +102,14 @@ def evaluate_lip_const_gen(
 
     Args:
         model: built keras model used to make predictions
-        x: inputs used to compute the lipschitz constant
+        generator: used to select datapoints where to compute the lipschitz constant
         eps: magnitude of noise to add to input in order to compute the constant
         seed: seed used when generating the noise ( can be set to None )
 
     Returns: the empirically evaluated lipschitz constant.
 
     """
-    x, y, _ = generator.send(None)
+    x, y = generator.send(None)
     return evaluate_lip_const(model, x, eps, seed=seed)
 
 

@@ -22,3 +22,6 @@ Indices and tables
    :glob:
 
    deel.lip.*
+   wasserstein_toy.rst
+   wassersteinClassif_toy.rst
+   wassersteinClassif_MNIST08.rst

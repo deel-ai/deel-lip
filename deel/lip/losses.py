@@ -1,13 +1,15 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 """
 This module contains losses used in wasserstein distance estimation.
 """
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from .utils import deel_export
+from .utils import _deel_export
 
 
-@deel_export
+@_deel_export
 def KR_loss(true_values=(0, 1)):
     """
     Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
@@ -28,7 +30,7 @@ def KR_loss(true_values=(0, 1)):
     return KR_loss_fct
 
 
-@deel_export
+@_deel_export
 def neg_KR_loss(true_values=(1, -1)):
     """
     Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein duality.
@@ -47,7 +49,7 @@ def neg_KR_loss(true_values=(1, -1)):
     return neg_KR_loss_fct
 
 
-@deel_export
+@_deel_export
 def HKR_loss(alpha, min_margin=1, true_values=(1, -1)):
     """
     Wasserstein loss with a regularization param based on hinge loss.
@@ -74,7 +76,7 @@ def HKR_loss(alpha, min_margin=1, true_values=(1, -1)):
     return HKR_loss_fct
 
 
-@deel_export
+@_deel_export
 def hinge_margin_loss(min_margin=1):
     """
     Compute the hinge margin loss.

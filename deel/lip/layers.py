@@ -1,3 +1,5 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 """
 This module extends original keras layers, in order to add k lipschitz constraint via reparametrization.
 Currently, are implemented:
@@ -9,8 +11,6 @@ Currently, are implemented:
 * AveragePooling: as ScaledAveragePooling
 
 * GlobalAveragePooling2D: as ScaledGlobalAveragePooling2D
-
-* MaxPooling2D: as ScaledMaxPooling2D
 
 By default the layers are 1 Lipschitz almost everywhere, which is efficient for wasserstein distance estimation. However
 for other problems (such as adversarial robustness ) the user may want to use layers that are at most 1 lipschitz, this
@@ -35,7 +35,7 @@ from .normalizers import (
     DEFAULT_NITER_SPECTRAL_INIT,
 )
 from .normalizers import bjorck_normalization, spectral_normalization
-from .utils import deel_export
+from .utils import _deel_export
 
 
 class LipschitzLayer:
@@ -139,7 +139,7 @@ class Condensable:
         )
 
 
-@deel_export
+@_deel_export
 class SpectralDense(Dense, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -239,6 +239,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             name="sigma",
             trainable=False,
         )
+        self.sig.assign([[1.0]])
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -313,7 +314,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -451,6 +452,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             name="sigma",
             trainable=False,
         )
+        self.sig.assign([[1.0]])
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -591,7 +593,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
     Same a SpectralDense, but in the case of a single output.
@@ -679,7 +681,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@deel_export
+@_deel_export
 class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     """
     Same as SpectralConv2D but in the case of a single output.
@@ -786,7 +788,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return SpectralConv2D.vanilla_export(self)
 
 
-@deel_export
+@_deel_export
 class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -870,74 +872,86 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
-class ScaledMaxPooling2D(KerasMaxPooling2D, LipschitzLayer):
-    def __init__(
-        self,
-        pool_size=(2, 2),
-        strides=None,
-        padding="valid",
-        data_format=None,
-        k_coef_lip=1.0,
-        **kwargs
-    ):
+@_deel_export
+class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
+
+    def __init__(self,
+                 pool_size=(2, 2),
+                 strides=None,
+                 padding='valid',
+                 data_format=None,
+                 k_coef_lip=1.0,
+                 **kwargs):
         """
-        Global Max pooling operation for 3D data. Same as keras.MaxPooling2D but with lipschitz corrective factor.
+        Average pooling operation for spatial data, with a lipschitz bound. This pooling operation is norm preserving
+        (aka gradient=1 almost everywhere).
+
+        [1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature Pooling in Visual Recognition »,p.8.
 
         Arguments:
+            pool_size: integer or tuple of 2 integers,
+                factors by which to downscale (vertical, horizontal).
+                `(2, 2)` will halve the input in both spatial dimension.
+                If only one integer is specified, the same window length
+                will be used for both dimensions.
+            strides: Integer, tuple of 2 integers, or None.
+                Strides values.
+                If None, it will default to `pool_size`.
+            padding: One of `"valid"` or `"same"` (case-insensitive).
             data_format: A string,
                 one of `channels_last` (default) or `channels_first`.
                 The ordering of the dimensions in the inputs.
                 `channels_last` corresponds to inputs with shape
-                `(batch, spatial_dim1, spatial_dim2, spatial_dim3, channels)`
-                while `channels_first` corresponds to inputs with shape
-                `(batch, channels, spatial_dim1, spatial_dim2, spatial_dim3)`.
+                `(batch, height, width, channels)` while `channels_first`
+                corresponds to inputs with shape
+                `(batch, channels, height, width)`.
                 It defaults to the `image_data_format` value found in your
                 Keras config file at `~/.keras/keras.json`.
                 If you never set it, then it will be "channels_last".
+            k_coef_lip: the lipschitz factor to ensure
 
         Input shape:
             - If `data_format='channels_last'`:
-                5D tensor with shape:
-                `(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, channels)`
+                4D tensor with shape `(batch_size, rows, cols, channels)`.
             - If `data_format='channels_first'`:
-                5D tensor with shape:
-                `(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3)`
+                4D tensor with shape `(batch_size, channels, rows, cols)`.
 
         Output shape:
-            2D tensor with shape `(batch_size, channels)`.
-
-        This documentation reuse the body of the original keras.layers.MaxPooling doc.
+            - If `data_format='channels_last'`:
+                4D tensor with shape `(batch_size, pooled_rows, pooled_cols, channels)`.
+            - If `data_format='channels_first'`:
+                4D tensor with shape `(batch_size, channels, pooled_rows, pooled_cols)`.
         """
         if not ((strides == pool_size) or (strides is None)):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
-            raise RuntimeError("ScaledMaxPooling only support padding='valid'")
+            raise RuntimeError("NormalizedConv only support padding='valid'")
+        super(ScaledL2NormPooling2D, self).__init__(pool_size=pool_size, strides=pool_size, padding=padding,
+                                                     data_format=data_format, **kwargs)
         self.set_klip_factor(k_coef_lip)
         self._kwargs = kwargs
-        super().__init__(pool_size, pool_size, padding, data_format, **kwargs)
 
     def build(self, input_shape):
-        super(ScaledMaxPooling2D, self).build(input_shape)
+        super(AveragePooling2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return 1.0
+        return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     @tf.function
     def call(self, x, training=None):
-        return super(ScaledMaxPooling2D, self).call(x) * self._get_coef()
+        return tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
 
     def get_config(self):
         config = {
-            "k_coef_lip": self.k_coef_lip,
+            'k_coef_lip': self.k_coef_lip,
         }
-        base_config = super(ScaledMaxPooling2D, self).get_config()
+        base_config = super(AveragePooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
+@_deel_export
 class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.

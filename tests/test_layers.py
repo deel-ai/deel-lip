@@ -1,3 +1,5 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 import os
 import pprint
 import unittest
@@ -22,7 +24,7 @@ from deel.lip.layers import (
     FrobeniusConv2D,
     ScaledAveragePooling2D,
     ScaledGlobalAveragePooling2D,
-)
+    ScaledL2NormPooling2D)
 from deel.lip.model import Sequential
 from deel.lip.utils import load_model, evaluate_lip_const
 
@@ -78,7 +80,7 @@ def linear_generator(batch_size, input_shape: tuple, kernel):
                 [i for i in range(0, len(input_shape))],
             ),
         )
-        yield batch_x, batch_y, [None]
+        yield batch_x, batch_y
 
 
 def build_kernel(input_shape: tuple, output_shape: tuple, k=1.0):
@@ -195,7 +197,7 @@ def train_k_lip_model(
         callbacks=callback_list,
     )
     # the seed is set to compare all models with the same data
-    x, y, _ = linear_generator(batch_size, input_shape, kernel).send(None)
+    x, y = linear_generator(batch_size, input_shape, kernel).send(None)
     np.random.seed(42)
     set_seed(42)
     loss, mse = model.__getattribute__(EVALUATE)(
@@ -559,6 +561,61 @@ class LipschitzLayersTest(unittest.TestCase):
                         "layers": [
                             Input((5, 5, 1)),
                             ScaledGlobalAveragePooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_scaledl2normpooling2d(self):
+        self._apply_tests_bank(
+            [
+                # tests only checks that lip cons is enforced
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledL2NormPooling2D(data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,

@@ -1,3 +1,5 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 """
 This module contains equivalents for Model and Sequential. These classes add support for condensation and vanilla
 exportation.
@@ -8,10 +10,10 @@ import numpy as np
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
 from tensorflow.keras.layers import Input
 from .layers import LipschitzLayer, Condensable
-from .utils import deel_export
+from .utils import _deel_export
 
 
-@deel_export
+@_deel_export
 class Sequential(KerasSequential, LipschitzLayer, Condensable):
     def __init__(
         self, layers=None, name=None, k_coef_lip=1.0,
@@ -104,7 +106,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@deel_export
+@_deel_export
 class Model(KerasModel, Condensable):
     def __init__(self, *args, **kwargs):
         """

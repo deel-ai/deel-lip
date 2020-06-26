@@ -11,7 +11,7 @@ dataset.
     from tensorflow.keras.layers import ReLU
     from tensorflow.keras.optimizers import Adam
 
-    from deel.lip.layers import SpectralConv2D, ScaledMaxPooling2D, SpectralDense, FrobeniusDense
+    from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, GroupSort2, FullSort
     from deel.lip.utils import load_model
     from deel.lip.losses import HKR_loss, KR_loss, hinge_margin_loss

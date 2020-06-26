@@ -1,3 +1,5 @@
+# © IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All rights reserved. DEEL is a research
+# program operated by IVADO, IRT Saint Exupéry, CRIAQ and ANITI - https://www.deel.ai/
 import unittest
 import numpy as np
 import tensorflow as tf
@@ -18,12 +20,12 @@ np.random.seed(42)
 class MyTestCase(unittest.TestCase):
     def test_spectral_initializer(self):
         input_shape = (5,)
-        model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(3)),])
+        model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(3))])
         self._test_model(model, input_shape)
 
     def test_bjorck_initializer(self):
         input_shape = (5,)
-        model = Sequential([Dense(4, kernel_initializer=BjorckInitializer(3, 15)),])
+        model = Sequential([Dense(4, kernel_initializer=BjorckInitializer(3, 15))])
         self._test_model(model, input_shape)
 
     def _test_model(self, model, input_shape):
@@ -42,7 +44,7 @@ class MyTestCase(unittest.TestCase):
         kernel = build_kernel(input_shape, output_shape, k_lip_data)
         # define logging features
         # the seed is set to compare all models with the same data
-        x, y, _ = linear_generator(batch_size, input_shape, kernel).send(None)
+        x, y = linear_generator(batch_size, input_shape, kernel).send(None)
         np.random.seed(42)
         empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
         self.assertLessEqual(

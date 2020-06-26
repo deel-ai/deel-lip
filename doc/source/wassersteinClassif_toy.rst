@@ -29,7 +29,7 @@ We will perform this on the ``two moons`` synthetic dataset.
     from tensorflow.keras.metrics import binary_accuracy
     
     from deel.lip.model import Model  # use of deel.lip is not mandatory but offers the vanilla_export feature
-    from deel.lip.layers import SpectralConv2D, ScaledMaxPooling2D, SpectralDense, FrobeniusDense
+    from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, FullSort, GroupSort2
     from deel.lip.utils import load_model  # wrapper that avoid manually specifying custom_objects field
     from deel.lip.losses import HKR_loss, KR_loss, hinge_margin_loss  # custom losses for HKR robust classif
