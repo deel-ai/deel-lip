@@ -1,9 +1,9 @@
-name: Minilp tests
+name: deel-lip linters
 
 on: [push]
 
 jobs:
-  build:
+  checks:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
