@@ -40,7 +40,8 @@ def load_model(filepath, custom_objects=None, compile=True) -> Model:
             or functions to be considered during deserialization.
         compile: Boolean, whether to compile the model after loading.
 
-    Returns: A Keras model instance. If an optimizer was found
+    Returns:
+        A Keras model instance. If an optimizer was found
 
     """
     deel_custom_objects = CUSTOM_OBJECTS.copy()
@@ -58,7 +59,8 @@ def model_from_json(json_string, custom_objects=None) -> Model:
         custom_objects: Optional dictionary mapping names (strings) to custom classes
             or functions to be considered during deserialization.
 
-    Returns: A Keras model instance (uncompiled).
+    Returns:
+        A Keras model instance (uncompiled).
 
     """
     deel_custom_objects = CUSTOM_OBJECTS.copy()
@@ -78,7 +80,8 @@ def model_from_yaml(yaml_string, custom_objects=None) -> Model:
         custom_objects: Optional dictionary mapping names (strings) to custom classes
             or functions to be considered during deserialization.
 
-    Returns: A Keras model instance (uncompiled).
+    Returns:
+        A Keras model instance (uncompiled).
 
     """
     deel_custom_objects = CUSTOM_OBJECTS.copy()
@@ -109,7 +112,8 @@ def evaluate_lip_const_gen(
         eps: magnitude of noise to add to input in order to compute the constant
         seed: seed used when generating the noise ( can be set to None )
 
-    Returns: the empirically evaluated lipschitz constant.
+    Returns:
+        the empirically evaluated lipschitz constant.
 
     """
     x, y = generator.send(None)

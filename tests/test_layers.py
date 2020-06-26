@@ -66,7 +66,8 @@ def linear_generator(batch_size, input_shape: tuple, kernel):
         kernel: kernel used to generate data, must match the last dimensions of
             `input_shape`
 
-    Returns: a generator for the data
+    Returns:
+        a generator for the data
 
     """
     input_shape = tuple(input_shape)
@@ -96,7 +97,8 @@ def build_kernel(input_shape: tuple, output_shape: tuple, k=1.0):
         output_shape: output shape of the linear function
         k: lipshitz factor of the function
 
-    Returns: the kernel for use in the linear_generator
+    Returns:
+        the kernel for use in the linear_generator
 
     """
     input_shape = tuple(input_shape)
@@ -121,7 +123,8 @@ def generate_k_lip_model(layer_type: type, layer_params: dict, input_shape, k):
         input_shape: the shape of the input
         k: lipshitz factor of the function
 
-    Returns: a keras Model with a single layer.
+    Returns:
+        a keras Model with a single layer.
 
     """
     if issubclass(layer_type, Sequential):
@@ -165,7 +168,8 @@ def train_k_lip_model(
         k_lip_data:
         **kwargs:
 
-    Returns: the
+    Returns:
+        the generator
 
     """
     # clear session to avoid side effects from previous train

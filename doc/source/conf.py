@@ -18,16 +18,20 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'deel-lip'
-copyright = '2020, SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n' \
-            'MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n' \
-            'BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)'
-author = 'SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n' \
-         'MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n' \
-         'BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)'
+project = "deel-lip"
+copyright = (
+    "2020, SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n"
+    "MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n"
+    "BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)"
+)
+author = (
+    "SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n"
+    "MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n"
+    "BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)"
+)
 
 # The full version, including alpha/beta/rc tags
-release = '2.0'
+release = "2.0"
 
 # -- General configuration ---------------------------------------------------
 
@@ -35,27 +39,27 @@ release = '2.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx_markdown_builder',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx_markdown_builder",
     "sphinx_rtd_theme",
-    'm2r',
+    "recommonmark",
 ]
 
 autoclass_content = "both"
-autoapi_root = '../deel'
+autoapi_root = "../deel"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    'build\\*',
-    '..\\deel\\lip\\examples\\*',
-    '..\\deel\\lip\\tests\\*',
-    '..\\deel\\lip\\experiments\\*',
+    "build\\*",
+    "..\\deel\\lip\\examples\\*",
+    "..\\deel\\lip\\tests\\*",
+    "..\\deel\\lip\\experiments\\*",
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -67,17 +71,19 @@ exclude_patterns = [
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 html_theme = "sphinx_rtd_theme"
 
-html_logo = 'logo_white.svg'
+html_logo = "logo_white.svg"
 
 
 html_theme_options = {
     # Toc options
-    'collapse_navigation': False,
-    'titles_only': False
+    "collapse_navigation": False,
+    "titles_only": False,
 }
 
-html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
+html_sidebars = {
+    "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
+}

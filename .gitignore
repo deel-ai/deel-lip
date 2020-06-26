@@ -11,3 +11,4 @@ __pycache__
 # Files generated:
 logs
 export-wass
+doc/build

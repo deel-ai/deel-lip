@@ -19,7 +19,8 @@ def KR_loss(true_values=(0, 1)):
     Args:
         true_values: tuple containing the two label for each predicted class
 
-    Returns: Callable, the function to compute Wasserstein loss
+    Returns:
+        Callable, the function to compute Wasserstein loss
 
     """
 
@@ -41,7 +42,8 @@ def neg_KR_loss(true_values=(1, -1)):
     Args:
         true_values: tuple containing the two label for each predicted class
 
-    Returns: Callable, the function to compute negative Wasserstein loss
+    Returns:
+        Callable, the function to compute negative Wasserstein loss
 
     """
 
@@ -62,7 +64,8 @@ def HKR_loss(alpha, min_margin=1, true_values=(1, -1)):
         min_margin: minimal margin ( see hinge_margin_loss )
         true_values: tuple containing the two label for each predicted class
 
-    Returns: a function that compute the regularized Wasserstein loss
+    Returns:
+         a function that compute the regularized Wasserstein loss
 
     """
 
@@ -88,7 +91,8 @@ def hinge_margin_loss(min_margin=1):
     Args:
         min_margin: the minimal margin to enforce.
 
-    Returns: a function that compute the hinge loss
+    Returns:
+        a function that compute the hinge loss
 
     """
 
