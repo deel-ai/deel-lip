@@ -121,7 +121,7 @@ def evaluate_lip_const_gen(
     Returns: the empirically evaluated lipschitz constant.
 
     """
-    x, y, _ = generator.send(None)
+    x, y = generator.send(None)
     return evaluate_lip_const(model, x, eps, seed=seed)
 
 

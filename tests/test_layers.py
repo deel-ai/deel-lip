@@ -78,7 +78,7 @@ def linear_generator(batch_size, input_shape: tuple, kernel):
                 [i for i in range(0, len(input_shape))],
             ),
         )
-        yield batch_x, batch_y, [None]
+        yield batch_x, batch_y
 
 
 def build_kernel(input_shape: tuple, output_shape: tuple, k=1.0):
@@ -195,7 +195,7 @@ def train_k_lip_model(
         callbacks=callback_list,
     )
     # the seed is set to compare all models with the same data
-    x, y, _ = linear_generator(batch_size, input_shape, kernel).send(None)
+    x, y = linear_generator(batch_size, input_shape, kernel).send(None)
     np.random.seed(42)
     set_seed(42)
     loss, mse = model.__getattribute__(EVALUATE)(
