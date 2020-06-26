@@ -19,6 +19,12 @@ dev_requires = [
     "numpy",
 ]
 
+docs_requires = [
+    "sphinx",
+    "recommonmark",
+    "sphinx_rtd_theme",
+    "sphinx_markdown_builder",
+]
 
 setuptools.setup(
     name="deel-lip",
@@ -38,7 +44,7 @@ setuptools.setup(
     packages=setuptools.find_namespace_packages(include=["deel.*"]),
     install_requires=["numpy", "tensorflow>=2,<=2.2"],
     license="MIT",
-    extras_require={"dev": dev_requires,},
+    extras_require={"dev": dev_requires, "docs": docs_requires},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
