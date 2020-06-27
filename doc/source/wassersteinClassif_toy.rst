@@ -1,5 +1,5 @@
 Demo 2: HKR Classifier on toy dataset
-=============================
+=====================================
 
 In this demo notebook we will show how to build a robust classifier
 based on the regularized version of the Kantorovitch-Rubinstein duality.
@@ -11,14 +11,14 @@ We will perform this on the ``two moons`` synthetic dataset.
     import os
     import numpy as np
     import math
-    
+
     from sklearn.datasets import make_moons, make_circles  # the synthetic dataset
-    
-    import matplotlib.pyplot as plt 
+
+    import matplotlib.pyplot as plt
     import seaborn as sns
-    
+
     from wasserstein_utils.otp_utils import otp_generator  # keras generator of the synthetic dataset
-    
+
     # in order to build our classifier we will use element from tensorflow along with
     # layers from deel-lip
     import tensorflow as tf
@@ -27,14 +27,14 @@ We will perform this on the ``two moons`` synthetic dataset.
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import ReduceLROnPlateau
     from tensorflow.keras.metrics import binary_accuracy
-    
+
     from deel.lip.model import Model  # use of deel.lip is not mandatory but offers the vanilla_export feature
     from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, FullSort, GroupSort2
     from deel.lip.utils import load_model  # wrapper that avoid manually specifying custom_objects field
     from deel.lip.losses import HKR_loss, KR_loss, hinge_margin_loss  # custom losses for HKR robust classif
     from deel.lip.normalizers import DEFAULT_NITER_BJORCK, DEFAULT_NITER_SPECTRAL
-    
+
     from model_samples.model_samples import get_lipMLP  # helper to quickly build an HKR classifier
 
 Parameters
@@ -55,9 +55,9 @@ Let’s first construct our two moons dataset
         X,Y=make_circles(n_samples=n_samples,noise=noise,factor=factor)
     else:
         X,Y=make_moons(n_samples=n_samples,noise=noise)
-    
+
     # When working with the HKR-classifier, using labels {-1, 1} instead of {0, 1} is advised.
-    # This will be explained further on 
+    # This will be explained further on
     Y[Y==1]=-1
     Y[Y==0]=1
 
@@ -99,7 +99,7 @@ KR dual formulation
 
 In our setup, the KR dual formulation is stated as following:
 
-.. math::  W_1(\mu, \nu) = \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -\underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right] 
+.. math::  W_1(\mu, \nu) = \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -\underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
 
 This state the problem as an optimization problem over the 1-lipschitz
 functions. Therefore k-Lipschitz networks allows us to solve this
@@ -156,18 +156,18 @@ Let’s build our model now.
 
     K.clear_session()
     wass=get_lipMLP(
-        (2,), 
+        (2,),
         hidden_layers_size = hidden_layers_size,
-        activation=activation, 
+        activation=activation,
         nb_classes = 1,
-        kCoefLip=1.0, 
-        niter_spectral = niter_spectral, 
+        kCoefLip=1.0,
+        niter_spectral = niter_spectral,
         niter_bjorck = niter_bjorck
     )
     ## please note that calling the previous helper function has the exact
     ## same effect as the following code:
     # inputs = Input((2,))
-    # x = SpectralDense(256, activation=FullSort(), 
+    # x = SpectralDense(256, activation=FullSort(),
     #                   niter_spectral=niter_spectral,
     #                   niter_bjorck=niter_bjorck)(inputs)
     # x = SpectralDense(128, activation=FullSort(),
@@ -188,31 +188,31 @@ Let’s build our model now.
     64
     Model: "model"
     _________________________________________________________________
-    Layer (type)                 Output Shape              Param #   
+    Layer (type)                 Output Shape              Param #
     =================================================================
-    input_1 (InputLayer)         [(None, 2)]               0         
+    input_1 (InputLayer)         [(None, 2)]               0
     _________________________________________________________________
-    flatten (Flatten)            (None, 2)                 0         
+    flatten (Flatten)            (None, 2)                 0
     _________________________________________________________________
-    spectral_dense (SpectralDens (None, 256)               1025      
+    spectral_dense (SpectralDens (None, 256)               1025
     _________________________________________________________________
-    full_sort (FullSort)         (None, 256)               0         
+    full_sort (FullSort)         (None, 256)               0
     _________________________________________________________________
-    spectral_dense_1 (SpectralDe (None, 128)               33025     
+    spectral_dense_1 (SpectralDe (None, 128)               33025
     _________________________________________________________________
-    full_sort_1 (FullSort)       (None, 128)               0         
+    full_sort_1 (FullSort)       (None, 128)               0
     _________________________________________________________________
-    spectral_dense_2 (SpectralDe (None, 64)                8321      
+    spectral_dense_2 (SpectralDe (None, 64)                8321
     _________________________________________________________________
-    full_sort_2 (FullSort)       (None, 64)                0         
+    full_sort_2 (FullSort)       (None, 64)                0
     _________________________________________________________________
-    frobenius_dense (FrobeniusDe (None, 1)                 65        
+    frobenius_dense (FrobeniusDe (None, 1)                 65
     =================================================================
     Total params: 42,436
     Trainable params: 41,985
     Non-trainable params: 451
     _________________________________________________________________
-    
+
 
 As we can see the network has a gradient equal to 1 almost everywhere as
 all the layers respect this property.
@@ -256,7 +256,7 @@ dataset.
 
     wass.fit_generator(
         gen,
-        steps_per_epoch=steps_per_epoch // batch_size, 
+        steps_per_epoch=steps_per_epoch // batch_size,
         epochs=epoch,
         verbose=1
     )
@@ -269,7 +269,7 @@ dataset.
     Please use Model.fit, which supports generators.
     WARNING:tensorflow:sample_weight modes were coerced from
       ...
-        to  
+        to
       ['...']
     Train for 158 steps
     Epoch 1/10
@@ -292,7 +292,7 @@ dataset.
     158/158 [==============================] - 3s 19ms/step - loss: -0.8315 - KR_loss_fct: -0.9945 - hinge_margin_fct: 0.0163 - HKR_binary_accuracy: 0.9895
     Epoch 10/10
     158/158 [==============================] - 3s 20ms/step - loss: -0.8438 - KR_loss_fct: -0.9913 - hinge_margin_fct: 0.0147 - HKR_binary_accuracy: 0.9925
-    
+
 
 
 
@@ -316,7 +316,7 @@ countour plot to visualize f.
     from matplotlib import cm
     from matplotlib.ticker import LinearLocator, FormatStrFormatter
     batch_size=1024
-    
+
     x = np.linspace(X[:,0].min()-0.2, X[:,0].max()+0.2, 120)
     y = np.linspace(X[:,1].min()-0.2, X[:,1].max()+0.2,120)
     xx, yy = np.meshgrid(x, y, sparse=False)
@@ -326,7 +326,7 @@ countour plot to visualize f.
 
     # make predictions of f
     pred=wass.predict(X_pred)
-    
+
     Y_pred=pred
     Y_pred=Y_pred.reshape(x.shape[0],y.shape[0])
 
@@ -335,7 +335,7 @@ countour plot to visualize f.
     #plot the results
     fig = plt.figure(figsize=(10,7))
     ax1 = fig.add_subplot(111)
-    
+
     sns.scatterplot(X[Y==1,0],X[Y==1,1],alpha=0.1,ax=ax1)
     sns.scatterplot(X[Y==-1,0],X[Y==-1,1],alpha=0.1,ax=ax1)
     cset =ax1.contour(xx,yy,Y_pred,cmap='twilight')
@@ -387,31 +387,31 @@ inference.
     tensor input shape (None, 64)
     Model: "model_1"
     _________________________________________________________________
-    Layer (type)                 Output Shape              Param #   
+    Layer (type)                 Output Shape              Param #
     =================================================================
-    input_2 (InputLayer)         [(None, 2)]               0         
+    input_2 (InputLayer)         [(None, 2)]               0
     _________________________________________________________________
-    flatten (Flatten)            (None, 2)                 0         
+    flatten (Flatten)            (None, 2)                 0
     _________________________________________________________________
-    spectral_dense (Dense)       (None, 256)               768       
+    spectral_dense (Dense)       (None, 256)               768
     _________________________________________________________________
-    full_sort (FullSort)         (None, 256)               0         
+    full_sort (FullSort)         (None, 256)               0
     _________________________________________________________________
-    spectral_dense_1 (Dense)     (None, 128)               32896     
+    spectral_dense_1 (Dense)     (None, 128)               32896
     _________________________________________________________________
-    full_sort_1 (FullSort)       (None, 128)               0         
+    full_sort_1 (FullSort)       (None, 128)               0
     _________________________________________________________________
-    spectral_dense_2 (Dense)     (None, 64)                8256      
+    spectral_dense_2 (Dense)     (None, 64)                8256
     _________________________________________________________________
-    full_sort_2 (FullSort)       (None, 64)                0         
+    full_sort_2 (FullSort)       (None, 64)                0
     _________________________________________________________________
-    frobenius_dense (Dense)      (None, 1)                 65        
+    frobenius_dense (Dense)      (None, 1)                 65
     =================================================================
     Total params: 41,985
     Trainable params: 41,985
     Non-trainable params: 0
     _________________________________________________________________
-    
+
 
 .. code:: ipython3
 
@@ -429,7 +429,7 @@ inference.
     sns.scatterplot(X[Y==-1,0],X[Y==-1,1],alpha=0.1,ax=ax1)
     cset =ax1.contour(xx,yy,Y_pred,cmap='twilight')
     ax1.clabel(cset, inline=1, fontsize=10)
-    
+
 
 
 

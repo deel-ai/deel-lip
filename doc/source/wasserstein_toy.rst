@@ -1,5 +1,5 @@
 Demo 1: Wasserstein distance estimation on toy example
-==============================================
+======================================================
 
 In this notebook we will see how to estimate the wasserstein distance
 with a Neural net by using the Kantorovich-Rubinestein dual
@@ -11,19 +11,19 @@ representation.
     import os
     import numpy as np
     import math
-    
-    import matplotlib.pyplot as plt 
-    
+
+    import matplotlib.pyplot as plt
+
     from tensorflow.keras import backend as K
     from tensorflow.keras.layers import Input, Flatten, ReLU
     from tensorflow.keras.optimizers import Adam
-    
+
     from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, FullSort
     from deel.lip.utils import load_model
     from deel.lip.losses import KR_loss
     from deel.lip.model import Model
-    
+
     from model_samples.model_samples import get_lipMLP
 
 Parameters input images
@@ -34,7 +34,7 @@ allowing us to check if the computed wasserstein distance is correct.
 
 .. code:: ipython3
 
-    img_size = 64 
+    img_size = 64
     frac_value = 0.3  # proportion of the center square
 
 Generate images
@@ -45,7 +45,7 @@ Generate images
     def generate_toy_images(shape,frac=0,v=1):
         """
         function that generate a single image.
-        
+
         Args:
             shape: shape of the output image
             frac: proportion of the center square
@@ -63,8 +63,8 @@ Generate images
         wdec=(shape[1]-w)//2
         img[ldec:ldec+l,wdec:wdec+w,:]=v
         return img
-    
-    
+
+
     def binary_generator(batch_size,shape,frac=0):
         """
         generate a batch with half of black images, hald of images with a white square.
@@ -75,8 +75,8 @@ Generate images
         batch_y[batch_size//2:]=1
         while True:
             yield  batch_x, batch_y
-    
-    
+
+
     def ternary_generator(batch_size,shape,frac=0):
         """
         Same as binary generator, but images can have a white square of value 1, or value -1
@@ -101,9 +101,9 @@ Generate images
         if img.shape[-1] == 1:
             img = np.tile(img,(3,))
         fig, ax = plt.subplots()
-        
+
         imgplot = ax.imshow((img*255).astype(np.uint))
-        
+
 
 Now let’s take a look at the generated batches
 
@@ -111,7 +111,7 @@ Now let’s take a look at the generated batches
 
     test=binary_generator(2,(img_size,img_size,1),frac=frac_value)
     imgs, y=next(test)
-    
+
     display_img(imgs[0])
     display_img(imgs[1])
     print("Norm L2 "+str(np.linalg.norm(imgs[1])))
@@ -122,7 +122,7 @@ Now let’s take a look at the generated batches
 
     Norm L2 35.0
     Norm L2(count pixels) 35.0
-    
+
 
 
 .. image:: output_8_1.png
@@ -136,10 +136,10 @@ Now let’s take a look at the generated batches
 
     test=ternary_generator(4,(img_size,img_size,1),frac=frac_value)
     imgs, y=next(test)
-    
+
     for i in range(4):
         display_img(0.5*(imgs[i]+1.0)) # we ensure that there is no negative value wehn displaying images
-    
+
     print("Norm L2(imgs[2]-imgs[0])"+str(np.linalg.norm(imgs[2]-imgs[0])))
     print("Norm L2(imgs[2]) "+str(np.linalg.norm(imgs[2])))
     print("Norm L2(count pixels) "+str(math.sqrt(np.size(imgs[2][imgs[2]==-1]))))
@@ -150,7 +150,7 @@ Now let’s take a look at the generated batches
     Norm L2(imgs[2]-imgs[0])35.0
     Norm L2(imgs[2]) 35.0
     Norm L2(count pixels) 35.0
-    
+
 
 
 .. image:: output_9_1.png
@@ -182,7 +182,7 @@ KR dual formulation
 
 In our setup, the KR dual formulation is stated as following:
 
-.. math::  W_1(\mu, \nu) = \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -\underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right] 
+.. math::  W_1(\mu, \nu) = \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -\underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
 
 This state the problem as an optimization problem over the 1-lipschitz
 functions. Therefore k-Lipschitz networks allows us to solve this
@@ -226,31 +226,31 @@ Build lipschitz Model
     32
     Model: "model"
     _________________________________________________________________
-    Layer (type)                 Output Shape              Param #   
+    Layer (type)                 Output Shape              Param #
     =================================================================
-    input_1 (InputLayer)         [(None, 64, 64, 1)]       0         
+    input_1 (InputLayer)         [(None, 64, 64, 1)]       0
     _________________________________________________________________
-    flatten (Flatten)            (None, 4096)              0         
+    flatten (Flatten)            (None, 4096)              0
     _________________________________________________________________
-    spectral_dense (SpectralDens (None, 128)               524545    
+    spectral_dense (SpectralDens (None, 128)               524545
     _________________________________________________________________
-    full_sort (FullSort)         (None, 128)               0         
+    full_sort (FullSort)         (None, 128)               0
     _________________________________________________________________
-    spectral_dense_1 (SpectralDe (None, 64)                8321      
+    spectral_dense_1 (SpectralDe (None, 64)                8321
     _________________________________________________________________
-    full_sort_1 (FullSort)       (None, 64)                0         
+    full_sort_1 (FullSort)       (None, 64)                0
     _________________________________________________________________
-    spectral_dense_2 (SpectralDe (None, 32)                2113      
+    spectral_dense_2 (SpectralDe (None, 32)                2113
     _________________________________________________________________
-    full_sort_2 (FullSort)       (None, 32)                0         
+    full_sort_2 (FullSort)       (None, 32)                0
     _________________________________________________________________
-    frobenius_dense (FrobeniusDe (None, 1)                 33        
+    frobenius_dense (FrobeniusDe (None, 1)                 33
     =================================================================
     Total params: 535,012
     Trainable params: 534,785
     Non-trainable params: 227
     _________________________________________________________________
-    
+
 
 .. code:: ipython3
 
@@ -258,7 +258,7 @@ Build lipschitz Model
 
 .. code:: ipython3
 
-    wass.compile(loss=KR_loss(), optimizer=optimizer, metrics=[KR_loss()])  
+    wass.compile(loss=KR_loss(), optimizer=optimizer, metrics=[KR_loss()])
 
 Learn on toy dataset
 ~~~~~~~~~~~~~~~~~~~~
@@ -277,7 +277,7 @@ Learn on toy dataset
     Please use Model.fit, which supports generators.
     WARNING:tensorflow:sample_weight modes were coerced from
       ...
-        to  
+        to
       ['...']
     Train for 100 steps
     Epoch 1/5
@@ -290,7 +290,7 @@ Learn on toy dataset
     100/100 [==============================] - 18s 177ms/step - loss: -34.9942 - KR_loss_fct: -34.9942
     Epoch 5/5
     100/100 [==============================] - 18s 177ms/step - loss: -34.9942 - KR_loss_fct: -34.9942
-    
+
 
 
 

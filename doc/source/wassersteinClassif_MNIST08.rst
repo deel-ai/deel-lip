@@ -1,5 +1,5 @@
 Demo 3: HKR classifier on MNIST dataset
-===============================
+=======================================
 
 This notebook will demonstrate learning a binary task on the MNIST0-8
 dataset.
@@ -15,7 +15,7 @@ dataset.
     from deel.lip.activations import MaxMin, GroupSort, GroupSort2, FullSort
     from deel.lip.utils import load_model
     from deel.lip.losses import HKR_loss, KR_loss, hinge_margin_loss
-    
+
     from model_samples.model_samples import get_lipMLP, get_lipVGG_model
 
 data preparation
@@ -27,10 +27,10 @@ For this task we will select two classes: 0 and 8. Labels are changed to
 .. code:: ipython3
 
     from tensorflow.keras.datasets import mnist
-    
+
     # first we select the two classes
     selected_classes = [0, 8]  # must be two classes as we perform binary classification
-    
+
     def prepare_data(x, y, class_a=0, class_b=8):
         """
         This function convert the MNIST data to make it suitable for our binary classification
@@ -49,18 +49,18 @@ For this task we will select two classes: 0 and 8. Labels are changed to
         y[y==class_a] = 1.0
         y[y==class_b] = -1.0
         return x, y
-    
+
     # now we load the dataset
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    
+
     # prepare the data
     x_train, y_train = prepare_data(x_train, y_train, selected_classes[0], selected_classes[1])
     x_test, y_test = prepare_data(x_test, y_test, selected_classes[0], selected_classes[1])
-    
+
     # display infos about dataset
-    print("train set size: %i samples, classes proportions: %.3f percent" % 
+    print("train set size: %i samples, classes proportions: %.3f percent" %
           (y_train.shape[0], 100*y_train[y_train==1].sum()/y_train.shape[0]))
-    print("test set size: %i samples, classes proportions: %.3f percent" % 
+    print("test set size: %i samples, classes proportions: %.3f percent" %
           (y_test.shape[0], 100*y_test[y_test==1].sum()/y_test.shape[0]))
 
 
@@ -68,7 +68,7 @@ For this task we will select two classes: 0 and 8. Labels are changed to
 
     train set size: 11774 samples, classes proportions: 50.306 percent
     test set size: 1954 samples, classes proportions: 50.154 percent
-    
+
 
 Build lipschitz Model
 ---------------------
@@ -80,11 +80,11 @@ Let’s first explicit the paremeters of this experiment
     # training parameters
     epochs=5
     batch_size=128
-    
+
     # network parameters
     hidden_layers_size = [128,64,32]
     activation = GroupSort #ReLU, MaxMin, GroupSort2
-    
+
     # loss parameters
     min_margin=1
     alpha = 10
@@ -109,31 +109,31 @@ But ``Deel-lip`` also provide state of the art 1-Lipschitz convolutions.
     32
     Model: "model"
     _________________________________________________________________
-    Layer (type)                 Output Shape              Param #   
+    Layer (type)                 Output Shape              Param #
     =================================================================
-    input_1 (InputLayer)         [(None, 28, 28, 1)]       0         
+    input_1 (InputLayer)         [(None, 28, 28, 1)]       0
     _________________________________________________________________
-    flatten (Flatten)            (None, 784)               0         
+    flatten (Flatten)            (None, 784)               0
     _________________________________________________________________
-    spectral_dense (SpectralDens (None, 128)               100609    
+    spectral_dense (SpectralDens (None, 128)               100609
     _________________________________________________________________
-    group_sort (GroupSort)       (None, 128)               0         
+    group_sort (GroupSort)       (None, 128)               0
     _________________________________________________________________
-    spectral_dense_1 (SpectralDe (None, 64)                8321      
+    spectral_dense_1 (SpectralDe (None, 64)                8321
     _________________________________________________________________
-    group_sort_1 (GroupSort)     (None, 64)                0         
+    group_sort_1 (GroupSort)     (None, 64)                0
     _________________________________________________________________
-    spectral_dense_2 (SpectralDe (None, 32)                2113      
+    spectral_dense_2 (SpectralDe (None, 32)                2113
     _________________________________________________________________
-    group_sort_2 (GroupSort)     (None, 32)                0         
+    group_sort_2 (GroupSort)     (None, 32)                0
     _________________________________________________________________
-    frobenius_dense (FrobeniusDe (None, 1)                 33        
+    frobenius_dense (FrobeniusDe (None, 1)                 33
     =================================================================
     Total params: 111,076
     Trainable params: 110,849
     Non-trainable params: 227
     _________________________________________________________________
-    
+
 
 .. code:: ipython3
 
@@ -189,7 +189,7 @@ Now the model is build, we can learn the task.
     11774/11774 [==============================] - 2s 206us/sample - loss: -6.9042 - KR_loss_fct: -7.1081 - hinge_margin_fct: 0.0204 - HKR_binary_accuracy: 0.9929 - val_loss: -6.9615 - val_KR_loss_fct: -7.1755 - val_hinge_margin_fct: 0.0233 - val_HKR_binary_accuracy: 0.9913
     Epoch 5/5
     11774/11774 [==============================] - 2s 207us/sample - loss: -6.9774 - KR_loss_fct: -7.1707 - hinge_margin_fct: 0.0193 - HKR_binary_accuracy: 0.9927 - val_loss: -6.9884 - val_KR_loss_fct: -7.1752 - val_hinge_margin_fct: 0.0215 - val_HKR_binary_accuracy: 0.9918
-    
+
 
 
 

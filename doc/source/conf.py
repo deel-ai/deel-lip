@@ -20,18 +20,18 @@ import sphinx_rtd_theme
 
 project = "deel-lip"
 copyright = (
-    "2020, SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n"
-    "MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n"
-    "BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)"
+    "2020, IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III"
+    " - All rights reserved. DEEL is a research program operated by IVADO, "
+    "IRT Saint Exupéry, CRIAQ and ANITI."
 )
 author = (
-    "SERRURIER Mathieu (mathieu.serrurier@irt-saintexupery.com),\n"
-    "MAMALET Franck (franck.mamalet@irt-saintexupery.com),\n"
-    "BOISSIN Thibaut (thibaut.boissin@irt-saintexupery.com)"
+    "Mathieu Serrurier (mathieu.serrurier@irt-saintexupery.com),\n"
+    "Franck Mamalet (franck.mamalet@irt-saintexupery.com),\n"
+    "Thibaut Boissin (thibaut.boissin@irt-saintexupery.com)"
 )
 
 # The full version, including alpha/beta/rc tags
-release = "2.0"
+release = "1.0.0"
 
 # -- General configuration ---------------------------------------------------
 
@@ -71,7 +71,7 @@ exclude_patterns = [
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+# html_static_path = ["_static"]
 
 html_theme = "sphinx_rtd_theme"
 
