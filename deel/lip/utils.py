@@ -102,7 +102,7 @@ def evaluate_lip_const_gen(
     Evaluate the Lipschitz constant of a model, with the naive method.
     Please note that the estimation of the lipschitz constant is done locally around
     input sample. This may not correctly estimate the behaviour in the whole domain.
-     The computation might also be inaccurate in high dimensional space.
+    The computation might also be inaccurate in high dimensional space.
 
     This is the generator version of evaluate_lip_const.
 
