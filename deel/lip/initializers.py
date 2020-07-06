@@ -2,7 +2,7 @@
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
-from tensorflow.keras.initializers import Initializer, RandomUniform
+from tensorflow.keras.initializers import Initializer, Orthogonal
 from tensorflow.keras import backend as K
 from tensorflow.keras import initializers
 from .normalizers import spectral_normalization, bjorck_normalization
@@ -14,7 +14,7 @@ class SpectralInitializer(Initializer):
     def __init__(
         self,
         niter_spectral=3,
-        base_initializer=RandomUniform(minval=0.0, maxval=0.5, seed=None),
+        base_initializer=Orthogonal(gain=1., seed=None),
     ) -> None:
         """
         Initialize a kernel to be 1-lipschitz using spectral normalization (iterative
@@ -22,7 +22,7 @@ class SpectralInitializer(Initializer):
 
         Args:
             niter_spectral: number of iteration to do with the iterative power method
-            base_initializer: method used to generat weights before applying iterative
+            base_initializer: method used to generate weights before applying iterative
                 power method
         """
         self.niter_spectral = niter_spectral
@@ -48,7 +48,7 @@ class BjorckInitializer(Initializer):
         self,
         niter_spectral=3,
         niter_bjorck=15,
-        base_initializer=RandomUniform(minval=0.0, maxval=0.5, seed=None),
+        base_initializer=Orthogonal(gain=1., seed=None),
     ) -> None:
         """
         Initialize a kernel to be 1-lipschitz almost everywhere using bjorck
@@ -57,7 +57,7 @@ class BjorckInitializer(Initializer):
         Args:
             niter_spectral: number of iteration to do with the iterative power method
             niter_bjorck: number of iteration to do with the bjorck algorithm
-            base_initializer: method used to generat weights before applying the
+            base_initializer: method used to generate weights before applying the
                 orthonormalization
         """
         self.niter_spectral = niter_spectral

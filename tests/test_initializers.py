@@ -24,15 +24,18 @@ class MyTestCase(unittest.TestCase):
         input_shape = (5,)
         model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(3))])
         self._test_model(model, input_shape)
+        model = Sequential([Dense(100, kernel_initializer=SpectralInitializer(3))])
+        self._test_model(model, input_shape)
 
     def test_bjorck_initializer(self):
         input_shape = (5,)
         model = Sequential([Dense(4, kernel_initializer=BjorckInitializer(3, 15))])
         self._test_model(model, input_shape)
+        model = Sequential([Dense(100, kernel_initializer=BjorckInitializer(3, 15))])
+        self._test_model(model, input_shape)
 
     def _test_model(self, model, input_shape):
         batch_size = 1000
-        k_lip_data = 1.0
         # clear session to avoid side effects from previous train
         K.clear_session()
         # create the keras model, defin opt, and compile it
@@ -40,20 +43,13 @@ class MyTestCase(unittest.TestCase):
         model.compile(
             optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
         )
-        # model.summary()
-        # create the synthetic data generator
-        output_shape = model.compute_output_shape((batch_size,) + input_shape)[1:]
-        kernel = build_kernel(input_shape, output_shape, k_lip_data)
-        # define logging features
-        # the seed is set to compare all models with the same data
-        x, y = linear_generator(batch_size, input_shape, kernel).send(None)
-        np.random.seed(42)
-        empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
-        self.assertLessEqual(
-            abs(empirical_lip_const - 1.0),
-            0.02,
-            msg="the initializer must lead to a NN with Lipschitz constant equal to 1",
-        )
+        model.build((batch_size,) + input_shape)
+        sigmas = tf.linalg.svd(
+            model.layers[0].kernel,
+            full_matrices=False,
+            compute_uv=False,
+        ).numpy()
+        np.testing.assert_allclose(sigmas, np.ones_like(sigmas), 1e-6, 0)
 
 
 if __name__ == "__main__":
