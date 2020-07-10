@@ -9,10 +9,10 @@ In order to make things simple the following rules have been followed during dev
 * When a k-Lipschitz layer overrides a standard keras layer, it uses the same interface and the same parameters.
   The only difference is a new parameter to control the Lipschitz constant of a layer.
 
-Which layers are safe to use ?
-------------------------------
+Which layers are safe to use?
+-----------------------------
 
-The following table indicate which layer is safe to use in a lipshitz network, and which one is not.
+The following table indicates which layers are safe to use in a Lipshitz network, and which are not.
 
 .. role:: raw-html-m2r(raw)
    :format: html
@@ -25,38 +25,38 @@ The following table indicate which layer is safe to use in a lipshitz network, a
      - 1-lip?
      - deel-lip equivalent
      - comments
-   * - Dense
+   * - :class:`Dense`
      - no
-     - SpectralDense\ :raw-html-m2r:`<br>`\ FrobeniusDense
-     - SpectralDense and :raw-html-m2r:`<br>`\ FrobeniusDense are similar\ :raw-html-m2r:`<br>`\ when there is a single :raw-html-m2r:`<br>`\ output
-   * - Conv2D
+     - :class:`.SpectralDense` \ :raw-html-m2r:`<br>`\ :class:`.FrobeniusDense`
+     - :class:`.SpectralDense` and :class:`.FrobeniusDense` are similar when there is a single output.
+   * - :class:`Conv2D`
      - no
-     - SpectralConv2D\ :raw-html-m2r:`<br>`\ FrobeniusConv2D
-     - SpectralConv2D also :raw-html-m2r:`<br>`\ implement Björck :raw-html-m2r:`<br>`\ normalization
-   * - MaxPooling\ :raw-html-m2r:`<br>`\ GlobalMaxPooling
+     - :class:`.SpectralConv2D` \ :raw-html-m2r:`<br>`\ :class:`.FrobeniusConv2D`
+     - :class:`.SpectralConv2D` also implements Björck normalization.
+   * - :class:`MaxPooling`\ :raw-html-m2r:`<br>`\ :class:`GlobalMaxPooling`
      - yes
-     - na.
+     - n/a
      -
-   * - AveragePooling\ :raw-html-m2r:`<br>`\ GlobalAveragePooling
+   * - :class:`AveragePooling2D`\ :raw-html-m2r:`<br>`\ :class:`GlobalAveragePooling2D`
      - no
-     - ScaledAveragePooling\ :raw-html-m2r:`<br>`\ ScaledGlobalAveragePooling
-     - The lipschitz constant :raw-html-m2r:`<br>`\ is bounded by :raw-html-m2r:`<br>`\ sqrt(pool_h*pool_h)
-   * - Flatten
+     - :class:`.ScaledAveragePooling2D`\ :raw-html-m2r:`<br>`\ :class:`.ScaledGlobalAveragePooling2D`
+     - The lipschitz constant is bounded by ``sqrt(pool_h * pool_h)``.
+   * - :class:`Flatten`
      - yes
-     - na.
+     - n/a
      -
-   * - Dropout
+   * - :class:`Dropout`
      - no
      - None
-     - The lipschitz constant :raw-html-m2r:`<br>`\ is bounded by the :raw-html-m2r:`<br>`\ dropout factor
-   * - BatchNorm
+     - The lipschitz constant is bounded by the dropout factor.
+   * - :class:`BatchNorm`
      - no
      - None
-     - It is suspected that :raw-html-m2r:`<br>`\ layer normalization already\ :raw-html-m2r:`<br>`\ limits internal covariate\ :raw-html-m2r:`<br>`\ shift
+     - We suspect that layer normalization already limits internal covariate shift.
 
 
-How to use it ?
----------------
+How to use it?
+--------------
 
 Here is a simple example showing how to build a 1-Lipschitz network:
 
