@@ -246,12 +246,14 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             initializer=RandomNormal(0, 1),
             name="sn",
             trainable=False,
+            dtype=self.dtype
         )
 
         self.sig = self.add_weight(
             shape=tuple([1, 1]),  # maximum spectral  value
             name="sigma",
             trainable=False,
+            dtype=self.dtype
         )
         self.sig.assign([[1.0]])
         self.built = True
@@ -460,12 +462,14 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             initializer=RandomNormal(0, 1),
             name="sn",
             trainable=False,
+            dtype=self.dtype
         )
 
         self.sig = self.add_weight(
             shape=tuple([1, 1]),  # maximum spectral  value
             name="sigma",
             trainable=False,
+            dtype=self.dtype
         )
         self.sig.assign([[1.0]])
         self.built = True

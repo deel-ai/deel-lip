@@ -1,3 +1,5 @@
+.. _deel-lip-api-layers:
+
 deel.lip.layers module
 ======================
 
