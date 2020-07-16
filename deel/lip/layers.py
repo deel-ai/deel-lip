@@ -967,10 +967,19 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
+    @staticmethod
+    @tf.custom_gradient
+    def _sqrt(x):
+
+        def grad(dy):
+            return dy / (2*tf.sqrt(x+0.001))
+
+        return tf.sqrt(x), grad
+
     @tf.function
     def call(self, x, training=None):
         return (
-            tf.sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+            ScaledL2NormPooling2D._sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
         )
 
     def get_config(self):
