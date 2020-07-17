@@ -9,9 +9,7 @@ from tensorflow.keras import Sequential
 from tensorflow.keras import backend as K, metrics
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from tests.test_layers import linear_generator, build_kernel
 from deel.lip.initializers import SpectralInitializer, BjorckInitializer
-from deel.lip.utils import evaluate_lip_const
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
@@ -45,9 +43,7 @@ class MyTestCase(unittest.TestCase):
         )
         model.build((batch_size,) + input_shape)
         sigmas = tf.linalg.svd(
-            model.layers[0].kernel,
-            full_matrices=False,
-            compute_uv=False,
+            model.layers[0].kernel, full_matrices=False, compute_uv=False,
         ).numpy()
         np.testing.assert_allclose(sigmas, np.ones_like(sigmas), 1e-6, 0)
 
