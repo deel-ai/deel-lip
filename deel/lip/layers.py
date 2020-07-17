@@ -902,6 +902,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         padding="valid",
         data_format=None,
         k_coef_lip=1.0,
+        eps_grad_sqrt=1e-6,
         **kwargs
     ):
         """
@@ -932,6 +933,8 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
                 Keras config file at `~/.keras/keras.json`.
                 If you never set it, then it will be "channels_last".
             k_coef_lip: the lipschitz factor to ensure
+            eps_grad_sqrt: Epsilon value to avoid numerical instability
+                due to non-defined gradient at 0 in the sqrt function
 
         Input shape:
             - If `data_format='channels_last'`:
@@ -949,6 +952,8 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
             raise RuntimeError("NormalizedConv only support padding='valid'")
+        if eps_grad_sqrt < 0.0:
+            raise RuntimeError("eps_grad_sqrt must be positive")
         super(ScaledL2NormPooling2D, self).__init__(
             pool_size=pool_size,
             strides=pool_size,
@@ -957,6 +962,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
+        self.eps_grad_sqrt = eps_grad_sqrt
         self._kwargs = kwargs
 
     def build(self, input_shape):
@@ -969,17 +975,19 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
     @staticmethod
     @tf.custom_gradient
-    def _sqrt(x):
-
+    def _sqrt(x, eps_grad_sqrt):
         def grad(dy):
-            return dy / (2*tf.sqrt(x+0.001))
+            return dy / (2 * tf.sqrt(x + eps_grad_sqrt))
 
         return tf.sqrt(x), grad
 
     @tf.function
     def call(self, x, training=None):
         return (
-            ScaledL2NormPooling2D._sqrt(super(AveragePooling2D, self).call(tf.square(x))) * self._get_coef()
+            ScaledL2NormPooling2D._sqrt(
+                super(AveragePooling2D, self).call(tf.square(x)), self.eps_grad_sqrt
+            )
+            * self._get_coef()
         )
 
     def get_config(self):
