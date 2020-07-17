@@ -45,9 +45,7 @@ class MyTestCase(unittest.TestCase):
         )
         model.build((batch_size,) + input_shape)
         sigmas = tf.linalg.svd(
-            model.layers[0].kernel,
-            full_matrices=False,
-            compute_uv=False,
+            model.layers[0].kernel, full_matrices=False, compute_uv=False,
         ).numpy()
         np.testing.assert_allclose(sigmas, np.ones_like(sigmas), 1e-6, 0)
 
