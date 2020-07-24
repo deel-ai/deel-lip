@@ -417,8 +417,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
-        if not ((strides == (1, 1)) or (strides == [1, 1]) or (strides == 1)):
-            raise RuntimeError("NormalizedConv does not support strides")
         if not (
             (dilation_rate == (1, 1))
             or (dilation_rate == [1, 1])
@@ -477,8 +475,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         # According to the file lipschitz_CNN.pdf
         stride = np.prod(self.strides)
-        # print(stride)
-        # print(inputs.shape)
         k1 = self.kernel_size[0]
         k1_div2 = (k1 - 1) / 2
         k2 = self.kernel_size[1]
@@ -492,7 +488,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         else:
             raise RuntimeError("data_format not understood: " % self.data_format)
         if stride == 1:
-            print("coef before correction : " + str(np.sqrt(k1 * k2)))
             coefLip = np.sqrt(
                 (w * h)
                 / (
@@ -505,9 +500,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             sn2 = self.strides[1]
             ho = np.floor(h / sn1)
             wo = np.floor(w / sn2)
-            alpha1 = np.ceil(k1 / sn1)
-            alpha2 = np.ceil(k2 / sn2)
-            print("coef before correction : " + str(np.sqrt(alpha1 * alpha2)))
             alphabar1 = np.floor(k1_div2 / sn1)
             alphabar2 = np.floor(k2_div2 / sn2)
             betabar1 = k1_div2 - alphabar1 * sn1
@@ -518,16 +510,8 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             gamma2 = w - 1 - sn2 * np.ceil((w - 1 - k2_div2) / sn2)
             alphah1 = np.floor(gamma1 / sn1)
             alphaw2 = np.floor(gamma2 / sn2)
-            print("gamma2:  {}, alphaw2 {}".format(gamma2, alphaw2))
-            """delta1 = (ho-1-gamma1)*sn1+k1_div2-1-h-k1_div2
-            delta2 = (wo-1-gamma2)*sn2+k2_div2-1-w-k2_div2
-            zr1 = (gamma1*sn1+2*delta1)*(gamma1+1)/2
-            zr2 = (gamma2*sn2+2*delta2)*(gamma2+1)/2"""
             zr1 = (alphah1 + 1) * (k1_div2 - gamma1 + sn1 * alphah1 / 2.0)
             zr2 = (alphaw2 + 1) * (k2_div2 - gamma2 + sn2 * alphaw2 / 2.0)
-            print(
-                "zeros: up {}, left {}, bottom {}, right {}".format(zl1, zl2, zr1, zr2)
-            )
             coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
         return coefLip
 
