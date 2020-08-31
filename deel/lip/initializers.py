@@ -12,7 +12,9 @@ from .utils import _deel_export
 @_deel_export
 class SpectralInitializer(Initializer):
     def __init__(
-        self, niter_spectral=3, base_initializer=Orthogonal(gain=1.0, seed=None),
+        self,
+        niter_spectral=3,
+        base_initializer=Orthogonal(gain=1.0, seed=None),
     ) -> None:
         """
         Initialize a kernel to be 1-lipschitz using spectral normalization (iterative
