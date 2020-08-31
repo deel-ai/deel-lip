@@ -94,7 +94,9 @@ class MyTestCase(unittest.TestCase):
         np.random.seed(42)
         # get original results
         loss, mse = model.__getattribute__(EVALUATE)(
-            linear_generator(batch_size, input_shape, kernel), steps=10, verbose=0,
+            linear_generator(batch_size, input_shape, kernel),
+            steps=10,
+            verbose=0,
         )
         # generate vanilla
         vanilla_model = model.vanilla_export()
@@ -104,12 +106,16 @@ class MyTestCase(unittest.TestCase):
         np.random.seed(42)
         # evaluate vanilla
         loss2, mse2 = model.__getattribute__(EVALUATE)(
-            linear_generator(batch_size, input_shape, kernel), steps=10, verbose=0,
+            linear_generator(batch_size, input_shape, kernel),
+            steps=10,
+            verbose=0,
         )
         np.random.seed(42)
         # check if original has changed
         vanilla_loss, vanilla_mse = vanilla_model.__getattribute__(EVALUATE)(
-            linear_generator(batch_size, input_shape, kernel), steps=10, verbose=0,
+            linear_generator(batch_size, input_shape, kernel),
+            steps=10,
+            verbose=0,
         )
         model.summary()
         vanilla_model.summary()
@@ -132,12 +138,16 @@ class MyTestCase(unittest.TestCase):
         )
         np.random.seed(42)
         loss3, mse3 = model.__getattribute__(EVALUATE)(
-            linear_generator(batch_size, input_shape, kernel), steps=10, verbose=0,
+            linear_generator(batch_size, input_shape, kernel),
+            steps=10,
+            verbose=0,
         )
         # check if vanilla has changed
         np.random.seed(42)
         vanilla_loss2, vanilla_mse2 = vanilla_model.__getattribute__(EVALUATE)(
-            linear_generator(batch_size, input_shape, kernel), steps=10, verbose=0,
+            linear_generator(batch_size, input_shape, kernel),
+            steps=10,
+            verbose=0,
         )
         self.assertAlmostEqual(
             vanilla_mse,

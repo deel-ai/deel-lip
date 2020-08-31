@@ -18,7 +18,10 @@ from .utils import _deel_export
 @_deel_export
 class Sequential(KerasSequential, LipschitzLayer, Condensable):
     def __init__(
-        self, layers=None, name=None, k_coef_lip=1.0,
+        self,
+        layers=None,
+        name=None,
+        k_coef_lip=1.0,
     ):
         """
         Equivalent of keras.Sequential but allow to set k-lip factor globally. Also

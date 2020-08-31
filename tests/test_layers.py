@@ -209,7 +209,8 @@ def train_k_lip_model(
     np.random.seed(42)
     set_seed(42)
     loss, mse = model.__getattribute__(EVALUATE)(
-        linear_generator(batch_size, input_shape, kernel), steps=10,
+        linear_generator(batch_size, input_shape, kernel),
+        steps=10,
     )
     empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
     # save the model
@@ -221,7 +222,8 @@ def train_k_lip_model(
     np.random.seed(42)
     set_seed(42)
     from_disk_loss, from_disk_mse = model.__getattribute__(EVALUATE)(
-        linear_generator(batch_size, input_shape, kernel), steps=10,
+        linear_generator(batch_size, input_shape, kernel),
+        steps=10,
     )
     from_empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
     # log metrics

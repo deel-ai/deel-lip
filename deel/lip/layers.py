@@ -216,16 +216,16 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         This documentation reuse the body of the original keras.layers.Dense doc.
         """
         super(SpectralDense, self).__init__(
-            units,
-            activation,
-            use_bias,
-            kernel_initializer,
-            bias_initializer,
-            kernel_regularizer,
-            bias_regularizer,
-            activity_regularizer,
-            kernel_constraint,
-            bias_constraint,
+            units=units,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
             **kwargs
         )
         self._kwargs = kwargs
@@ -311,16 +311,11 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
     def vanilla_export(self):
         self._kwargs["name"] = self.name
         layer = Dense(
-            self.units,
-            self.activation,
-            self.use_bias,
-            "glorot_uniform",
-            "zeros",
-            None,
-            None,
-            None,
-            None,
-            None,
+            units=self.units,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
             **self._kwargs
         )
         layer.build(self.input_shape)
@@ -426,21 +421,21 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         if padding != "same":
             raise RuntimeError("NormalizedConv only support padding='same'")
         super(SpectralConv2D, self).__init__(
-            filters,
-            kernel_size,
-            strides,
-            padding,
-            data_format,
-            dilation_rate,
-            activation,
-            use_bias,
-            kernel_initializer,
-            bias_initializer,
-            kernel_regularizer,
-            bias_regularizer,
-            activity_regularizer,
-            kernel_constraint,
-            bias_constraint,
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
             **kwargs
         )
         self._kwargs = kwargs
@@ -572,21 +567,16 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def vanilla_export(self):
         self._kwargs["name"] = self.name
         layer = Conv2D(
-            self.filters,
-            self.kernel_size,
-            self.strides,
-            self.padding,
-            self.data_format,
-            self.dilation_rate,
-            self.activation,
-            self.use_bias,
-            "glorot_uniform",
-            "zeros",
-            None,
-            None,
-            None,
-            None,
-            None,
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
             **self._kwargs
         )
         layer.build(self.input_shape)
@@ -620,16 +610,16 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         **kwargs
     ):
         super().__init__(
-            units,
-            activation,
-            use_bias,
-            kernel_initializer,
-            bias_initializer,
-            kernel_regularizer,
-            bias_regularizer,
-            activity_regularizer,
-            kernel_constraint,
-            bias_constraint,
+            units=units,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
@@ -665,16 +655,11 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def vanilla_export(self):
         self._kwargs["name"] = self.name
         layer = Dense(
-            self.units,
-            self.activation,
-            self.use_bias,
-            "glorot_uniform",
-            "zeros",
-            None,
-            None,
-            None,
-            None,
-            None,
+            units=self.units,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
             **self._kwargs
         )
         layer.build(self.input_shape)
@@ -732,21 +717,21 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
                 " 1 lipschitz condition"
             )
         super(FrobeniusConv2D, self).__init__(
-            filters,
-            kernel_size,
-            strides,
-            padding,
-            data_format,
-            dilation_rate,
-            activation,
-            use_bias,
-            kernel_initializer,
-            bias_initializer,
-            kernel_regularizer,
-            bias_regularizer,
-            activity_regularizer,
-            kernel_constraint,
-            bias_constraint,
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
