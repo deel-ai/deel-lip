@@ -103,3 +103,31 @@ def hinge_margin_loss(min_margin=1):
         return K.mean(hinge)
 
     return hinge_margin_fct
+
+
+@_deel_export
+class HKR_multiclass():
+    """
+    Multiclass version of the HKR loss one vs. all version.
+    """
+
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.__name__ = "HKR_multiclass"
+
+    @tf.function
+    def __call__(self, y_true, y_pred):
+        pos_values = tf.where(y_true == 1, y_pred, 0.0)
+        neg_values = tf.where(y_true != 1, y_pred, 0.0)
+        pos_min = tf.reduce_min(pos_values, axis=-1)
+        neg_max = tf.reduce_max(neg_values, axis=-1)
+        return -(
+            self.alpha * tf.reduce_mean(pos_min - neg_max, axis=0)
+            + tf.reduce_min(
+            (tf.reduce_sum(pos_values, axis=0)/tf.reduce_sum(tf.cast(y_true == 1, pos_values.dtype), axis=0)) -
+            (tf.reduce_sum(neg_values, axis=0)/tf.reduce_sum(tf.cast(y_true != 1, neg_values.dtype), axis=0)), axis=-1)
+        )
+
+    def get_config(self):
+        config = {"alpha": self.alpha}
+        return config
