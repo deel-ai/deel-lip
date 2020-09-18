@@ -156,16 +156,18 @@ def one_versus_all_HKR(alpha, min_margin=1, true_values=(1, -1)):
     """
     @tf.function
     def one_versus_all_HKR_loss_fct(y_true, y_pred):
-        sign = tf.dtypes.cast(tf.math.sign(y_true), dtype=tf.float32)
+        sign = tf.cast(tf.sign(y_true), dtype=tf.float32)
         margin_dist = min_margin - sign * y_pred  # shape (B, K)
-        margin_dist = tf.math.maximum(margin_dist, 0.0)  # shape (B, K)
-        hinge_loss = tf.math.reduce_mean(margin_dist)  # scalar, average over batch
+        margin_dist = tf.maximum(margin_dist, 0.0)  # shape (B, K)
+        hinge_loss = tf.reduce_mean(margin_dist)  # scalar, average over batch
         if alpha == np.inf:
             return hinge_loss
-        one_mask = tf.dtypes.cast(tf.math.equal(y_true, true_values[0]), dtype=tf.float32)  # shape (B,K), 1. for true class, 0. otherwise
-        all_mask = tf.dtypes.cast(tf.math.equal(y_true, true_values[1]), dtype=tf.float32)  # shape (B,K), 1. for other classes, 0. otherwise
-        one_avg = tf.math.reduce_sum(one_mask * y_pred) / tf.math.reduce_sum(one_mask)  # shape B
-        all_avg = tf.math.reduce_sum(all_mask * y_pred) / tf.math.reduce_sum(all_mask)  # shape B
-        kr_loss = tf.math.reduce_mean(one_avg - all_avg)  # average over batch
+        one_mask = tf.cast(tf.equal(y_true, true_values[0]), dtype=tf.float32)  # shape (B,K), 1. for true class, 0. otherwise
+        all_mask = tf.cast(tf.equal(y_true, true_values[1]), dtype=tf.float32)  # shape (B,K), 1. for other classes, 0. otherwise
+        one_avg = tf.reduce_sum(one_mask * y_pred) / tf.reduce_sum(one_mask)  # shape B
+        all_avg = tf.reduce_sum(all_mask * y_pred) / tf.reduce_sum(all_mask)  # shape B
+        kr_loss = tf.reduce_mean(one_avg - all_avg)  # average over batch
+        print(hinge_loss)
+        print(kr_loss)
         return alpha * hinge_loss - kr_loss
-    return HKR_loss_fct
+    return one_versus_all_HKR_loss_fct
