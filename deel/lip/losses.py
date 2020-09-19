@@ -164,8 +164,8 @@ def one_versus_all_HKR(alpha, min_margin=1, true_values=(1, -1)):
             return hinge_loss
         one_mask = tf.cast(tf.equal(y_true, true_values[0]), dtype=tf.float32)  # shape (B,K), 1. for true class, 0. otherwise
         all_mask = tf.cast(tf.equal(y_true, true_values[1]), dtype=tf.float32)  # shape (B,K), 1. for other classes, 0. otherwise
-        one_avg = tf.reduce_sum(one_mask * y_pred) / tf.reduce_sum(one_mask)  # shape B
-        all_avg = tf.reduce_sum(all_mask * y_pred) / tf.reduce_sum(all_mask)  # shape B
+        one_avg = tf.reduce_sum(one_mask * y_pred, axis=-1) / tf.reduce_sum(one_mask, axis=-1)  # shape B
+        all_avg = tf.reduce_sum(all_mask * y_pred, axis=-1) / tf.reduce_sum(all_mask, axis=-1)  # shape B
         kr_loss = tf.reduce_mean(one_avg - all_avg)  # average over batch
         return alpha * hinge_loss - kr_loss
     return one_versus_all_HKR_loss_fct
