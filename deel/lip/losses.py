@@ -111,15 +111,16 @@ class HKR_multiclass():
     Multiclass version of the HKR loss one vs. all version.
     """
 
-    def __init__(self, alpha):
+    def __init__(self, alpha, min_margin=0.):
         self.alpha = alpha
+        self.min_margin = min_margin
         self.__name__ = "HKR_multiclass"
 
     @tf.function
     def __call__(self, y_true, y_pred):
         pos_values = tf.where(y_true == 1, y_pred, 0.0)
         neg_values = tf.where(y_true != 1, y_pred, 0.0)
-        pos_min = tf.reduce_min(pos_values, axis=-1)
+        pos_min = tf.reduce_min(tf.where(y_true == 1, y_pred, self.min_margin), axis=-1)
         neg_max = tf.reduce_max(neg_values, axis=-1)
         return -(
             self.alpha * tf.reduce_mean(pos_min - neg_max, axis=0)
@@ -129,5 +130,8 @@ class HKR_multiclass():
         )
 
     def get_config(self):
-        config = {"alpha": self.alpha}
+        config = {
+            "alpha": self.alpha,
+            "min_margin": self.min_margin
+        }
         return config
