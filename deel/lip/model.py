@@ -10,7 +10,7 @@ import math
 from warnings import warn
 import numpy as np
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
-from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Input, InputLayer
 from .layers import LipschitzLayer, Condensable
 from .utils import _deel_export
 
@@ -133,26 +133,41 @@ class Model(KerasModel):
                 layer.condense()
 
     def vanilla_export(self):
-        dict_src = {}
-        input_l = Input(self.input.shape[1:])
-        mdl = input_l
-        dict_src[self.input.name] = mdl
+        # We initialize the dictionary for inputs:
+        tensors = {inp.name: Input(shape=inp.shape[1:]) for inp in self.inputs}
+
         for lay in self.layers:
-            if lay.input.name == lay.output.name:
-                pass
+
+            # Skip input layers:
+            if isinstance(lay, InputLayer):
+                continue
+
+            if isinstance(lay, Condensable):
+                lay.condense()
+                lay_cp = lay.vanilla_export()
             else:
-                if isinstance(lay, Condensable):
-                    lay.condense()
-                    new_lay = lay.vanilla_export()
-                    mdl = new_lay(dict_src[lay.input.name])
+                # duplicate layer (warning weights are not duplicated)
+                lay_cp = lay.__class__.from_config(lay.get_config())
+                lay_cp.build(lay.input_shape)
+                lay_cp.set_weights(lay.get_weights().copy())
+
+            for inode in range(len(lay.inbound_nodes)):
+                inputs = lay.get_input_at(inode)
+                outputs = lay.get_output_at(inode)
+
+                if isinstance(inputs, list):
+                    inputs = [tensors[input.name] for input in inputs]
                 else:
-                    # duplicate layer (warning weights are not duplicated)
-                    lay_cp = lay.__class__.from_config(lay.get_config())
-                    lay_cp.build(lay.input.shape)
-                    lay_cp.set_weights(lay.get_weights().copy())
-                    mdl = lay_cp(dict_src[lay.input.name])
-            dict_src[lay.output.name] = mdl
-        net = KerasModel(input_l, mdl)
+                    inputs = tensors[inputs.name]
+
+                mdl = lay_cp(inputs)
+
+                if isinstance(outputs, list):
+                    for outi, mdli in zip(outputs, mdl):
+                        tensors[outi.name] = mdli
+                else:
+                    tensors[outputs.name] = mdl
+        net = KerasModel([tensors[inp.name] for inp in self.inputs], mdl)
         return net
 
 
