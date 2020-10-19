@@ -7,8 +7,10 @@ This module contains equivalents for Model and Sequential. These classes add sup
 for condensation and vanilla exportation.
 """
 import math
+from typing import Dict
 from warnings import warn
 import numpy as np
+from tensorflow import Tensor
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
 from tensorflow.keras.layers import Input, InputLayer
 from .layers import LipschitzLayer, Condensable
@@ -132,9 +134,20 @@ class Model(KerasModel):
             if isinstance(layer, Condensable):
                 layer.condense()
 
-    def vanilla_export(self):
-        # We initialize the dictionary for inputs:
-        tensors = {inp.name: Input(shape=inp.shape[1:]) for inp in self.inputs}
+    def vanilla_export(self) -> KerasModel:
+        """
+        Export this model to a "Vanilla" model, i.e. a model without Condensable layers.
+
+        Returns:
+            A Keras model, identical to this model, but where condensable layers have been
+            replaced with their vanilla equivalent (e.g. SpectralConv2D with Conv2D).
+        """
+        # Dictionary that will map tensor names (from the current model) to tensors
+        # in the exported model.# We initialize the dictionary for inputs:
+        tensors: Dict[str, Tensor] = {}
+
+        # Initialize the dictionary with inputs:
+        tensors.update({inp.name: Input(shape=inp.shape[1:]) for inp in self.inputs})
 
         for lay in self.layers:
 
@@ -142,33 +155,44 @@ class Model(KerasModel):
             if isinstance(lay, InputLayer):
                 continue
 
+            # Condense+Export the layer if it is a non-vanilla layer, otherwise
+            # just copy the layer:
             if isinstance(lay, Condensable):
                 lay.condense()
                 lay_cp = lay.vanilla_export()
             else:
-                # duplicate layer (warning weights are not duplicated)
+                # Duplicate layer (weights are not duplicated):
                 lay_cp = lay.__class__.from_config(lay.get_config())
                 lay_cp.build(lay.input_shape)
                 lay_cp.set_weights(lay.get_weights().copy())
 
+            # For each input nodes, we are going to create corresponding operations
+            # in the exported models:
             for inode in range(len(lay.inbound_nodes)):
                 inputs = lay.get_input_at(inode)
                 outputs = lay.get_output_at(inode)
 
+                # Fetch the
                 if isinstance(inputs, list):
                     inputs = [tensors[input.name] for input in inputs]
                 else:
                     inputs = tensors[inputs.name]
 
-                mdl = lay_cp(inputs)
+                # Retrieve outputs layers (for the exported layer):
+                moutputs = lay_cp(inputs)
 
+                # Add the output tensors to the dictionary, using the names from the
+                # original model:
                 if isinstance(outputs, list):
-                    for outi, mdli in zip(outputs, mdl):
-                        tensors[outi.name] = mdli
+                    for outi, mouti in zip(outputs, moutputs):
+                        tensors[outi.name] = mouti
                 else:
-                    tensors[outputs.name] = mdl
-        net = KerasModel([tensors[inp.name] for inp in self.inputs], mdl)
-        return net
+                    tensors[outputs.name] = moutputs
+
+        return KerasModel(
+            [tensors[inp.name] for inp in self.inputs],
+            [tensors[out.name] for out in self.outputs],
+        )
 
 
 vanillaModel = Model.vanilla_export
