@@ -35,7 +35,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
             name: name of the model, can be None
             k_coef_lip: the Lipschitz coefficient to ensure globally on the model.
         """
-        super().__init__(layers, name)
+        super(Sequential, self).__init__(layers, name)
         self.set_klip_factor(k_coef_lip)
 
     def build(self, input_shape=None):
@@ -117,17 +117,15 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
 
 
 @_deel_export
-class Model(KerasModel, Condensable):
-    def __init__(self, *args, **kwargs):
-        """
-        Equivalent of keras.Model but support condensation and vanilla exportation.
+class Model(KerasModel):
+    """
+    Equivalent of keras.Model but support condensation and vanilla exportation.
 
-        Warning:
-             As lipschitz constant are multiplicative along layer, the Model class
-             cannot set a global Lipschitz constant (problem with branching inside a
-             model).
-        """
-        super().__init__(*args, **kwargs)
+    Warning:
+         As lipschitz constant are multiplicative along layer, the Model class
+         cannot set a global Lipschitz constant (problem with branching inside a
+         model).
+    """
 
     def condense(self):
         for layer in self.layers:
