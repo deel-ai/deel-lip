@@ -103,35 +103,123 @@ def hinge_margin_loss(min_margin=1):
         return K.mean(hinge)
 
     return hinge_margin_fct
+@_deel_export
+def KR_multiclass_loss():
+    """
+    Loss to estimate average of -1 distance using Kantorovich-Rubinstein duality over outputs.
+
+    Args:
+        #Note y_true should be one hot encoding
+
+    Returns:
+        Callable, the function to compute Wasserstein multiclass loss
+
+    """
+
+    @tf.function
+    def KR_multiclass_loss_fct(y_true, y_pred):
+        espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
+            tf.cast(tf.shape(y_true)[0], dtype="float32")
+            - tf.reduce_sum(y_true, axis=0)
+        )
+        espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / tf.reduce_sum(
+            y_true, axis=0
+        )
+        return tf.reduce_mean(-espNotYtrue + espYtrue)
+
+    return KR_multiclass_loss_fct
 
 
 @_deel_export
-class HKR_multiclass():
+def Hinge_multiclass_loss(min_margin=1):
     """
-    Multiclass version of the HKR loss one vs. all version.
-    """
+    Loss to estimate the Hinge loss for each output.
 
-    def __init__(self, alpha, min_margin=0.):
-        self.alpha = alpha
-        self.min_margin = min_margin
-        self.__name__ = "HKR_multiclass"
+    Args:
+        #Note y_true should be one hot encoding
+
+    Returns:
+        Callable, the function to compute Hinge loss
+
+    """
 
     @tf.function
-    def __call__(self, y_true, y_pred):
-        pos_values = tf.where(y_true == 1, y_pred, 0.0)
-        neg_values = tf.where(y_true != 1, y_pred, 0.0)
-        pos_min = tf.reduce_min(tf.where(y_true == 1, y_pred, self.min_margin), axis=-1)
-        neg_max = tf.reduce_max(neg_values, axis=-1)
-        return -(
-            self.alpha * tf.reduce_mean(pos_min - neg_max, axis=0)
-            + tf.reduce_min(
-            (tf.reduce_sum(pos_values, axis=0)/tf.reduce_sum(tf.cast(y_true == 1, pos_values.dtype), axis=0)) -
-            (tf.reduce_sum(neg_values, axis=0)/tf.reduce_sum(tf.cast(y_true != 1, neg_values.dtype), axis=0)), axis=-1)
-        )
+    def Hinge_multiclass_loss_fct(y_true, y_pred):
+        sign = 2 * y_true - 1
+        hinge = tf.nn.relu(min_margin - sign * y_pred)
+        return K.mean(hinge)
 
-    def get_config(self):
-        config = {
-            "alpha": self.alpha,
-            "min_margin": self.min_margin
-        }
-        return config
+    return Hinge_multiclass_loss_fct
+
+
+
+
+@_deel_export
+def HKR_multiclass_loss(alpha=0.0, min_margin=1):
+    """
+    Loss to estimate the Hinge loss for each output.
+
+    Args:
+        #Note y_true should be one hot encoding
+
+    Returns:
+        Callable, the function to compute Hinge loss
+
+    """
+    hingeloss = Hinge_multiclass_loss(min_margin)
+    KRloss = KR_multiclass_loss()
+    #print("Warning 1/alpha KRLoss => to get the same level of hinge in MultiMargin")
+
+    @tf.function
+    def HKR_multiclass_loss_fct(y_true, y_pred):
+        if alpha == np.inf:  # alpha negative hinge only
+            return hingeloss(y_true, y_pred)
+        elif alpha == 0.0:
+            return -KRloss(y_true, y_pred)
+        else:
+            return -KRloss(y_true, y_pred)/alpha + hingeloss(y_true, y_pred)
+
+    return HKR_multiclass_loss_fct
+
+
+'''@_deel_export
+def MultiMarginLoss(min_margin=1):
+    """
+    Compute the hinge margin loss for multi class
+    Args:
+        min_margin: the minimal margin to enforce.
+        y_true has to be to_categorical
+    Returns:
+
+    """
+
+    @tf.function
+    def MultiMargin_fct(y_true, y_pred):
+        H1 = tf.where(y_true==1,tf.reduce_min(y_pred), y_pred) 
+        H = tf.reduce_max(H1, 1,keepdims=True)    
+        L = tf.nn.relu((min_margin - y_pred + H) * y_true)
+        final_loss = tf.reduce_mean(tf.reduce_max(L, 1))
+        return final_loss
+
+    return MultiMargin_fct
+'''
+
+@_deel_export
+def MultiMarginLoss(min_margin=1):
+    """
+    Compute the mean hinge margin loss for multi class (equivalent to Pytorch multi_margin_loss)
+    Args:
+        min_margin: the minimal margin to enforce.
+        y_true has to be to_categorical
+    Returns:
+
+    """
+
+    @tf.function
+    def MultiMargin_fct(y_true, y_pred):
+        vYtrue = tf.reduce_sum(y_pred * y_true, axis=1, keepdims=True)
+        margin = tf.nn.relu(min_margin - vYtrue + y_pred)
+        final_loss = tf.reduce_mean(tf.where(y_true==1,0.0, margin))  ## two steps is useless
+        return final_loss
+
+    return MultiMargin_fct
