@@ -120,7 +120,7 @@ def hinge_margin_loss(min_margin=1):
 
     @tf.function
     def hinge_margin_fct(y_true, y_pred):
-        sign = K.sign(y_true)
+        sign = K.sign(y_true-eps)  # subtracting a small eps make the loss works for bot (1,0) and (1,-1) labels
         hinge = K.maximum(0.0, min_margin - sign * y_pred)
         return K.mean(hinge)
 
