@@ -43,7 +43,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/deel-ai/deel-lip",
     packages=setuptools.find_namespace_packages(include=["deel.*"]),
-    install_requires=["numpy", "tensorflow>=2,<=2.3"],
+    install_requires=["numpy", "tensorflow>=2,<3"],
     license="MIT",
     extras_require={"dev": dev_requires, "docs": docs_requires},
     classifiers=[
