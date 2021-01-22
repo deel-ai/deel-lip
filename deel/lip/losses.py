@@ -126,23 +126,24 @@ def KR_multiclass_loss():
 
     Returns:
         Callable, the function to compute Wasserstein multiclass loss.
+        #Note y_true has to be one hot encoded
 
     """
 
     @tf.function
     def KR_multiclass_loss_fct(y_true, y_pred):
         # use y_true to zero out y_pred where y_true != 1
-        # espYtrue is the avg value of y_pred when y_true==1 (one average per class)
+        # espYtrue is the avg value of y_pred when y_true==1 (one average per output neuron)
         espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / tf.reduce_sum(
             y_true, axis=0
         )
         # use(1- y_true) to zero out y_pred where y_true == 1
-        # espNotYtrue is the avg value of y_pred when y_true==0 (one average per class)
+        # espNotYtrue is the avg value of y_pred when y_true==0 (one average per output neuron)
         espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
             tf.cast(tf.shape(y_true)[0], dtype="float32")
             - tf.reduce_sum(y_true, axis=0)
         )
-        # compute the differences to have the KR term for each class, and compute the average over the classes
+        # compute the differences to have the KR term for each output neuron, and compute the average over the classes
         return tf.reduce_mean(-espNotYtrue + espYtrue)
 
     return KR_multiclass_loss_fct
@@ -157,7 +158,8 @@ def Hinge_multiclass_loss(min_margin=1):
     Note y_true should be one hot encoding. labels in (1,0)
 
     Returns:
-        Callable, the function to compute Hinge loss
+        Callable, the function to compute multiclass Hinge loss
+        #Note y_true has to be one hot encoded
 
     """
 
@@ -178,11 +180,12 @@ def HKR_multiclass_loss(alpha=0.0, min_margin=1):
     The multiclass version of HKR. This is done by computing the HKR term over each class and averaging the results.
 
     Args:
-        #Note y_true should be one hot encoding
+        alpha: regularization factor
+        min_margin: minimal margin ( see Hinge_multiclass_loss )
 
     Returns:
-        Callable, the function to compute Hinge loss
-
+        Callable, the function to compute HKR loss
+        #Note y_true has to be one hot encoded
     """
     hingeloss = Hinge_multiclass_loss(min_margin)
     KRloss = KR_multiclass_loss()
@@ -212,8 +215,11 @@ def MultiMarginLoss(min_margin=1):
 
     @tf.function
     def MultiMargin_fct(y_true, y_pred):
+        # get the y_pred[target_class] (zeroing out all elements of y_pred where y_true=0)
         vYtrue = tf.reduce_sum(y_pred * y_true, axis=1, keepdims=True)
+        # computing elementwise margin term : margin + y_pred[i]-y_pred[target_class]
         margin = tf.nn.relu(min_margin - vYtrue + y_pred)
+        # averaging on all outputs and batch
         final_loss = tf.reduce_mean(
             tf.where(y_true == 1, 0.0, margin)
         )  ## two steps is useless
