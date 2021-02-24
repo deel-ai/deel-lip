@@ -935,7 +935,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         self._kwargs = kwargs
 
     def build(self, input_shape):
-        super(AveragePooling2D, self).build(input_shape)
+        super(ScaledL2NormPooling2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.built = True
 
@@ -943,18 +943,21 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     @staticmethod
-    @tf.custom_gradient
-    def _sqrt(x, eps_grad_sqrt):
-        def grad(dy):
-            return dy / (2 * tf.sqrt(x + eps_grad_sqrt))
+    def _sqrt(eps_grad_sqrt):
+        @tf.custom_gradient
+        def sqrt_op(x):
+            sqrtx = tf.sqrt(x)
+            def grad(dy):
+                return dy / (2 * (sqrtx + eps_grad_sqrt))
 
-        return tf.sqrt(x), grad
+            return sqrtx, grad
+        return sqrt_op
 
     @tf.function
     def call(self, x, training=None):
         return (
-            ScaledL2NormPooling2D._sqrt(
-                super(AveragePooling2D, self).call(tf.square(x)), self.eps_grad_sqrt
+            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
+                super(ScaledL2NormPooling2D, self).call(tf.square(x))
             )
             * self._get_coef()
         )
@@ -963,7 +966,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         config = {
             "k_coef_lip": self.k_coef_lip,
         }
-        base_config = super(AveragePooling2D, self).get_config()
+        base_config = super(ScaledL2NormPooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 

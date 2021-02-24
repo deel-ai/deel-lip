@@ -593,7 +593,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
@@ -609,7 +609,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
@@ -625,7 +625,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3),data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
