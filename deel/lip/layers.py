@@ -1029,10 +1029,19 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
 
 
 class InvertibleDownSampling(Layer):
-
-    def __init__(self, pool_size, data_format="channels_last", trainable=True, name=None, dtype=None, dynamic=False,
-                 **kwargs):
-        super(InvertibleDownSampling, self).__init__(trainable, name, dtype, dynamic, **kwargs)
+    def __init__(
+        self,
+        pool_size,
+        data_format="channels_last",
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+        **kwargs
+    ):
+        super(InvertibleDownSampling, self).__init__(
+            trainable, name, dtype, dynamic, **kwargs
+        )
         self.pool_size = pool_size
         self.data_format = data_format
 
@@ -1042,17 +1051,27 @@ class InvertibleDownSampling(Layer):
     def call(self, inputs, **kwargs):
         # inputs = super(InvertibleDownSampling, self).call(inputs, **kwargs)
         if self.data_format == "channels_last":
-            return tf.concat([
-                inputs[:, i::self.pool_size[0], j::self.pool_size[1], :]  # for now we handle only channels last
-                for i in range(self.pool_size[0])
-                for j in range(self.pool_size[1])
-            ], axis=-1)
+            return tf.concat(
+                [
+                    inputs[
+                        :, i :: self.pool_size[0], j :: self.pool_size[1], :
+                    ]  # for now we handle only channels last
+                    for i in range(self.pool_size[0])
+                    for j in range(self.pool_size[1])
+                ],
+                axis=-1,
+            )
         else:
-            return tf.concat([
-                inputs[:, :, i::self.pool_size[0], j::self.pool_size[1]]  # for now we handle only channels last
-                for i in range(self.pool_size[0])
-                for j in range(self.pool_size[1])
-            ], axis=1)
+            return tf.concat(
+                [
+                    inputs[
+                        :, :, i :: self.pool_size[0], j :: self.pool_size[1]
+                    ]  # for now we handle only channels last
+                    for i in range(self.pool_size[0])
+                    for j in range(self.pool_size[1])
+                ],
+                axis=1,
+            )
 
     def get_config(self):
         config = {
@@ -1064,10 +1083,19 @@ class InvertibleDownSampling(Layer):
 
 
 class InvertibleUpSampling(Layer):
-
-    def __init__(self, pool_size, data_format="channels_last", trainable=True, name=None, dtype=None, dynamic=False,
-                 **kwargs):
-        super(InvertibleUpSampling, self).__init__(trainable, name, dtype, dynamic, **kwargs)
+    def __init__(
+        self,
+        pool_size,
+        data_format="channels_last",
+        trainable=True,
+        name=None,
+        dtype=None,
+        dynamic=False,
+        **kwargs
+    ):
+        super(InvertibleUpSampling, self).__init__(
+            trainable, name, dtype, dynamic, **kwargs
+        )
         self.pool_size = pool_size
         self.data_format = data_format
 
@@ -1080,26 +1108,34 @@ class InvertibleUpSampling(Layer):
             inputs = tf.transpose(inputs, [0, 2, 3, 1])
         # from shape (bs, w, h, c*pw*ph) to (bs, w, h, pw, ph, c)
         bs, w, h = inputs.shape[:-1]
-        pw, ph, = self.pool_size
+        (
+            pw,
+            ph,
+        ) = self.pool_size
         c = inputs.shape[-1] // (pw * ph)
         print(c)
-        inputs = tf.reshape(
-            inputs,
-            (-1, w, h, pw, ph, c)
-        )
+        inputs = tf.reshape(inputs, (-1, w, h, pw, ph, c))
         inputs = tf.transpose(
             tf.reshape(
-                tf.transpose(inputs, [0, 5, 2, 4, 1, 3]),  # (bs, w, h, pw, ph, c) -> (bs, c, w, pw, h, ph)
-                (-1, c, w, pw, h * ph)),  # (bs, c, w, pw, h, ph) -> (bs, c, w, pw, h*ph) merge last axes
-            [0, 1, 4, 2, 3]  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw) put each axis back in place
+                tf.transpose(
+                    inputs, [0, 5, 2, 4, 1, 3]
+                ),  # (bs, w, h, pw, ph, c) -> (bs, c, w, pw, h, ph)
+                (-1, c, w, pw, h * ph),
+            ),  # (bs, c, w, pw, h, ph) -> (bs, c, w, pw, h*ph) merge last axes
+            [
+                0,
+                1,
+                4,
+                2,
+                3,
+            ],  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw) put each axis back in place
         )
         inputs = tf.reshape(
-            inputs,
-            (-1, c, h * ph, w * pw))  # (bs, c, h*ph, w, pw) -> (bs, c, h*ph, w*pw)
+            inputs, (-1, c, h * ph, w * pw)
+        )  # (bs, c, h*ph, w, pw) -> (bs, c, h*ph, w*pw)
         if self.data_format == "channels_last":
             inputs = tf.transpose(
-                inputs,
-                [0, 2, 3, 1]  # (bs, c, h*ph, w*pw) -> (bs, w*pw, h*ph, c)
+                inputs, [0, 2, 3, 1]  # (bs, c, h*ph, w*pw) -> (bs, w*pw, h*ph, c)
             )
         return inputs
 
