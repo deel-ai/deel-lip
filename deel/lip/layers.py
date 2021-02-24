@@ -29,6 +29,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras.layers import (
+    Layer,
     Dense,
     Conv2D,
     AveragePooling2D,
