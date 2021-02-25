@@ -140,8 +140,6 @@ class Model(KerasModel, Condensable):
         mdl = input_l
         dict_src[self.input.name] = mdl
         for lay in self.layers:
-            if lay.input.name in dict_src:
-                print("tensor input shape " + str(dict_src[lay.input.name].shape))
             if lay.input.name == lay.output.name:
                 pass
             else:
