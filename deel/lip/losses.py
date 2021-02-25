@@ -3,7 +3,8 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains losses used in wasserstein distance estimation.
+This module contains losses used in wasserstein distance estimation. See https://arxiv.org/abs/2006.06520 for more
+information.
 """
 import numpy as np
 import tensorflow as tf
@@ -121,12 +122,13 @@ def hinge_margin_loss(min_margin=1):
 def KR_multiclass_loss():
     r"""
     Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over outputs.
-    Note y_true should be one hot encoding (labels being 1s and 0s ).
     In this multiclass setup thr KR term is computed for each class and then averaged.
+
+    Note:
+        y_true has to be one hot encoded (labels being 1s and 0s ).
 
     Returns:
         Callable, the function to compute Wasserstein multiclass loss.
-        #Note y_true has to be one hot encoded
 
     """
 
@@ -155,11 +157,12 @@ def Hinge_multiclass_loss(min_margin=1):
     Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise hinge term. Note that this
     formulation differs from the one commonly found in tensorflow/pytorch (with marximise the difference between the two
     largest logits). This formulation is consistent with the binary cassification loss used in a multiclass fashion.
-    Note y_true should be one hot encoding. labels in (1,0)
+
+    Note:
+         y_true should be one hot encoded. labels in (1,0)
 
     Returns:
         Callable, the function to compute multiclass Hinge loss
-        #Note y_true has to be one hot encoded
 
     """
 
@@ -183,9 +186,12 @@ def HKR_multiclass_loss(alpha=0.0, min_margin=1):
         alpha: regularization factor
         min_margin: minimal margin ( see Hinge_multiclass_loss )
 
+    Note:
+        y_true has to be one hot encoded.
+
     Returns:
         Callable, the function to compute HKR loss
-        #Note y_true has to be one hot encoded
+
     """
     hingeloss = Hinge_multiclass_loss(min_margin)
     KRloss = KR_multiclass_loss()
@@ -206,11 +212,13 @@ def HKR_multiclass_loss(alpha=0.0, min_margin=1):
 def MultiMarginLoss(min_margin=1):
     """
     Compute the mean hinge margin loss for multi class (equivalent to Pytorch multi_margin_loss)
+
     Args:
         min_margin: the minimal margin to enforce.
         y_true has to be to_categorical
-    Returns:
 
+    Returns:
+        Callable, the function to compute multi margin loss
     """
 
     @tf.function
