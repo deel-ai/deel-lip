@@ -1029,20 +1029,31 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@_deel_export
 class InvertibleDownSampling(Layer):
     def __init__(
-        self,
-        pool_size,
-        data_format="channels_last",
-        trainable=True,
-        name=None,
-        dtype=None,
-        dynamic=False,
-        **kwargs
+        self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
-        super(InvertibleDownSampling, self).__init__(
-            trainable, name, dtype, dynamic, **kwargs
-        )
+        """
+
+        This pooling layer perform a reshape on the spacial dimensions: it take a (bs, h, w, c) ( if channels_last )
+        and reshape it to a (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool. By doing this
+        the image size is reduced while the number of channels is increased.
+
+        References:
+            Anil et al. https://arxiv.org/abs/1911.00937
+
+        Note:
+            The image shape must be divisible by the pool shape.
+
+        Args:
+            pool_size: tuple describing the pool shape
+            data_format: can either be `channels_last` or `channels_first`
+            name: name of the layer
+            dtype: dtype of the layer
+            **kwargs: params passed to the Layers constructor
+        """
+        super(InvertibleDownSampling, self).__init__(name=name, dtype=dtype, **kwargs)
         self.pool_size = pool_size
         self.data_format = data_format
 
@@ -1083,20 +1094,32 @@ class InvertibleDownSampling(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@_deel_export
 class InvertibleUpSampling(Layer):
     def __init__(
-        self,
-        pool_size,
-        data_format="channels_last",
-        trainable=True,
-        name=None,
-        dtype=None,
-        dynamic=False,
-        **kwargs
+        self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
-        super(InvertibleUpSampling, self).__init__(
-            trainable, name, dtype, dynamic, **kwargs
-        )
+        """
+
+        This Layer is the inverse of the InvertibleDownSampling layer. It take a (bs, h, w, c) ( if channels_last )
+        and reshape it to a (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool. By doing this
+        the image size is reduced while the number of channels is increased.
+
+        References:
+            Anil et al. https://arxiv.org/abs/1911.00937
+
+        Note:
+            The input number of channels must be divisible by the `p_w*p_h`.
+
+
+        Args:
+            pool_size: tuple describing the pool shape (p_h, p_w)
+            data_format: can either be `channels_last` or `channels_first`
+            name: name of the layer
+            dtype: dtype of the layer
+            **kwargs: params passed to the Layers constructor
+        """
+        super(InvertibleUpSampling, self).__init__(name=name, dtype=dtype, **kwargs)
         self.pool_size = pool_size
         self.data_format = data_format
 
