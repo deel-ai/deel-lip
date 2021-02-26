@@ -24,6 +24,7 @@ docs_requires = [
     "recommonmark",
     "sphinx_rtd_theme",
     "sphinx_markdown_builder",
+    "sphinxcontrib_katex",
     "ipython",  # required for Pygments
 ]
 
