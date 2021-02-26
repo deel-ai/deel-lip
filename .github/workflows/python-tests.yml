@@ -1,4 +1,4 @@
-name: deel-lip linters
+name: deel-lip tests
 
 on: [push, pull_request]
 
@@ -21,4 +21,4 @@ jobs:
         python -m pip install --upgrade pip
         pip install tox
     - name: Test with tox
-      run: tox -e py$(echo ${{ matrix.python-version }} | tr -d .)-lint
+      run: tox -e py$(echo ${{ matrix.python-version }} | tr -d .)
