@@ -13,6 +13,7 @@ from deel.lip.layers import (
     SpectralConv2D,
     FrobeniusDense,
     FrobeniusConv2D,
+    ScaledL2NormPooling2D,
 )
 import tensorflow as tf
 from tensorflow.keras.layers import Flatten, Dense
@@ -28,7 +29,7 @@ pp = pprint.PrettyPrinter(indent=4)
 
 class MyTestCase(unittest.TestCase):
     def test_as_supertype_sequential(self):
-        input_shape = (5, 5, 3)
+        input_shape = (8, 8, 3)
         model = Sequential(
             [
                 # the bug occurs only when using the "as_supertype_export" function
@@ -39,6 +40,7 @@ class MyTestCase(unittest.TestCase):
                 # - tensorflow 2.1 ( not 2.0 )
                 Input(input_shape),
                 SpectralConv2D(2, (3, 3)),
+                ScaledL2NormPooling2D((2, 2)),
                 FrobeniusConv2D(2, (3, 3)),
                 Flatten(),
                 Dense(4),
@@ -50,15 +52,16 @@ class MyTestCase(unittest.TestCase):
         self._test_model(model, input_shape)
 
     def test_as_supertype_model(self):
-        input_shape = (5, 5, 3)
+        input_shape = (8, 8, 3)
         inp = Input(input_shape)
         x = SpectralConv2D(2, (3, 3), k_coef_lip=2.0)(inp)
+        x = ScaledL2NormPooling2D((2, 2), k_coef_lip=2.0)(x)
         x = FrobeniusConv2D(2, (3, 3), k_coef_lip=2.0)(x)
         x = Flatten()(x)
         x = Dense(4)(x)
         x = SpectralDense(4, k_coef_lip=2.0)(x)
-        x = FrobeniusDense(2, k_coef_lip=2.0)(x)
-        model = Model(inputs=inp, outputs=x)
+        out = FrobeniusDense(2, k_coef_lip=2.0)(x)
+        model = Model(inputs=inp, outputs=out)
         self._test_model(model, input_shape)
 
     def _test_model(self, model, input_shape):

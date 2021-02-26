@@ -24,12 +24,13 @@ docs_requires = [
     "recommonmark",
     "sphinx_rtd_theme",
     "sphinx_markdown_builder",
+    "sphinxcontrib_katex",
     "ipython",  # required for Pygments
 ]
 
 setuptools.setup(
     name="deel-lip",
-    version="1.0.2",
+    version="1.1.0",
     author=", ".join(["Mathieu SERRURIER", "Franck MAMALET", "Thibaut BOISSIN"]),
     author_email=", ".join(
         [
@@ -43,7 +44,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/deel-ai/deel-lip",
     packages=setuptools.find_namespace_packages(include=["deel.*"]),
-    install_requires=["numpy", "tensorflow>=2,<=2.3"],
+    install_requires=["numpy", "tensorflow>=2,<3"],
     license="MIT",
     extras_require={"dev": dev_requires, "docs": docs_requires},
     classifiers=[

@@ -27,6 +27,8 @@ from deel.lip.layers import (
     ScaledAveragePooling2D,
     ScaledGlobalAveragePooling2D,
     ScaledL2NormPooling2D,
+    InvertibleDownSampling,
+    InvertibleUpSampling,
 )
 from deel.lip.model import Sequential
 from deel.lip.utils import load_model, evaluate_lip_const
@@ -135,7 +137,6 @@ def generate_k_lip_model(layer_type: type, layer_params: dict, input_shape, k):
     if issubclass(layer_type, LipschitzLayer):
         layer_params["k_coef_lip"] = k
     layer = layer_type(**layer_params)
-    assert isinstance(layer, LipschitzLayer) or isinstance(layer, Dense)
     assert isinstance(layer, Layer)
     # print(input_shape)
     # print(layer.compute_output_shape((32, ) + input_shape))
@@ -593,7 +594,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
@@ -609,7 +610,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
@@ -625,7 +626,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "layers": [
                             Input((5, 5, 1)),
-                            ScaledL2NormPooling2D(data_format="channels_last"),
+                            ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
                     batch_size=1000,
@@ -743,6 +744,42 @@ class LipschitzLayersTest(unittest.TestCase):
                             on_batch=True,
                         )
                     ],
+                ),
+            ]
+        )
+
+    def test_invertibledownsampling(self):
+        # tests only checks that lip cons is enforced
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=InvertibleDownSampling,
+                    layer_params={"pool_size": (2, 3)},
+                    batch_size=1000,
+                    steps_per_epoch=1,
+                    epochs=5,
+                    input_shape=(6, 6, 3),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_invertibleupsampling(self):
+        # tests only checks that lip cons is enforced
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=InvertibleUpSampling,
+                    layer_params={"pool_size": (2, 3)},
+                    batch_size=1000,
+                    steps_per_epoch=1,
+                    epochs=5,
+                    input_shape=(6, 6, 18),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
                 ),
             ]
         )

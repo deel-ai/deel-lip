@@ -8,16 +8,16 @@
 Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
 from adversarial robustness to Wasserstein distance estimation.
 
-This library provides implementation of **k-Lispchitz layers for `keras`**.
+This library provides an efficient implementation of **k-Lispchitz layers for `keras`**.
 
 ## The library contains:
 
  * k-Lipschitz variant of keras layers such as `Dense`, `Conv2D` and `Pooling`,
  * activation functions compatible with `keras`,
  * kernel initializers and kernel constraints for `keras`,
- * loss functions when working with Wasserstein distance estimations,
+ * loss functions that make use of Lipschitz constrained networks (see [our paper](https://arxiv.org/abs/2006.06520) for more information),
  * tools to monitor the singular values of kernels during training,
- * tools to convert k-Lipschitz network to regular network for faster evaluation.
+ * tools to convert k-Lipschitz network to regular network for faster inference.
 
 ## Example and usage
 
@@ -27,58 +27,98 @@ In order to make things simple the following rules have been followed during dev
 * When a k-Lipschitz layer overrides a standard keras layer, it uses the same interface and the same parameters.
   The only difference is a new parameter to control the Lipschitz constant of a layer.
 
-Here is a simple example showing how to build a 1-Lipschitz network:
+Here is an example showing how to build and train a 1-Lipschitz network:
 ```python
-from deel.lip.initializers import BjorckInitializer
-from deel.lip.layers import SpectralDense, SpectralConv2D
+from deel.lip.layers import SpectralDense, SpectralConv2D, ScaledL2NormPooling2D
 from deel.lip.model import Sequential
-from deel.lip.activations import PReLUlip
-from tensorflow.keras.layers import Input, Lambda, Flatten, MaxPool2D
-from tensorflow.keras import backend as K
+from deel.lip.activations import GroupSort
+from deel.lip.losses import HKR_multiclass_loss
+from tensorflow.keras.layers import Input, Flatten
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
+import numpy as np
 
-# Sequential (resp Model) from deel.model has the same properties as any lipschitz
-# layer ( condense, setting of the lipschitz factor etc...). It act only as a container.
+# Sequential (resp Model) from deel.model has the same properties as any lipschitz model.
+# It act only as a container, with features specific to lipschitz 
+# functions (condensation, vanilla_exportation...)
 model = Sequential(
     [
-        Input(shape=(28, 28)),
-        Lambda(lambda x: K.reshape(x, (-1, 28, 28, 1))),
-
-        # Lipschitz layer preserve the API of their superclass ( here Conv2D )
+        Input(shape=(28, 28, 1)),
+        # Lipschitz layers preserve the API of their superclass ( here Conv2D )
         # an optional param is available: k_coef_lip which control the lipschitz
         # constant of the layer
         SpectralConv2D(
-            filters=32, kernel_size=(3, 3), padding='same',
-            activation=PReLUlip(), data_format='channels_last',
-            kernel_initializer=BjorckInitializer(15, 50)),
+            filters=16,
+            kernel_size=(3, 3),
+            activation=GroupSort(2),
+            use_bias=False,
+            kernel_initializer="orthogonal",
+        ),
+        # usual pooling layer are implemented (avg, max...), but new layers are also available
+        ScaledL2NormPooling2D(pool_size=(2, 2), data_format="channels_last"),
         SpectralConv2D(
-            filters=32, kernel_size=(3, 3), padding='same',
-            activation=PReLUlip(), data_format='channels_last',
-            kernel_initializer=BjorckInitializer(15, 50)),
-        MaxPool2D(pool_size=(2, 2), data_format='channels_last'),
-
-        SpectralConv2D(
-            filters=64, kernel_size=(3, 3), padding='same',
-            activation=PReLUlip(), data_format='channels_last',
-            kernel_initializer=BjorckInitializer(15, 50)),
-        SpectralConv2D(
-            filters=64, kernel_size=(3, 3), padding='same',
-            activation=PReLUlip(), data_format='channels_last',
-            kernel_initializer=BjorckInitializer(15, 50)),
-        MaxPool2D(pool_size=(2, 2), data_format='channels_last'),
-
+            filters=32,
+            kernel_size=(3, 3),
+            activation=GroupSort(2),
+            use_bias=False,
+            kernel_initializer="orthogonal",
+        ),
+        ScaledL2NormPooling2D(pool_size=(2, 2), data_format="channels_last"),
+        # our layers are fully interoperable with existing keras layers
         Flatten(),
-        SpectralDense(256, activation="relu", kernel_initializer=BjorckInitializer(15, 50)),
-        SpectralDense(10, activation="softmax"),
+        SpectralDense(
+            100,
+            activation=GroupSort(2),
+            use_bias=False,
+            kernel_initializer="orthogonal",
+        ),
+        SpectralDense(
+            10, activation=None, use_bias=False, kernel_initializer="orthogonal"
+        ),
     ],
-    k_coef_lip=0.5,
-    name='testing'
+    # similary model has a parameter to set the lipschitz constant
+    # to set automatically the constant of each layer
+    k_coef_lip=1.0,
+    name="hkr_model",
 )
 
-optimizer = Adam(lr=0.001)
-model.compile(loss='categorical_crossentropy',
-              optimizer=optimizer,
-              metrics=['accuracy'])
+# HKR (Hinge-Krantorovich-Rubinstein) optimize robustness along with accuracy
+model.compile(
+    loss=HKR_multiclass_loss(alpha=5.0, min_margin=0.5),
+    optimizer=Adam(lr=0.01),
+    metrics=["accuracy"],
+)
+
+model.summary()
+
+# load data
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+# standardize and reshape the data
+x_train = np.expand_dims(x_train, -1)
+mean = x_train.mean()
+std = x_train.std()
+x_train = (x_train - mean) / std
+x_test = np.expand_dims(x_test, -1)
+x_test = (x_test - mean) / std
+# one hot encode the labels
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+# fit the model
+model.fit(
+    x_train,
+    y_train,
+    batch_size=256,
+    epochs=15,
+    validation_data=(x_test, y_test),
+    shuffle=True,
+)
+
+# once training is finished you can convert
+# SpectralDense layers into Dense layers and SpectralConv2D into Conv2D
+# which optimize performance for inference
+vanilla_model = model.vanilla_export()
 ```
 
 See [the full documentation](https://deel-lip.readthedocs.io) for a complete API description.
@@ -91,12 +131,13 @@ pip install deel-lip
 ```
 
 In order to use `deel-lip`, you also need a [valid tensorflow installation](https://www.tensorflow.org/install).
-`deel-lip` supports tensorflow from 2.0 to 2.2.
+`deel-lip` supports tensorflow versions 2.x
 
 ## Cite this work
 
 This library has been built to support the work presented in the paper
-*Achieving robustness in classification using optimaltransport with Hinge regularization*.
+[*Achieving robustness in classification using optimaltransport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
+which aim provable and efficient robustness by design.
 
 This work can be cited as:
 ```latex

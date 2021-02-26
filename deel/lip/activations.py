@@ -126,7 +126,6 @@ class GroupSort(Layer, LipschitzLayer):
             self.n = input_shape[self.channel_axis]
         if (input_shape[self.channel_axis] % self.n) != 0:
             raise RuntimeError("self.n has to be a divisor of the number of channels")
-        print(self.n)
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0

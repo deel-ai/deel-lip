@@ -6,6 +6,7 @@
 This module contains computation function, for BjorckNormalizer and spectral
 normalization. This is done for internal use only.
 """
+import tensorflow as tf
 from tensorflow.keras import backend as K
 
 DEFAULT_NITER_BJORCK = 15
@@ -13,6 +14,7 @@ DEFAULT_NITER_SPECTRAL = 3
 DEFAULT_NITER_SPECTRAL_INIT = 10
 
 
+@tf.function
 def bjorck_normalization(w, niter=DEFAULT_NITER_BJORCK):
     """
     apply Bjorck normalization on w.
@@ -52,6 +54,7 @@ def _power_iteration(w, u, niter=DEFAULT_NITER_SPECTRAL):
     return _u, _v
 
 
+@tf.function
 def spectral_normalization(kernel, u=None, niter=DEFAULT_NITER_SPECTRAL):
     """
     Normalize the kernel to have it's max eigenvalue == 1.

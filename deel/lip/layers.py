@@ -29,6 +29,7 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras.layers import (
+    Layer,
     Dense,
     Conv2D,
     AveragePooling2D,
@@ -261,7 +262,6 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0  # this layer don't require a corrective factor
 
-    @tf.function
     def call(self, x, training=None):
         if training:
             W_bar, _u, sigma = spectral_normalization(
@@ -510,7 +510,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
         return coefLip
 
-    @tf.function
     def call(self, x, training=None):
         W_shape = self.kernel.shape
         if training:
@@ -632,7 +631,6 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    @tf.function
     def call(self, x):
         W_bar = self.kernel / tf.norm(self.kernel) * self._get_coef()
         kernel = self.kernel
@@ -744,7 +742,6 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return SpectralConv2D._compute_lip_coef(self, input_shape)
 
-    @tf.function
     def call(self, x):
         W_bar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
         outputs = K.conv2d(
@@ -850,7 +847,6 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    @tf.function
     def call(self, x, training=None):
         return super(AveragePooling2D, self).call(x) * self._get_coef()
 
@@ -935,7 +931,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         self._kwargs = kwargs
 
     def build(self, input_shape):
-        super(AveragePooling2D, self).build(input_shape)
+        super(ScaledL2NormPooling2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.built = True
 
@@ -943,18 +939,22 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     @staticmethod
-    @tf.custom_gradient
-    def _sqrt(x, eps_grad_sqrt):
-        def grad(dy):
-            return dy / (2 * tf.sqrt(x + eps_grad_sqrt))
+    def _sqrt(eps_grad_sqrt):
+        @tf.custom_gradient
+        def sqrt_op(x):
+            sqrtx = tf.sqrt(x)
 
-        return tf.sqrt(x), grad
+            def grad(dy):
+                return dy / (2 * (sqrtx + eps_grad_sqrt))
 
-    @tf.function
+            return sqrtx, grad
+
+        return sqrt_op
+
     def call(self, x, training=None):
         return (
-            ScaledL2NormPooling2D._sqrt(
-                super(AveragePooling2D, self).call(tf.square(x)), self.eps_grad_sqrt
+            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
+                super(ScaledL2NormPooling2D, self).call(tf.square(x))
             )
             * self._get_coef()
         )
@@ -963,7 +963,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         config = {
             "k_coef_lip": self.k_coef_lip,
         }
-        base_config = super(AveragePooling2D, self).get_config()
+        base_config = super(ScaledL2NormPooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -1016,7 +1016,6 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
             raise RuntimeError("data format not understood: %s" % self.data_format)
         return lip_coef
 
-    @tf.function
     def call(self, x, training=None):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
@@ -1025,4 +1024,152 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
             "k_coef_lip": self.k_coef_lip,
         }
         base_config = super(ScaledGlobalAveragePooling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@_deel_export
+class InvertibleDownSampling(Layer):
+    def __init__(
+        self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
+    ):
+        """
+
+        This pooling layer perform a reshape on the spacial dimensions: it take a
+        (bs, h, w, c) ( if channels_last ) and reshape it to a
+        (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool.
+        By doing this the image size is reduced while the number of channels is
+        increased.
+
+        References:
+            Anil et al. https://arxiv.org/abs/1911.00937
+
+        Note:
+            The image shape must be divisible by the pool shape.
+
+        Args:
+            pool_size: tuple describing the pool shape
+            data_format: can either be `channels_last` or `channels_first`
+            name: name of the layer
+            dtype: dtype of the layer
+            **kwargs: params passed to the Layers constructor
+        """
+        super(InvertibleDownSampling, self).__init__(name=name, dtype=dtype, **kwargs)
+        self.pool_size = pool_size
+        self.data_format = data_format
+
+    def build(self, input_shape):
+        return super(InvertibleDownSampling, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        # inputs = super(InvertibleDownSampling, self).call(inputs, **kwargs)
+        if self.data_format == "channels_last":
+            return tf.concat(
+                [
+                    inputs[
+                        :, i :: self.pool_size[0], j :: self.pool_size[1], :
+                    ]  # for now we handle only channels last
+                    for i in range(self.pool_size[0])
+                    for j in range(self.pool_size[1])
+                ],
+                axis=-1,
+            )
+        else:
+            return tf.concat(
+                [
+                    inputs[
+                        :, :, i :: self.pool_size[0], j :: self.pool_size[1]
+                    ]  # for now we handle only channels last
+                    for i in range(self.pool_size[0])
+                    for j in range(self.pool_size[1])
+                ],
+                axis=1,
+            )
+
+    def get_config(self):
+        config = {
+            "data_format": self.data_format,
+            "pool_size": self.pool_size,
+        }
+        base_config = super(InvertibleDownSampling, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@_deel_export
+class InvertibleUpSampling(Layer):
+    def __init__(
+        self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
+    ):
+        """
+
+        This Layer is the inverse of the InvertibleDownSampling layer. It take a
+        (bs, h, w, c) ( if channels_last ) and reshape it to a
+        (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the
+        pool. By doing this the image size is reduced while the number of
+        channels is increased.
+
+        References:
+            Anil et al. https://arxiv.org/abs/1911.00937
+
+        Note:
+            The input number of channels must be divisible by the `p_w*p_h`.
+
+
+        Args:
+            pool_size: tuple describing the pool shape (p_h, p_w)
+            data_format: can either be `channels_last` or `channels_first`
+            name: name of the layer
+            dtype: dtype of the layer
+            **kwargs: params passed to the Layers constructor
+        """
+        super(InvertibleUpSampling, self).__init__(name=name, dtype=dtype, **kwargs)
+        self.pool_size = pool_size
+        self.data_format = data_format
+
+    def build(self, input_shape):
+        return super(InvertibleUpSampling, self).build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        if self.data_format == "channels_first":
+            # convert to channels_first
+            inputs = tf.transpose(inputs, [0, 2, 3, 1])
+        # from shape (bs, w, h, c*pw*ph) to (bs, w, h, pw, ph, c)
+        bs, w, h = inputs.shape[:-1]
+        (
+            pw,
+            ph,
+        ) = self.pool_size
+        c = inputs.shape[-1] // (pw * ph)
+        print(c)
+        inputs = tf.reshape(inputs, (-1, w, h, pw, ph, c))
+        inputs = tf.transpose(
+            tf.reshape(
+                tf.transpose(
+                    inputs, [0, 5, 2, 4, 1, 3]
+                ),  # (bs, w, h, pw, ph, c) -> (bs, c, w, pw, h, ph)
+                (-1, c, w, pw, h * ph),
+            ),  # (bs, c, w, pw, h, ph) -> (bs, c, w, pw, h*ph) merge last axes
+            [
+                0,
+                1,
+                4,
+                2,
+                3,
+            ],  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw)
+            # put each axis back in place
+        )
+        inputs = tf.reshape(
+            inputs, (-1, c, h * ph, w * pw)
+        )  # (bs, c, h*ph, w, pw) -> (bs, c, h*ph, w*pw)
+        if self.data_format == "channels_last":
+            inputs = tf.transpose(
+                inputs, [0, 2, 3, 1]  # (bs, c, h*ph, w*pw) -> (bs, w*pw, h*ph, c)
+            )
+        return inputs
+
+    def get_config(self):
+        config = {
+            "data_format": self.data_format,
+            "pool_size": self.pool_size,
+        }
+        base_config = super(InvertibleUpSampling, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
