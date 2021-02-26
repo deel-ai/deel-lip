@@ -262,7 +262,6 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0  # this layer don't require a corrective factor
 
-    @tf.function
     def call(self, x, training=None):
         if training:
             W_bar, _u, sigma = spectral_normalization(
@@ -511,7 +510,6 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
         return coefLip
 
-    @tf.function
     def call(self, x, training=None):
         W_shape = self.kernel.shape
         if training:
@@ -633,7 +631,6 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    @tf.function
     def call(self, x):
         W_bar = self.kernel / tf.norm(self.kernel) * self._get_coef()
         kernel = self.kernel
@@ -745,7 +742,6 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     def _compute_lip_coef(self, input_shape=None):
         return SpectralConv2D._compute_lip_coef(self, input_shape)
 
-    @tf.function
     def call(self, x):
         W_bar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
         outputs = K.conv2d(
@@ -851,7 +847,6 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    @tf.function
     def call(self, x, training=None):
         return super(AveragePooling2D, self).call(x) * self._get_coef()
 
@@ -954,7 +949,6 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             return sqrtx, grad
         return sqrt_op
 
-    @tf.function
     def call(self, x, training=None):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
@@ -1020,7 +1014,6 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
             raise RuntimeError("data format not understood: %s" % self.data_format)
         return lip_coef
 
-    @tf.function
     def call(self, x, training=None):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
