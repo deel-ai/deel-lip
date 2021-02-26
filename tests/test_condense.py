@@ -13,7 +13,8 @@ from deel.lip.layers import (
     SpectralConv2D,
     FrobeniusDense,
     FrobeniusConv2D,
-    ScaledL2NormPooling2D)
+    ScaledL2NormPooling2D,
+)
 import tensorflow as tf
 from tensorflow.keras.layers import Flatten, Dense
 from tensorflow.keras.optimizers import Adam

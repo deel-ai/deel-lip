@@ -52,6 +52,7 @@ def neg_KR_loss():
         Callable, the function to compute negative Wasserstein loss
 
     """
+
     @tf.function
     def neg_KR_loss_fct(y_true, y_pred):
         return -KR_loss()(y_true, y_pred)
@@ -87,7 +88,9 @@ def HKR_loss(alpha, min_margin=1):
         else:
             # true value: positive value should be the first to be coherent with the
             # hinge loss (positive y_pred)
-            return alpha * hinge_margin_loss(min_margin)(y_true, y_pred) - KR_loss()(y_true, y_pred)
+            return alpha * hinge_margin_loss(min_margin)(y_true, y_pred) - KR_loss()(
+                y_true, y_pred
+            )
 
     return HKR_loss_fct
 
@@ -111,7 +114,9 @@ def hinge_margin_loss(min_margin=1):
 
     @tf.function
     def hinge_margin_fct(y_true, y_pred):
-        sign = K.sign(y_true-eps)  # subtracting a small eps make the loss works for bot (1,0) and (1,-1) labels
+        sign = K.sign(
+            y_true - eps
+        )  # subtracting a small eps make the loss works for bot (1,0) and (1,-1) labels
         hinge = K.maximum(0.0, min_margin - sign * y_pred)
         return K.mean(hinge)
 

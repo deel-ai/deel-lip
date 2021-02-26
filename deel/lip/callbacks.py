@@ -34,7 +34,7 @@ class CondenseCallback(Callback):
 
     def _condense_model(self):
         for layer in self.model.layers:
-            if isinstance(layer, Condensable) or hasattr(layer, 'condense'):
+            if isinstance(layer, Condensable) or hasattr(layer, "condense"):
                 layer.condense()
 
     def on_train_batch_end(self, batch: int, logs: Optional[Dict[str, float]] = None):

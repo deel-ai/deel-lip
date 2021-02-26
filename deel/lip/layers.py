@@ -943,10 +943,12 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         @tf.custom_gradient
         def sqrt_op(x):
             sqrtx = tf.sqrt(x)
+
             def grad(dy):
                 return dy / (2 * (sqrtx + eps_grad_sqrt))
 
             return sqrtx, grad
+
         return sqrt_op
 
     def call(self, x, training=None):
