@@ -40,7 +40,8 @@ from tensorflow.keras.utils import to_categorical
 import numpy as np
 
 # Sequential (resp Model) from deel.model has the same properties as any lipschitz model.
-# It act only as a container, with features specific to lipschitz functions (condensation, vanilla_exportation...)
+# It act only as a container, with features specific to lipschitz 
+# functions (condensation, vanilla_exportation...)
 model = Sequential(
     [
         Input(shape=(28, 28, 1)),
@@ -76,7 +77,8 @@ model = Sequential(
             10, activation=None, use_bias=False, kernel_initializer="orthogonal"
         ),
     ],
-    # similary model has a parameter to set the lipschitz constant to set automatically the constant of each layer
+    # similary model has a parameter to set the lipschitz constant
+    # to set automatically the constant of each layer
     k_coef_lip=1.0,
     name="hkr_model",
 )
@@ -135,7 +137,7 @@ In order to use `deel-lip`, you also need a [valid tensorflow installation](http
 
 This library has been built to support the work presented in the paper
 [*Achieving robustness in classification using optimaltransport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
-which aim provable and scalable robustness by design.
+which aim provable and efficient robustness by design.
 
 This work can be cited as:
 ```latex
