@@ -1034,9 +1034,11 @@ class InvertibleDownSampling(Layer):
     ):
         """
 
-        This pooling layer perform a reshape on the spacial dimensions: it take a (bs, h, w, c) ( if channels_last )
-        and reshape it to a (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool. By doing this
-        the image size is reduced while the number of channels is increased.
+        This pooling layer perform a reshape on the spacial dimensions: it take a
+        (bs, h, w, c) ( if channels_last ) and reshape it to a
+        (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool.
+        By doing this the image size is reduced while the number of channels is
+        increased.
 
         References:
             Anil et al. https://arxiv.org/abs/1911.00937
@@ -1099,9 +1101,11 @@ class InvertibleUpSampling(Layer):
     ):
         """
 
-        This Layer is the inverse of the InvertibleDownSampling layer. It take a (bs, h, w, c) ( if channels_last )
-        and reshape it to a (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the pool. By doing this
-        the image size is reduced while the number of channels is increased.
+        This Layer is the inverse of the InvertibleDownSampling layer. It take a
+        (bs, h, w, c) ( if channels_last ) and reshape it to a
+        (bs, h/p_h, w/p_w, c*p_w*p_h ), where p_w and p_h are the shape of the
+        pool. By doing this the image size is reduced while the number of
+        channels is increased.
 
         References:
             Anil et al. https://arxiv.org/abs/1911.00937
@@ -1150,7 +1154,8 @@ class InvertibleUpSampling(Layer):
                 4,
                 2,
                 3,
-            ],  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw) put each axis back in place
+            ],  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw)
+            # put each axis back in place
         )
         inputs = tf.reshape(
             inputs, (-1, c, h * ph, w * pw)

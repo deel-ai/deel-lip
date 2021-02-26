@@ -136,11 +136,13 @@ class Model(KerasModel):
 
     def vanilla_export(self) -> KerasModel:
         """
-        Export this model to a "Vanilla" model, i.e. a model without Condensable layers.
+        Export this model to a "Vanilla" model, i.e. a model without Condensable
+        layers.
 
         Returns:
-            A Keras model, identical to this model, but where condensable layers have been
-            replaced with their vanilla equivalent (e.g. SpectralConv2D with Conv2D).
+            A Keras model, identical to this model, but where condensable layers have
+            been replaced with their vanilla equivalent (e.g. SpectralConv2D with
+             Conv2D).
         """
         # Dictionary that will map tensor names (from the current model) to tensors
         # in the exported model.# We initialize the dictionary for inputs:

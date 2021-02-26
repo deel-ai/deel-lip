@@ -3,8 +3,8 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains losses used in wasserstein distance estimation. See https://arxiv.org/abs/2006.06520 for more
-information.
+This module contains losses used in wasserstein distance estimation. See
+https://arxiv.org/abs/2006.06520 for more information.
 """
 import numpy as np
 import tensorflow as tf
@@ -20,11 +20,13 @@ def KR_loss():
 
     .. math::
         W_1(\mu, \nu) =
-        \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}} \left[f(\textbf{x} )\right] -
+        \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] -
         \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
 
 
-    Where mu and nu stands for the two distributions, the distribution where the label is 1 and the rest.
+    Where mu and nu stands for the two distributions, the distribution where the
+    label is 1 and the rest.
 
     Returns:
         Callable, the function to compute Wasserstein loss
@@ -66,15 +68,18 @@ def HKR_loss(alpha, min_margin=1):
     Wasserstein loss with a regularization param based on hinge loss.
 
     .. math::
-        \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}} \left[f(\textbf{x} )\right] -
-        \underset{\textbf{x}  \sim P_+}{\mathbb{E}} \left[f(\textbf{x} )\right] +
-        \alpha \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}-Yf(\textbf{x})\right)_+
+        \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+        {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
 
     Args:
         alpha: regularization factor
         min_margin: minimal margin ( see hinge_margin_loss )
-        Kantorovich-rubinstein term of the loss. In order to be consistent between hinge and KR, the first label must
-        yield the positve class while the second yields negative class.
+        Kantorovich-rubinstein term of the loss. In order to be consistent
+        between hinge and KR, the first label must yield the positve class
+        while the second yields negative class.
 
     Returns:
          a function that compute the regularized Wasserstein loss
@@ -101,7 +106,8 @@ def hinge_margin_loss(min_margin=1):
     Compute the hinge margin loss.
 
     .. math::
-        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}-Yf(\textbf{x})\right)_+
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
 
     Args:
         min_margin: the minimal margin to enforce.
@@ -116,7 +122,7 @@ def hinge_margin_loss(min_margin=1):
     def hinge_margin_fct(y_true, y_pred):
         sign = K.sign(
             y_true - eps
-        )  # subtracting a small eps make the loss works for bot (1,0) and (1,-1) labels
+        )  # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
         hinge = K.maximum(0.0, min_margin - sign * y_pred)
         return K.mean(hinge)
 
@@ -126,8 +132,9 @@ def hinge_margin_loss(min_margin=1):
 @_deel_export
 def KR_multiclass_loss():
     r"""
-    Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over outputs.
-    In this multiclass setup thr KR term is computed for each class and then averaged.
+    Loss to estimate average of W1 distance using Kantorovich-Rubinstein
+    duality over outputs. In this multiclass setup thr KR term is computed
+    for each class and then averaged.
 
     Note:
         y_true has to be one hot encoded (labels being 1s and 0s ).
@@ -140,17 +147,20 @@ def KR_multiclass_loss():
     @tf.function
     def KR_multiclass_loss_fct(y_true, y_pred):
         # use y_true to zero out y_pred where y_true != 1
-        # espYtrue is the avg value of y_pred when y_true==1 (one average per output neuron)
+        # espYtrue is the avg value of y_pred when y_true==1
+        # (one average per output neuron)
         espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / tf.reduce_sum(
             y_true, axis=0
         )
         # use(1- y_true) to zero out y_pred where y_true == 1
-        # espNotYtrue is the avg value of y_pred when y_true==0 (one average per output neuron)
+        # espNotYtrue is the avg value of y_pred when y_true==0
+        # (one average per output neuron)
         espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
             tf.cast(tf.shape(y_true)[0], dtype="float32")
             - tf.reduce_sum(y_true, axis=0)
         )
-        # compute the differences to have the KR term for each output neuron, and compute the average over the classes
+        # compute the differences to have the KR term for each output neuron,
+        # and compute the average over the classes
         return tf.reduce_mean(-espNotYtrue + espYtrue)
 
     return KR_multiclass_loss_fct
@@ -159,9 +169,11 @@ def KR_multiclass_loss():
 @_deel_export
 def Hinge_multiclass_loss(min_margin=1):
     """
-    Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise hinge term. Note that this
-    formulation differs from the one commonly found in tensorflow/pytorch (with marximise the difference between the two
-    largest logits). This formulation is consistent with the binary cassification loss used in a multiclass fashion.
+    Loss to estimate the Hinge loss in a multiclass setup. It compute the
+    elementwise hinge term. Note that this formulation differs from the
+    one commonly found in tensorflow/pytorch (with marximise the difference
+    between the two largest logits). This formulation is consistent with the
+    binary cassification loss used in a multiclass fashion.
 
     Note:
          y_true should be one hot encoded. labels in (1,0)
@@ -185,7 +197,8 @@ def Hinge_multiclass_loss(min_margin=1):
 @_deel_export
 def HKR_multiclass_loss(alpha=0.0, min_margin=1):
     """
-    The multiclass version of HKR. This is done by computing the HKR term over each class and averaging the results.
+    The multiclass version of HKR. This is done by computing the HKR term
+     over each class and averaging the results.
 
     Args:
         alpha: regularization factor
@@ -216,7 +229,8 @@ def HKR_multiclass_loss(alpha=0.0, min_margin=1):
 @_deel_export
 def MultiMarginLoss(min_margin=1):
     """
-    Compute the mean hinge margin loss for multi class (equivalent to Pytorch multi_margin_loss)
+    Compute the mean hinge margin loss for multi class (equivalent to Pytorch
+     multi_margin_loss)
 
     Args:
         min_margin: the minimal margin to enforce.
@@ -228,14 +242,15 @@ def MultiMarginLoss(min_margin=1):
 
     @tf.function
     def MultiMargin_fct(y_true, y_pred):
-        # get the y_pred[target_class] (zeroing out all elements of y_pred where y_true=0)
+        # get the y_pred[target_class]
+        # (zeroing out all elements of y_pred where y_true=0)
         vYtrue = tf.reduce_sum(y_pred * y_true, axis=1, keepdims=True)
         # computing elementwise margin term : margin + y_pred[i]-y_pred[target_class]
         margin = tf.nn.relu(min_margin - vYtrue + y_pred)
         # averaging on all outputs and batch
         final_loss = tf.reduce_mean(
             tf.where(y_true == 1, 0.0, margin)
-        )  ## two steps is useless
+        )  # two steps is useless
         return final_loss
 
     return MultiMargin_fct
