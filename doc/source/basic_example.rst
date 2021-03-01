@@ -203,5 +203,3 @@ Here is an example showing how to build and train a 1-Lipschitz network:
     # SpectralDense layers into Dense layers and SpectralConv2D into Conv2D
     # which optimize performance for inference
     vanilla_model = model.vanilla_export()
-
-See :ref:`deel-lip` for a complete API description.
