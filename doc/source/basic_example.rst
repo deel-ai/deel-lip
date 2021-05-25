@@ -112,8 +112,12 @@ How to use it?
 Here is an example showing how to build and train a 1-Lipschitz network:
 
 .. code:: python
-
-    from deel.lip.layers import SpectralDense, SpectralConv2D, ScaledL2NormPooling2D
+    from deel.lip.layers import (
+        SpectralDense,
+        SpectralConv2D,
+        ScaledL2NormPooling2D,
+        FrobeniusDense,
+    )
     from deel.lip.model import Sequential
     from deel.lip.activations import GroupSort
     from deel.lip.losses import HKR_multiclass_loss
@@ -136,28 +140,28 @@ Here is an example showing how to build and train a 1-Lipschitz network:
                 filters=16,
                 kernel_size=(3, 3),
                 activation=GroupSort(2),
-                use_bias=False,
+                use_bias=True,
                 kernel_initializer="orthogonal",
             ),
             # usual pooling layer are implemented (avg, max...), but new layers are also available
             ScaledL2NormPooling2D(pool_size=(2, 2), data_format="channels_last"),
             SpectralConv2D(
-                filters=32,
+                filters=16,
                 kernel_size=(3, 3),
                 activation=GroupSort(2),
-                use_bias=False,
+                use_bias=True,
                 kernel_initializer="orthogonal",
             ),
             ScaledL2NormPooling2D(pool_size=(2, 2), data_format="channels_last"),
             # our layers are fully interoperable with existing keras layers
             Flatten(),
             SpectralDense(
-                100,
+                32,
                 activation=GroupSort(2),
-                use_bias=False,
+                use_bias=True,
                 kernel_initializer="orthogonal",
             ),
-            SpectralDense(
+            FrobeniusDense(
                 10, activation=None, use_bias=False, kernel_initializer="orthogonal"
             ),
         ],
@@ -169,8 +173,10 @@ Here is an example showing how to build and train a 1-Lipschitz network:
 
     # HKR (Hinge-Krantorovich-Rubinstein) optimize robustness along with accuracy
     model.compile(
-        loss=HKR_multiclass_loss(alpha=5.0, min_margin=0.5),
-        optimizer=Adam(lr=0.01),
+        # decreasing alpha and increasing min_margin improve robustness (at the cost of accuracy)
+        # note also in the case of lipschitz networks, more robustness require more parameters.
+        loss=HKR_multiclass_loss(alpha=25, min_margin=0.25),
+        optimizer=Adam(lr=0.005),
         metrics=["accuracy"],
     )
 
