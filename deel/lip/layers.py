@@ -588,7 +588,9 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 @_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
-    Same a SpectralDense, but in the case of a single output.
+    Same a SpectralDense, but in the case of a single output. In the multiclass setting,
+    the behaviour of this layer is similar to the stacking of 1 lipschitz layer (each output
+    is 1-lipschitz, but the no orthogonality is enforced between outputs ).
     """
 
     def __init__(
@@ -632,7 +634,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return 1.0
 
     def call(self, x):
-        W_bar = self.kernel / tf.norm(self.kernel) * self._get_coef()
+        W_bar = self.kernel / tf.norm(self.kernel, axis=0) * self._get_coef()
         kernel = self.kernel
         self.kernel = W_bar
         outputs = Dense.call(self, x)
@@ -647,7 +649,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_bar = self.kernel / tf.norm(self.kernel)
+        W_bar = self.kernel / tf.norm(self.kernel, axis=0)
         self.kernel.assign(W_bar)
 
     def vanilla_export(self):
