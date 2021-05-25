@@ -134,9 +134,9 @@ def hinge_margin_loss(min_margin=1):
 @_deel_export
 def KR_multiclass_loss():
     r"""
-    Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over outputs.
-    Note y_true should be one hot encoding (labels being 1s and 0s ).
-    In this multiclass setup thr KR term is computed for each class and then averaged.
+    Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over
+    outputs. Note y_true should be one hot encoding (labels being 1s and 0s ). In
+    this multiclass setup thr KR term is computed for each class and then averaged.
 
     Returns:
         Callable, the function to compute Wasserstein multiclass loss.
@@ -147,17 +147,20 @@ def KR_multiclass_loss():
     @tf.function
     def KR_multiclass_loss_fct(y_true, y_pred):
         # use y_true to zero out y_pred where y_true != 1
-        # espYtrue is the avg value of y_pred when y_true==1 (one average per output neuron)
+        # espYtrue is the avg value of y_pred when y_true==1
+        # (one average per output neuron)
         espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / tf.reduce_sum(
             y_true, axis=0
         )
         # use(1- y_true) to zero out y_pred where y_true == 1
-        # espNotYtrue is the avg value of y_pred when y_true==0 (one average per output neuron)
+        # espNotYtrue is the avg value of y_pred when y_true==0
+        # (one average per output neuron)
         espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
             tf.cast(tf.shape(y_true)[0], dtype="float32")
             - tf.reduce_sum(y_true, axis=0)
         )
-        # compute the differences to have the KR term for each output neuron, and compute the average over the classes
+        # compute the differences to have the KR term for each output neuron,
+        # then compute the average over the classes
         return tf.reduce_mean(-espNotYtrue + espYtrue)
 
     return KR_multiclass_loss_fct
@@ -166,10 +169,11 @@ def KR_multiclass_loss():
 @_deel_export
 def Hinge_multiclass_loss(min_margin=1):
     """
-    Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise hinge term. Note that this
-    formulation differs from the one commonly found in tensorflow/pytorch (with marximise the difference between the two
-    largest logits). This formulation is consistent with the binary classification loss used in a multiclass fashion.
-    Note y_true should be one hot encoded. labels in (1,0)
+    Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise
+    hinge term. Note that this formulation differs from the one commonly found in
+    tensorflow/pytorch (with marximise the difference between the two largest
+    logits). This formulation is consistent with the binary classification loss used
+    in a multiclass fashion. Note y_true should be one hot encoded. labels in (1,0)
 
     Returns:
         Callable, the function to compute multiclass Hinge loss
@@ -193,7 +197,8 @@ def Hinge_multiclass_loss(min_margin=1):
 @_deel_export
 def HKR_multiclass_loss(alpha=0.0, min_margin=1):
     """
-    The multiclass version of HKR. This is done by computing the HKR term over each class and averaging the results.
+    The multiclass version of HKR. This is done by computing the HKR term over each
+    class and averaging the results.
 
     Args:
         alpha: regularization factor

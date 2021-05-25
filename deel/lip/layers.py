@@ -588,9 +588,10 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 @_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
-    Same a SpectralDense, but in the case of a single output. In the multiclass setting,
-    the behaviour of this layer is similar to the stacking of 1 lipschitz layer (each output
-    is 1-lipschitz, but the no orthogonality is enforced between outputs ).
+    Same a SpectralDense, but in the case of a single output. In the multiclass
+    setting, the behaviour of this layer is similar to the stacking of 1 lipschitz
+    layer (each output is 1-lipschitz, but the no orthogonality is enforced between
+    outputs ).
     """
 
     def __init__(
