@@ -31,7 +31,7 @@ author = (
 )
 
 # The full version, including alpha/beta/rc tags
-release = "1.0.0"
+release = "1.1.1"
 
 # -- General configuration ---------------------------------------------------
 
@@ -91,5 +91,11 @@ html_sidebars = {
 html_static_path = ["_static"]
 
 html_context = {
-    "css_files": ["_static/theme_overrides.css",],  # override wide tables in RTD theme
+    "css_files": [
+        "_static/theme_overrides.css",
+    ],  # override wide tables in RTD theme
 }
+
+autodoc_member_order = [
+    "bysource",
+]

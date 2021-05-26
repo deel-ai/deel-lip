@@ -373,7 +373,7 @@ class LipschitzLayersTest(unittest.TestCase):
             [
                 dict(
                     layer_type=FrobeniusDense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 1},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -384,7 +384,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=FrobeniusDense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 1},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -395,7 +395,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=FrobeniusDense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 1},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
