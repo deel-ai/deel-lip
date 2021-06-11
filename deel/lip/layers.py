@@ -588,10 +588,12 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 @_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
-    Same a SpectralDense, but in the case of a single output. In the multiclass
-    setting, the behaviour of this layer is similar to the stacking of 1 lipschitz
-    layer (each output is 1-lipschitz, but the no orthogonality is enforced between
-    outputs ).
+    Identical and faster than a SpectralDense in the case of a single output. 
+    In the multi-neurons setting, this layer can be used:
+    - as a classical Frobenius Dense normalization (disjoint_neurons=False)
+    - as a stacking of 1 lipschitz independent neurons (each output is 1-lipschitz, but the no orthogonality is enforced between
+    outputs )  (disjoint_neurons=True).
+    Warning : default is disjoint_neurons = True
     """
 
     def __init__(
@@ -608,6 +610,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         activity_regularizer=None,
         kernel_constraint=None,
         bias_constraint=None,
+        disjoint_neurons=True,
         k_coef_lip=1.0,
         **kwargs
     ):
@@ -625,6 +628,10 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
+        self.disjoint_neurons=disjoint_neurons
+        self.axis_norm=None
+        if self.disjoint_neurons:
+            self.axis_norm=0
         self._kwargs = kwargs
 
     def build(self, input_shape):
@@ -635,7 +642,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return 1.0
 
     def call(self, x):
-        W_bar = self.kernel / tf.norm(self.kernel, axis=0) * self._get_coef()
+        W_bar = self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
         kernel = self.kernel
         self.kernel = W_bar
         outputs = Dense.call(self, x)
@@ -645,12 +652,13 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def get_config(self):
         config = {
             "k_coef_lip": self.k_coef_lip,
+            "disjoint_neurons": self.disjoint_neurons,
         }
         base_config = super(FrobeniusDense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_bar = self.kernel / tf.norm(self.kernel, axis=0)
+        W_bar = self.kernel / tf.norm(self.kernel, axis=self.axis_norm)
         self.kernel.assign(W_bar)
 
     def vanilla_export(self):
