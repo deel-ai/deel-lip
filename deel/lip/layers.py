@@ -588,12 +588,14 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 @_deel_export
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
-    Identical and faster than a SpectralDense in the case of a single output. 
-    In the multi-neurons setting, this layer can be used:
+    Identical and faster than a SpectralDense in the case of a single output. In the
+    multi-neurons setting, this layer can be used:
     - as a classical Frobenius Dense normalization (disjoint_neurons=False)
-    - as a stacking of 1 lipschitz independent neurons (each output is 1-lipschitz, but the no orthogonality is enforced between
-    outputs )  (disjoint_neurons=True).
-    Warning : default is disjoint_neurons = True
+    - as a stacking of 1 lipschitz independent neurons (each output is 1-lipschitz,
+    but the no orthogonality is enforced between outputs )  (disjoint_neurons=True).
+
+    Warning :
+        default is disjoint_neurons = True
     """
 
     def __init__(
@@ -628,10 +630,10 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
-        self.disjoint_neurons=disjoint_neurons
-        self.axis_norm=None
+        self.disjoint_neurons = disjoint_neurons
+        self.axis_norm = None
         if self.disjoint_neurons:
-            self.axis_norm=0
+            self.axis_norm = 0
         self._kwargs = kwargs
 
     def build(self, input_shape):
@@ -642,7 +644,9 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return 1.0
 
     def call(self, x):
-        W_bar = self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
+        W_bar = (
+            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
+        )
         kernel = self.kernel
         self.kernel = W_bar
         outputs = Dense.call(self, x)
