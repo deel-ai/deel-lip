@@ -30,7 +30,7 @@ docs_requires = [
 
 setuptools.setup(
     name="deel-lip",
-    version="1.1.1",
+    version="1.1.2",
     author=", ".join(["Mathieu SERRURIER", "Franck MAMALET", "Thibaut BOISSIN"]),
     author_email=", ".join(
         [
