@@ -41,6 +41,7 @@ from .normalizers import (
     DEFAULT_NITER_BJORCK,
     DEFAULT_NITER_SPECTRAL,
     DEFAULT_NITER_SPECTRAL_INIT,
+    project_kernel,
 )
 from .normalizers import bjorck_normalization, spectral_normalization
 from .utils import _deel_export
@@ -235,6 +236,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         self.niter_bjorck = niter_bjorck
         self.u = None
         self.sig = None
+        self.wbar = None
         self.built = False
         if self.niter_spectral < 1:
             raise RuntimeError("niter_spectral has to be > 0")
@@ -249,7 +251,6 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             trainable=False,
             dtype=self.dtype,
         )
-
         self.sig = self.add_weight(
             shape=tuple([1, 1]),  # maximum spectral  value
             name="sigma",
@@ -257,31 +258,32 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
+        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0  # this layer don't require a corrective factor
 
-    def call(self, x, training=None):
+    @tf.function
+    def call(self, x, training=True):
         if training:
-            W_bar, _u, sigma = spectral_normalization(
-                self.kernel, self.u, niter=self.niter_spectral
+            wbar, u, sigma = project_kernel(
+                self.kernel,
+                self.u,
+                self._get_coef(),
+                self.niter_spectral,
+                self.niter_bjorck,
             )
+            self.wbar.assign(wbar)
+            self.u.assign(u)
             self.sig.assign(sigma)
-            self.u.assign(_u)
+            outputs = tf.matmul(x, wbar)
         else:
-            W_reshaped = K.reshape(self.kernel, [-1, self.kernel.shape[-1]])
-            W_bar = W_reshaped / self.sig
-
-        W_bar = bjorck_normalization(W_bar, niter=self.niter_bjorck)
-        W_bar = W_bar * self._get_coef()
-
-        # with tf.control_dependencies([self.u.assign(_u), self.sig.assign(sigma)]):
-        W_bar = K.reshape(W_bar, self.kernel.shape)
-        kernel = self.kernel
-        self.kernel = W_bar
-        outputs = Dense.call(self, x)
-        self.kernel = kernel
+            outputs = tf.matmul(x, self.wbar)
+        if self.use_bias:
+            outputs = tf.nn.bias_add(outputs, self.bias)
+        if self.activation is not None:
+            return self.activation(outputs)
         return outputs
 
     def get_config(self):
@@ -294,19 +296,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_shape = self.kernel.shape
-        W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-        new_w = W_reshaped / self.sig.numpy()
-        new_w = bjorck_normalization(new_w, niter=self.niter_bjorck)
-        # new_w = new_w * self._get_coef()
-        new_w = K.reshape(new_w, W_shape)
-        self.kernel.assign(new_w)
-        # update the u vector as it was computed for previous kernel
-        W_bar, _u, sigma = spectral_normalization(
-            self.kernel, self.u, niter=self.niter_spectral
-        )
-        self.u.assign(_u)
-        self.sig.assign(sigma)
+        self.kernel.assign(self.wbar / self._get_coef())
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -319,9 +309,9 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
@@ -442,6 +432,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.u = None
         self.sig = None
+        self.wbar = None
         self.niter_spectral = niter_spectral
         self.niter_bjorck = niter_bjorck
         if self.niter_spectral < 1:
@@ -465,6 +456,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
+        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -510,29 +502,35 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
         return coefLip
 
-    def call(self, x, training=None):
-        W_shape = self.kernel.shape
+    def call(self, x, training=True):
         if training:
-            W_bar, _u, sigma = spectral_normalization(
-                self.kernel, self.u, niter=self.niter_spectral
+            wbar, u, sigma = project_kernel(
+                self.kernel,
+                self.u,
+                self._get_coef(),
+                self.niter_spectral,
+                self.niter_bjorck,
             )
+            self.wbar.assign(wbar)
+            self.u.assign(u)
             self.sig.assign(sigma)
-            self.u.assign(_u)
+            outputs = K.conv2d(
+                x,
+                wbar,
+                strides=self.strides,
+                padding=self.padding,
+                data_format=self.data_format,
+                dilation_rate=self.dilation_rate,
+            )
         else:
-            W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-            W_bar = W_reshaped / self.sig
-        W_bar = bjorck_normalization(W_bar, niter=self.niter_bjorck)
-        W_bar = W_bar * self._get_coef()
-
-        W_bar = K.reshape(W_bar, W_shape)
-        outputs = K.conv2d(
-            x,
-            W_bar,
-            strides=self.strides,
-            padding=self.padding,
-            data_format=self.data_format,
-            dilation_rate=self.dilation_rate,
-        )
+            outputs = K.conv2d(
+                x,
+                self.wbar,
+                strides=self.strides,
+                padding=self.padding,
+                data_format=self.data_format,
+                dilation_rate=self.dilation_rate,
+            )
         if self.use_bias:
             outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
         if self.activation is not None:
@@ -549,19 +547,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_shape = self.kernel.shape
-        W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-        new_w = W_reshaped / self.sig.numpy()
-        new_w = bjorck_normalization(new_w, niter=self.niter_bjorck)
-        # new_w = new_w * self._get_coef()
-        new_w = K.reshape(new_w, W_shape)
-        self.kernel.assign(new_w)
-        # update the u vector as it was computed for previous kernel
-        W_bar, _u, sigma = spectral_normalization(
-            self.kernel, self.u, niter=self.niter_spectral
-        )
-        self.u.assign(_u)
-        self.sig.assign(sigma)
+        self.kernel.assign(self.wbar / self._get_coef())
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -579,9 +565,9 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
@@ -632,25 +618,35 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.disjoint_neurons = disjoint_neurons
         self.axis_norm = None
+        self.wbar = None
         if self.disjoint_neurons:
             self.axis_norm = 0
         self._kwargs = kwargs
 
     def build(self, input_shape):
+        super(FrobeniusDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        return super(FrobeniusDense, self).build(input_shape)
+        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    def call(self, x):
-        W_bar = (
-            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
-        )
-        kernel = self.kernel
-        self.kernel = W_bar
-        outputs = Dense.call(self, x)
-        self.kernel = kernel
+    def call(self, x, training=True):
+        if training:
+            wbar = (
+                self.kernel
+                / tf.norm(self.kernel, axis=self.axis_norm)
+                * self._get_coef()
+            )
+            self.wbar.assign(wbar)
+            outputs = tf.matmul(x, wbar)
+        else:
+            outputs = tf.matmul(x, self.wbar)
+        if self.use_bias:
+            outputs = tf.nn.bias_add(outputs, self.bias)
+        if self.activation is not None:
+            return self.activation(outputs)
         return outputs
 
     def get_config(self):
@@ -662,8 +658,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_bar = self.kernel / tf.norm(self.kernel, axis=self.axis_norm)
-        self.kernel.assign(W_bar)
+        self.kernel.assign(self.wbar / self._get_coef())
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -676,9 +671,9 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
@@ -748,25 +743,39 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
+        self.wbar = None
         self._kwargs = kwargs
 
     def build(self, input_shape):
+        super(FrobeniusConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        return super(FrobeniusConv2D, self).build(input_shape)
+        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return SpectralConv2D._compute_lip_coef(self, input_shape)
 
-    def call(self, x):
-        W_bar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
-        outputs = K.conv2d(
-            x,
-            W_bar,
-            strides=self.strides,
-            padding=self.padding,
-            data_format=self.data_format,
-            dilation_rate=self.dilation_rate,
-        )
+    def call(self, x, training=True):
+        if training:
+            wbar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
+            self.wbar.assign(wbar)
+            outputs = K.conv2d(
+                x,
+                wbar,
+                strides=self.strides,
+                padding=self.padding,
+                data_format=self.data_format,
+                dilation_rate=self.dilation_rate,
+            )
+        else:
+            outputs = K.conv2d(
+                x,
+                self.wbar,
+                strides=self.strides,
+                padding=self.padding,
+                data_format=self.data_format,
+                dilation_rate=self.dilation_rate,
+            )
         if self.use_bias:
             outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
         if self.activation is not None:
@@ -781,7 +790,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.kernel / tf.norm(self.kernel))
+        self.kernel.assign(self.wbar / self._get_coef())
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -862,7 +871,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return super(AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -966,7 +975,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
         return sqrt_op
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 super(ScaledL2NormPooling2D, self).call(tf.square(x))
@@ -1031,7 +1040,7 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
             raise RuntimeError("data format not understood: %s" % self.data_format)
         return lip_coef
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):

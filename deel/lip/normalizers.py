@@ -14,7 +14,16 @@ DEFAULT_NITER_SPECTRAL = 3
 DEFAULT_NITER_SPECTRAL_INIT = 10
 
 
-@tf.function
+def project_kernel(kernel, u, adjustment_coef, niter_spectral, niter_bjorck):
+    W_bar, u, sigma = spectral_normalization(
+        kernel, u, niter=niter_spectral
+    )
+    W_bar = bjorck_normalization(W_bar, niter=niter_bjorck)
+    W_bar = W_bar * adjustment_coef
+    W_bar = K.reshape(W_bar, kernel.shape)
+    return W_bar, u, sigma
+
+
 def bjorck_normalization(w, niter=DEFAULT_NITER_BJORCK):
     """
     apply Bjorck normalization on w.
@@ -29,8 +38,7 @@ def bjorck_normalization(w, niter=DEFAULT_NITER_BJORCK):
 
     """
     for i in range(niter):
-        # W = tf.Print(W,[tf.shape(W)])
-        w = 1.5 * w - 0.5 * K.dot(w, K.dot(K.transpose(w), w))
+        w = 1.5 * w - 0.5 * w @ tf.transpose(w) @ w
     return w
 
 
@@ -49,13 +57,12 @@ def _power_iteration(w, u, niter=DEFAULT_NITER_SPECTRAL):
     """
     _u = u
     for i in range(niter):
-        _v = K.l2_normalize(K.dot(_u, K.transpose(w)))
-        _u = K.l2_normalize(K.dot(_v, w))
+        _v = tf.math.l2_normalize(_u @ tf.transpose(w))
+        _u = tf.math.l2_normalize(_v @ w)
     return _u, _v
 
 
-@tf.function
-def spectral_normalization(kernel, u=None, niter=DEFAULT_NITER_SPECTRAL):
+def spectral_normalization(kernel, u, niter=DEFAULT_NITER_SPECTRAL):
     """
     Normalize the kernel to have it's max eigenvalue == 1.
 
@@ -70,16 +77,15 @@ def spectral_normalization(kernel, u=None, niter=DEFAULT_NITER_SPECTRAL):
 
     """
     W_shape = kernel.shape
-    if u is None:
-        niter *= 2  # if u was not known increase number of iterations
-        u = K.random_normal(shape=tuple([1, W_shape[-1]]))
+    # if u is None:
+    #     niter *= 2  # if u was not known increase number of iterations
+    #     u = K.random_normal(shape=tuple([1, W_shape[-1]]))
     # Flatten the Tensor
-    W_reshaped = K.reshape(kernel, [-1, W_shape[-1]])
+    W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
     _u, _v = _power_iteration(W_reshaped, u, niter)
     # Calculate Sigma
-    sigma = K.dot(_v, W_reshaped)
-    sigma = K.dot(sigma, K.transpose(_u))
-    # sigma/=self.kCoefLip
+    sigma = _v @ W_reshaped
+    sigma = sigma @ tf.transpose(_u)
     # normalize it
     W_bar = W_reshaped / sigma
     return W_bar, _u, sigma
