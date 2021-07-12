@@ -52,7 +52,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -63,7 +63,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._compute_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -74,7 +74,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._init_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -86,7 +86,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 global_coef *= layer._get_coef()
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
