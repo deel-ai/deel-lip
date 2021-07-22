@@ -339,7 +339,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(1.0)
+                        "kernel_constraint": BjorckNormalizer(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -353,7 +353,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(1.0)
+                        "kernel_constraint": BjorckNormalizer(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -367,7 +367,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(5.0)
+                        "kernel_constraint": BjorckNormalizer(5.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -390,7 +390,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": FrobeniusNormalizer()
+                        "kernel_constraint": FrobeniusNormalizer(),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -404,7 +404,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": FrobeniusNormalizer()
+                        "kernel_constraint": FrobeniusNormalizer(),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,

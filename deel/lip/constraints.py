@@ -70,8 +70,9 @@ class FrobeniusNormalizer(Constraint):
 
 @_deel_export
 class BjorckNormalizer(Constraint):
-    def __init__(self, k_coef_lip=1., niter_spectral=3, niter_bjorck=15, u=None) -> \
-            None:
+    def __init__(
+        self, k_coef_lip=1.0, niter_spectral=3, niter_bjorck=15, u=None
+    ) -> None:
         """
         Ensure that *all* singular values of the weight matrix equals to 1. Computation
         based on BjorckNormalizer algorithm. The computation is done in two steps:

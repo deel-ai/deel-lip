@@ -15,9 +15,7 @@ DEFAULT_NITER_SPECTRAL_INIT = 10
 
 
 def project_kernel(kernel, u, adjustment_coef, niter_spectral, niter_bjorck):
-    W_bar, u, sigma = spectral_normalization(
-        kernel, u, niter=niter_spectral
-    )
+    W_bar, u, sigma = spectral_normalization(kernel, u, niter=niter_spectral)
     W_bar = bjorck_normalization(W_bar, niter=niter_bjorck)
     W_bar = W_bar * adjustment_coef
     W_bar = K.reshape(W_bar, kernel.shape)
