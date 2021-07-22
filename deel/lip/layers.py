@@ -253,12 +253,13 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         )
         self.sig = self.add_weight(
             shape=tuple([1, 1]),  # maximum spectral  value
+            initializer=tf.keras.initializers.ones,
             name="sigma",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -277,13 +278,13 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             self.wbar.assign(wbar)
             self.u.assign(u)
             self.sig.assign(sigma)
-            outputs = tf.matmul(x, wbar)
         else:
-            outputs = tf.matmul(x, self.wbar)
+            wbar = self.wbar
+        outputs = tf.matmul(x, wbar)
         if self.use_bias:
             outputs = tf.nn.bias_add(outputs, self.bias)
         if self.activation is not None:
-            return self.activation(outputs)
+            outputs = self.activation(outputs)
         return outputs
 
     def get_config(self):
@@ -296,7 +297,16 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.wbar / self._get_coef())
+        wbar, u, sigma = project_kernel(
+            self.kernel,
+            self.u,
+            self._get_coef(),
+            self.niter_spectral,
+            self.niter_bjorck,
+        )
+        self.kernel.assign(wbar)
+        self.u.assign(u)
+        self.sig.assign(sigma)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -456,7 +466,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -514,23 +524,16 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             self.wbar.assign(wbar)
             self.u.assign(u)
             self.sig.assign(sigma)
-            outputs = K.conv2d(
-                x,
-                wbar,
-                strides=self.strides,
-                padding=self.padding,
-                data_format=self.data_format,
-                dilation_rate=self.dilation_rate,
-            )
         else:
-            outputs = K.conv2d(
-                x,
-                self.wbar,
-                strides=self.strides,
-                padding=self.padding,
-                data_format=self.data_format,
-                dilation_rate=self.dilation_rate,
-            )
+            wbar = self.wbar
+        outputs = K.conv2d(
+            x,
+            wbar,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+        )
         if self.use_bias:
             outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
         if self.activation is not None:
@@ -547,7 +550,16 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.wbar / self._get_coef())
+        wbar, u, sigma = project_kernel(
+            self.kernel,
+            self.u,
+            self._get_coef(),
+            self.niter_spectral,
+            self.niter_bjorck,
+        )
+        self.kernel.assign(wbar)
+        self.u.assign(u)
+        self.sig.assign(sigma)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -626,7 +638,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def build(self, input_shape):
         super(FrobeniusDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -640,9 +652,9 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
                 * self._get_coef()
             )
             self.wbar.assign(wbar)
-            outputs = tf.matmul(x, wbar)
         else:
-            outputs = tf.matmul(x, self.wbar)
+            wbar = self.wbar
+        outputs = tf.matmul(x, wbar)
         if self.use_bias:
             outputs = tf.nn.bias_add(outputs, self.bias)
         if self.activation is not None:
@@ -658,7 +670,12 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.wbar / self._get_coef())
+        wbar = (
+                self.kernel
+                / tf.norm(self.kernel, axis=self.axis_norm)
+                * self._get_coef()
+        )
+        self.kernel.assign(wbar)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -749,7 +766,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     def build(self, input_shape):
         super(FrobeniusConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        self.wbar = tf.Variable(self.kernel.initialized_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -759,23 +776,16 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         if training:
             wbar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
             self.wbar.assign(wbar)
-            outputs = K.conv2d(
-                x,
-                wbar,
-                strides=self.strides,
-                padding=self.padding,
-                data_format=self.data_format,
-                dilation_rate=self.dilation_rate,
-            )
         else:
-            outputs = K.conv2d(
-                x,
-                self.wbar,
-                strides=self.strides,
-                padding=self.padding,
-                data_format=self.data_format,
-                dilation_rate=self.dilation_rate,
-            )
+            wbar = self.wbar
+        outputs = K.conv2d(
+            x,
+            wbar,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+        )
         if self.use_bias:
             outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
         if self.activation is not None:
@@ -790,7 +800,12 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.wbar / self._get_coef())
+        wbar = (
+                self.kernel
+                / tf.norm(self.kernel, axis=self.axis_norm)
+                * self._get_coef()
+        )
+        self.kernel.assign(wbar)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
