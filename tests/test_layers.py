@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
+from deel.lip.constraints import AutoWeightClip, BjorckNormalizer, FrobeniusNormalizer
 
 if tf.__version__.startswith("2.0"):
     from tensorflow.python.framework.random_seed import set_seed
@@ -248,7 +249,7 @@ class LipschitzLayersTest(unittest.TestCase):
             mse,
             from_disk_mse,
             5,
-            "serialization must not change the " "performance of a layer",
+            "serialization must not change the performance of a layer",
         )
 
     def _check_emp_lip_const(self, emp_lip_const, from_disk_emp_lip_const, test_params):
@@ -256,14 +257,13 @@ class LipschitzLayersTest(unittest.TestCase):
             emp_lip_const,
             from_disk_emp_lip_const,
             5,
-            "serialization must not change the " "Lipschitz constant of a layer",
+            "serialization must not change the Lipschitz constant of a layer",
         )
-        if test_params["layer_type"] != Dense:
-            self.assertLess(
-                emp_lip_const,
-                test_params["k_lip_model"] * 1.02,
-                msg=" the lip const of the network must be lower than the specified boundary",  # noqa: E501
-            )
+        self.assertLess(
+            emp_lip_const,
+            test_params["k_lip_model"] * 1.02,
+            msg=" the lip const of the network must be lower than the specified boundary",  # noqa: E501
+        )
 
     def _apply_tests_bank(self, tests_bank):
         for test_params in tests_bank:
@@ -287,7 +287,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 emp_lip_const, from_disk_emp_lip_const, test_params
             )
 
-    def test_vanilla_dense(self):
+    def test_constraints_clipping(self):
         """
         Tests for a standard Dense layer, for result comparison.
         """
@@ -295,7 +295,7 @@ class LipschitzLayersTest(unittest.TestCase):
             [
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(1.0)},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -306,7 +306,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(1.0)},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -317,7 +317,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
+                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(5.0)},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -329,12 +329,100 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+    def test_constraints_orthogonal(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": BjorckNormalizer(1.0)
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": BjorckNormalizer(1.0)
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": BjorckNormalizer(5.0)
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_constraints_frobenius(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": FrobeniusNormalizer()
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": FrobeniusNormalizer()
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
     def test_spectral_dense(self):
         self._apply_tests_bank(
             [
                 dict(
                     layer_type=SpectralDense,
-                    layer_params={"units": 4, "use_bias": False, "niter_spectral": 5},
+                    layer_params={"units": 3, "use_bias": False, "niter_spectral": 5},
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,

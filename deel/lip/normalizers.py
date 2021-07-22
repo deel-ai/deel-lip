@@ -77,9 +77,9 @@ def spectral_normalization(kernel, u, niter=DEFAULT_NITER_SPECTRAL):
 
     """
     W_shape = kernel.shape
-    # if u is None:
-    #     niter *= 2  # if u was not known increase number of iterations
-    #     u = K.random_normal(shape=tuple([1, W_shape[-1]]))
+    if u is None:
+        niter *= 2  # if u was not known increase number of iterations
+        u = tf.ones(shape=tuple([1, W_shape[-1]]))
     # Flatten the Tensor
     W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
     _u, _v = _power_iteration(W_reshaped, u, niter)

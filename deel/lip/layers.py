@@ -35,7 +35,7 @@ from tensorflow.keras.layers import (
     AveragePooling2D,
     GlobalAveragePooling2D,
 )
-from .constraints import SpectralNormalizer, BjorckNormalizer
+from .constraints import BjorckNormalizer
 from .initializers import BjorckInitializer, SpectralInitializer
 from .normalizers import (
     DEFAULT_NITER_BJORCK,
@@ -735,7 +735,6 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         if not (
             (kernel_constraint is None)
             or isinstance(kernel_constraint, BjorckNormalizer)
-            or isinstance(kernel_constraint, SpectralNormalizer)
         ):
             raise RuntimeError(
                 "only deellip constraints are allowed as other constraints could break"
