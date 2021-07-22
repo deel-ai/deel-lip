@@ -24,6 +24,7 @@ be done by setting the param `niter_bjorck=0`.
 """
 
 import abc
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -35,6 +36,7 @@ from tensorflow.keras.layers import (
     AveragePooling2D,
     GlobalAveragePooling2D,
 )
+
 from .constraints import BjorckConstraint
 from .initializers import BjorckInitializer, SpectralInitializer
 from .normalizers import (
@@ -43,7 +45,6 @@ from .normalizers import (
     DEFAULT_NITER_SPECTRAL_INIT,
     project_kernel,
 )
-from .normalizers import bjorck_normalization, spectral_normalization
 from .utils import _deel_export
 
 

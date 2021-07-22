@@ -5,10 +5,12 @@
 import os
 import pprint
 import unittest
+
 import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
+
 from deel.lip.constraints import (
     AutoWeightClipConstraint,
     BjorckConstraint,

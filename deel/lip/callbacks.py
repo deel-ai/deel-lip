@@ -10,6 +10,7 @@ from typing import Optional, Dict, Iterable
 
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
+
 from .layers import Condensable
 
 
