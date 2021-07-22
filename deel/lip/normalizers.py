@@ -3,7 +3,7 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains computation function, for BjorckNormalizer and spectral
+This module contains computation function, for Bjorck and spectral
 normalization. This is done for internal use only.
 """
 import tensorflow as tf

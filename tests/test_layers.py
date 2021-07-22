@@ -9,7 +9,11 @@ import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
-from deel.lip.constraints import AutoWeightClip, BjorckNormalizer, FrobeniusNormalizer
+from deel.lip.constraints import (
+    AutoWeightClipConstraint,
+    BjorckConstraint,
+    FrobeniusConstraint,
+)
 
 if tf.__version__.startswith("2.0"):
     from tensorflow.python.framework.random_seed import set_seed
@@ -295,7 +299,10 @@ class LipschitzLayersTest(unittest.TestCase):
             [
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(1.0)},
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(1.0),
+                    },
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -306,7 +313,10 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(1.0)},
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(1.0),
+                    },
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -317,7 +327,10 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4, "kernel_constraint": AutoWeightClip(5.0)},
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(5.0),
+                    },
                     batch_size=1000,
                     steps_per_epoch=125,
                     epochs=5,
@@ -339,7 +352,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(1.0),
+                        "kernel_constraint": BjorckConstraint(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -353,7 +366,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(1.0),
+                        "kernel_constraint": BjorckConstraint(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -367,7 +380,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckNormalizer(5.0),
+                        "kernel_constraint": BjorckConstraint(5.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -390,7 +403,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": FrobeniusNormalizer(),
+                        "kernel_constraint": FrobeniusConstraint(),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -404,7 +417,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": FrobeniusNormalizer(),
+                        "kernel_constraint": FrobeniusConstraint(),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,

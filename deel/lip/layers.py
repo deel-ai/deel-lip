@@ -35,7 +35,7 @@ from tensorflow.keras.layers import (
     AveragePooling2D,
     GlobalAveragePooling2D,
 )
-from .constraints import BjorckNormalizer
+from .constraints import BjorckConstraint
 from .initializers import BjorckInitializer, SpectralInitializer
 from .normalizers import (
     DEFAULT_NITER_BJORCK,
@@ -179,11 +179,11 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
     ):
         """
         This class is a Dense Layer constrained such that all singular of it's kernel
-        are 1. The computation based on BjorckNormalizer algorithm.
+        are 1. The computation based on Bjorck algorithm.
         The computation is done in two steps:
 
         1. reduce the larget singular value to 1, using iterated power method.
-        2. increase other singular values to 1, using BjorckNormalizer algorithm.
+        2. increase other singular values to 1, using Bjorck algorithm.
 
         Args:
             units: Positive integer, dimensionality of the output space.
@@ -203,7 +203,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with BjorckNormalizer algorithm.
+            niter_bjorck: number of iteration with Bjorck algorithm.
 
         Input shape:
             N-D tensor with shape: `(batch_size, ..., input_dim)`.
@@ -354,13 +354,13 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     ):
         """
         This class is a Conv2D Layer constrained such that all singular of it's kernel
-        are 1. The computation based on BjorckNormalizer algorithm. As this is not
+        are 1. The computation based on Bjorck algorithm. As this is not
         enough to ensure 1 Lipschitzity a coertive coefficient is applied on the
         output.
         The computation is done in three steps:
 
         1. reduce the largest singular value to 1, using iterated power method.
-        2. increase other singular values to 1, using BjorckNormalizer algorithm.
+        2. increase other singular values to 1, using Bjorck algorithm.
         3. divide the output by the Lipschitz bound to ensure k Lipschitzity.
 
         Args:
@@ -408,7 +408,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with BjorckNormalizer algorithm.
+            niter_bjorck: number of iteration with Bjorck algorithm.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
@@ -732,7 +732,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             raise RuntimeError("NormalizedConv only support padding='same'")
         if not (
             (kernel_constraint is None)
-            or isinstance(kernel_constraint, BjorckNormalizer)
+            or isinstance(kernel_constraint, BjorckConstraint)
         ):
             raise RuntimeError(
                 "only deellip constraints are allowed as other constraints could break"
