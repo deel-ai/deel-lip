@@ -43,7 +43,7 @@ from .normalizers import (
     DEFAULT_NITER_BJORCK,
     DEFAULT_NITER_SPECTRAL,
     DEFAULT_NITER_SPECTRAL_INIT,
-    project_kernel,
+    reshaped_kernel_orthogonalization,
     DEFAULT_BETA_BJORCK,
 )
 from .utils import _deel_export
@@ -275,7 +275,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
     @tf.function
     def call(self, x, training=True):
         if training:
-            wbar, u, sigma = project_kernel(
+            wbar, u, sigma = reshaped_kernel_orthogonalization(
                 self.kernel,
                 self.u,
                 self._get_coef(),
@@ -306,7 +306,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar, u, sigma = project_kernel(
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
             self.kernel,
             self.u,
             self._get_coef(),
@@ -529,7 +529,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 
     def call(self, x, training=True):
         if training:
-            wbar, u, sigma = project_kernel(
+            wbar, u, sigma = reshaped_kernel_orthogonalization(
                 self.kernel,
                 self.u,
                 self._get_coef(),
@@ -567,7 +567,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar, u, sigma = project_kernel(
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
             self.kernel,
             self.u,
             self._get_coef(),

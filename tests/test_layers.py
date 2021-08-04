@@ -854,7 +854,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             what="all",
                             on_epoch=False,
                             on_batch=True,
-                        )
+                        ),
                     ],
                 ),
             ]

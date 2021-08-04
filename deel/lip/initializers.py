@@ -4,7 +4,7 @@
 # =====================================================================================
 from tensorflow.keras.initializers import Initializer, Orthogonal
 from tensorflow.keras import initializers
-from .normalizers import project_kernel
+from .normalizers import reshaped_kernel_orthogonalization
 from .utils import _deel_export
 
 
@@ -35,7 +35,7 @@ class SpectralInitializer(Initializer):
 
     def __call__(self, shape, dtype=None, partition_info=None):
         w = self.base_initializer(shape=shape, dtype=dtype)
-        wbar, u, sigma = project_kernel(
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
             w,
             None,
             self.k_coef_lip,

@@ -9,7 +9,7 @@ regular layers.
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import Constraint
-from .normalizers import project_kernel
+from .normalizers import reshaped_kernel_orthogonalization
 from .utils import _deel_export
 
 
@@ -96,7 +96,7 @@ class SpectralConstraint(Constraint):
         super(SpectralConstraint, self).__init__()
 
     def __call__(self, w):
-        wbar, u, sigma = project_kernel(
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
             w,
             self.u,
             self.k_coef_lip,

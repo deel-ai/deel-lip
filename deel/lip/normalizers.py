@@ -15,7 +15,7 @@ DEFAULT_NITER_SPECTRAL_INIT = 10
 DEFAULT_BETA_BJORCK = 0.25
 
 
-def project_kernel(
+def reshaped_kernel_orthogonalization(
     kernel,
     u,
     adjustment_coef,
