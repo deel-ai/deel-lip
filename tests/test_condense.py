@@ -122,15 +122,12 @@ class MyTestCase(unittest.TestCase):
         )
         model.summary()
         vanilla_model.summary()
-        self.assertAlmostEqual(
+        self.assertEqual(
             mse,
             vanilla_mse,
-            4,
             "the exported vanilla model must have same behaviour as original",
         )
-        self.assertAlmostEqual(
-            mse, mse2, 4, "exporting a model must not change original model"
-        )
+        self.assertEqual(mse, mse2, "exporting a model must not change original model")
         # add one epoch to orginal
         model.__getattribute__(FIT)(
             linear_generator(batch_size, input_shape, kernel),
@@ -152,10 +149,9 @@ class MyTestCase(unittest.TestCase):
             steps=10,
             verbose=0,
         )
-        self.assertAlmostEqual(
+        self.assertEqual(
             vanilla_mse,
             vanilla_mse2,
-            4,
             "exported model must be completely independent from original",
         )
         self.assertNotAlmostEqual(
