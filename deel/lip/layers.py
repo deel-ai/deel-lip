@@ -44,6 +44,7 @@ from .normalizers import (
     DEFAULT_NITER_SPECTRAL,
     DEFAULT_NITER_SPECTRAL_INIT,
     project_kernel,
+    DEFAULT_BETA_BJORCK,
 )
 from .utils import _deel_export
 
@@ -176,6 +177,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         k_coef_lip=1.0,
         niter_spectral=DEFAULT_NITER_SPECTRAL,
         niter_bjorck=DEFAULT_NITER_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
         """
@@ -205,6 +207,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
             niter_bjorck: number of iteration with Bjorck algorithm.
+            beta_bjorck: beta parameter in bjorck algorithm.
 
         Input shape:
             N-D tensor with shape: `(batch_size, ..., input_dim)`.
@@ -235,6 +238,9 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.niter_spectral = niter_spectral
         self.niter_bjorck = niter_bjorck
+        self.beta_bjorck = beta_bjorck
+        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.u = None
         self.sig = None
         self.wbar = None
@@ -275,6 +281,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
                 self._get_coef(),
                 self.niter_spectral,
                 self.niter_bjorck,
+                self.beta_bjorck,
             )
             self.wbar.assign(wbar)
             self.u.assign(u)
@@ -293,6 +300,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             "k_coef_lip": self.k_coef_lip,
             "niter_spectral": self.niter_spectral,
             "niter_bjorck": self.niter_bjorck,
+            "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralDense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -304,6 +312,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             self._get_coef(),
             self.niter_spectral,
             self.niter_bjorck,
+            self.beta_bjorck,
         )
         self.kernel.assign(wbar)
         self.u.assign(u)
@@ -351,6 +360,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         k_coef_lip=1.0,
         niter_spectral=DEFAULT_NITER_SPECTRAL,
         niter_bjorck=DEFAULT_NITER_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
         """
@@ -410,6 +420,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
             niter_bjorck: number of iteration with Bjorck algorithm.
+            beta_bjorck: beta parameter in bjorck algorithm.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
@@ -445,6 +456,9 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         self.sig = None
         self.wbar = None
         self.niter_spectral = niter_spectral
+        self.beta_bjorck = beta_bjorck
+        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.niter_bjorck = niter_bjorck
         if self.niter_spectral < 1:
             raise RuntimeError("niter_spectral has to be > 0")
@@ -521,6 +535,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
                 self._get_coef(),
                 self.niter_spectral,
                 self.niter_bjorck,
+                self.beta_bjorck,
             )
             self.wbar.assign(wbar)
             self.u.assign(u)
@@ -546,6 +561,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             "k_coef_lip": self.k_coef_lip,
             "niter_spectral": self.niter_spectral,
             "niter_bjorck": self.niter_bjorck,
+            "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -557,6 +573,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             self._get_coef(),
             self.niter_spectral,
             self.niter_bjorck,
+            self.beta_bjorck,
         )
         self.kernel.assign(wbar)
         self.u.assign(u)
