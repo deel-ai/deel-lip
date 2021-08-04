@@ -38,7 +38,7 @@ from tensorflow.keras.layers import (
 )
 
 from .constraints import BjorckConstraint
-from .initializers import BjorckInitializer, SpectralInitializer
+from .initializers import BjorckInitializer
 from .normalizers import (
     DEFAULT_NITER_BJORCK,
     DEFAULT_NITER_SPECTRAL,
@@ -602,8 +602,9 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         units,
         activation=None,
         use_bias=True,
-        kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT
+        kernel_initializer=BjorckInitializer(
+            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
+            niter_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -709,8 +710,9 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
-        kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT
+        kernel_initializer=BjorckInitializer(
+            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
+            niter_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,

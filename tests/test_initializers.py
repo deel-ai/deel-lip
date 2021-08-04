@@ -9,7 +9,7 @@ from tensorflow.keras import Sequential
 from tensorflow.keras import backend as K, metrics
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from deel.lip.initializers import SpectralInitializer, BjorckInitializer
+from deel.lip.initializers import BjorckInitializer
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
@@ -18,13 +18,6 @@ np.random.seed(42)
 
 
 class MyTestCase(unittest.TestCase):
-    def test_spectral_initializer(self):
-        input_shape = (5,)
-        model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(3))])
-        self._test_model(model, input_shape)
-        model = Sequential([Dense(100, kernel_initializer=SpectralInitializer(3))])
-        self._test_model(model, input_shape)
-
     def test_bjorck_initializer(self):
         input_shape = (5,)
         model = Sequential([Dense(4, kernel_initializer=BjorckInitializer(3, 15))])
