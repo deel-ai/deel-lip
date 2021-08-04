@@ -65,7 +65,7 @@ class MyTestCase(unittest.TestCase):
         self._test_model(model, input_shape)
 
     def _test_model(self, model, input_shape):
-        batch_size = 1000
+        batch_size = 250
         epochs = 1
         steps_per_epoch = 125
         k_lip_data = 2.0
