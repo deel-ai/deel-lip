@@ -59,6 +59,7 @@ class MonitorCallback(Callback):
         self,
         monitored_layers: Iterable[str],
         logdir: str,
+        target: str = "kernel",
         what: str = "max",
         on_epoch: bool = True,
         on_batch: bool = False,
@@ -73,6 +74,10 @@ class MonitorCallback(Callback):
         Args:
             monitored_layers: list of layer name to monitor.
             logdir: path to the logging directory.
+            target: describe what to monitor, can either "kernel" or "wbar". Setting
+                to "kernel" check values of the unconstrained weights while setting to
+                "wbar" check values of the constrained weights (allowing to check if
+                the parameters are correct to ensure lipschitz constraint)
             what: either "max", which display the largest singular value over the
                 training process, or "all", which plot the distribution of all singular
                 values.
@@ -81,6 +86,8 @@ class MonitorCallback(Callback):
         """
         self.on_epoch = on_epoch
         self.on_batch = on_batch
+        assert target in {"kernel", "wbar"}
+        self.target = target
         assert what in {"max", "all"}
         self.what = what
         self.logdir = logdir
@@ -97,10 +104,14 @@ class MonitorCallback(Callback):
         step = self.params["steps"] * self.epochs + step
         for layer_name in self.monitored_layers:
             layer = self.model.get_layer(layer_name)
-            if (self.what == "max") and hasattr(layer, "sig"):
+            if (
+                (self.target == "kernel")
+                and (self.what == "max")
+                and hasattr(layer, "sig")
+            ):
                 sig = layer.sig[0, 0]
-            elif hasattr(layer, "kernel"):
-                kernel = layer.kernel
+            elif hasattr(layer, self.target):
+                kernel = getattr(layer, self.target)
                 w_shape = kernel.shape.as_list()
                 sigmas = tf.linalg.svd(
                     tf.keras.backend.reshape(kernel, [-1, w_shape[-1]]),
@@ -109,15 +120,20 @@ class MonitorCallback(Callback):
                 ).numpy()
                 sig = sigmas[0]
             else:
-                RuntimeWarning("[MonitorCallback] unsupported layer")
+                RuntimeWarning(
+                    f"[MonitorCallback] layer {layer_name} has no "
+                    f"attribute {self.target}"
+                )
                 return
             if self.what == "max":
                 with self.file_writer.as_default():
-                    result = tf.summary.scalar("%s_sigma" % layer_name, sig, step=step)
+                    result = tf.summary.scalar(
+                        f"{layer_name}_{self.target}_sigmas", sig, step=step
+                    )
             else:
                 with self.file_writer.as_default():
                     result = tf.summary.histogram(
-                        "%s_sigmas" % layer_name,
+                        f"{layer_name}_{self.target}_sigmas",
                         sigmas,
                         step=step,
                         buckets=None,

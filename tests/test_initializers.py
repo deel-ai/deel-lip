@@ -20,9 +20,9 @@ np.random.seed(42)
 class MyTestCase(unittest.TestCase):
     def test_bjorck_initializer(self):
         input_shape = (5,)
-        model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(3, 15))])
+        model = Sequential([Dense(4, kernel_initializer=SpectralInitializer(30, 15))])
         self._test_model(model, input_shape)
-        model = Sequential([Dense(100, kernel_initializer=SpectralInitializer(3, 15))])
+        model = Sequential([Dense(100, kernel_initializer=SpectralInitializer(30, 15))])
         self._test_model(model, input_shape)
 
     def _test_model(self, model, input_shape):

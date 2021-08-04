@@ -842,7 +842,16 @@ class LipschitzLayersTest(unittest.TestCase):
                         MonitorCallback(
                             monitored_layers=["conv1", "dense1"],
                             logdir=os.path.join("logs", "lip_layers", "Sequential"),
-                            what="max",
+                            target="kernel",
+                            what="all",
+                            on_epoch=False,
+                            on_batch=True,
+                        ),
+                        MonitorCallback(
+                            monitored_layers=["conv1", "dense1"],
+                            logdir=os.path.join("logs", "lip_layers", "Sequential"),
+                            target="wbar",
+                            what="all",
                             on_epoch=False,
                             on_batch=True,
                         )
