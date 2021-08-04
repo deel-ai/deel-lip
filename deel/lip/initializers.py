@@ -9,7 +9,7 @@ from .utils import _deel_export
 
 
 @_deel_export
-class BjorckInitializer(Initializer):
+class SpectralInitializer(Initializer):
     def __init__(
         self,
         niter_spectral=3,
@@ -31,7 +31,7 @@ class BjorckInitializer(Initializer):
         self.niter_bjorck = niter_bjorck
         self.k_coef_lip = k_coef_lip
         self.base_initializer = initializers.get(base_initializer)
-        super(BjorckInitializer, self).__init__()
+        super(SpectralInitializer, self).__init__()
 
     def __call__(self, shape, dtype=None, partition_info=None):
         w = self.base_initializer(shape=shape, dtype=dtype)

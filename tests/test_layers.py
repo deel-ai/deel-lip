@@ -13,7 +13,7 @@ from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
 
 from deel.lip.constraints import (
     AutoWeightClipConstraint,
-    BjorckConstraint,
+    SpectralConstraint,
     FrobeniusConstraint,
 )
 
@@ -354,7 +354,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckConstraint(1.0),
+                        "kernel_constraint": SpectralConstraint(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -368,7 +368,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckConstraint(1.0),
+                        "kernel_constraint": SpectralConstraint(1.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -382,7 +382,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_type=Dense,
                     layer_params={
                         "units": 4,
-                        "kernel_constraint": BjorckConstraint(5.0),
+                        "kernel_constraint": SpectralConstraint(5.0),
                     },
                     batch_size=1000,
                     steps_per_epoch=125,

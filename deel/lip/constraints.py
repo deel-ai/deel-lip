@@ -69,7 +69,7 @@ class FrobeniusConstraint(Constraint):
 
 
 @_deel_export
-class BjorckConstraint(Constraint):
+class SpectralConstraint(Constraint):
     def __init__(
         self, k_coef_lip=1.0, niter_spectral=3, niter_bjorck=15, u=None
     ) -> None:
@@ -78,8 +78,7 @@ class BjorckConstraint(Constraint):
         based on Bjorck algorithm. The computation is done in two steps:
 
         1. reduce the larget singular value to k_coef_lip, using iterate power method.
-        2. increase other singular values to k_coef_lip, using BjorckConstraint
-        algorithm.
+        2. increase other singular values to k_coef_lip, using bjorck algorithm.
 
         Args:
             k_coef_lip: lipschitz coefficient of the weight matrix
@@ -94,7 +93,7 @@ class BjorckConstraint(Constraint):
         if not (isinstance(u, tf.Tensor) or (u is None)):
             u = tf.convert_to_tensor(u)
         self.u = u
-        super(BjorckConstraint, self).__init__()
+        super(SpectralConstraint, self).__init__()
 
     def __call__(self, w):
         wbar, u, sigma = project_kernel(
@@ -113,5 +112,5 @@ class BjorckConstraint(Constraint):
             "niter_bjorck": self.niter_bjorck,
             "u": None if self.u is None else self.u.numpy(),
         }
-        base_config = super(BjorckConstraint, self).get_config()
+        base_config = super(SpectralConstraint, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

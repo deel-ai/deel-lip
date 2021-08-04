@@ -37,8 +37,8 @@ from tensorflow.keras.layers import (
     GlobalAveragePooling2D,
 )
 
-from .constraints import BjorckConstraint
-from .initializers import BjorckInitializer
+from .constraints import SpectralConstraint
+from .initializers import SpectralInitializer
 from .normalizers import (
     DEFAULT_NITER_BJORCK,
     DEFAULT_NITER_SPECTRAL,
@@ -163,7 +163,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         units,
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=DEFAULT_NITER_BJORCK,
         ),
@@ -338,7 +338,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=DEFAULT_NITER_BJORCK,
         ),
@@ -602,7 +602,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         units,
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=0,
         ),
@@ -710,7 +710,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=0,
         ),
@@ -735,7 +735,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             raise RuntimeError("NormalizedConv only support padding='same'")
         if not (
             (kernel_constraint is None)
-            or isinstance(kernel_constraint, BjorckConstraint)
+            or isinstance(kernel_constraint, SpectralConstraint)
         ):
             raise RuntimeError(
                 "only deellip constraints are allowed as other constraints could break"
