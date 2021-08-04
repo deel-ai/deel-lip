@@ -268,7 +268,8 @@ class LipschitzLayersTest(unittest.TestCase):
         self.assertLess(
             emp_lip_const,
             test_params["k_lip_model"] * 1.02,
-            msg=" the lip const of the network must be lower than the specified boundary",  # noqa: E501
+            msg=" the lip const of the network must be lower"
+            + " than the specified boundary",
         )
 
     def _apply_tests_bank(self, tests_bank):
