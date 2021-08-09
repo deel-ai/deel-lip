@@ -138,6 +138,11 @@ def KR_multiclass_loss(eps=1e-7):
     outputs. Note y_true should be one hot encoding (labels being 1s and 0s ). In
     this multiclass setup thr KR term is computed for each class and then averaged.
 
+    Args:
+        eps: a small positive to avoid zero division when a class is missing. This
+        does not impact results as the case leading to a zero denominator also imply
+        a zero numerator.
+
     Returns:
         Callable, the function to compute Wasserstein multiclass loss.
         #Note y_true has to be one hot encoded
