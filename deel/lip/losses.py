@@ -12,8 +12,9 @@ from tensorflow.keras import backend as K
 from .utils import _deel_export
 
 
+@tf.function
 @_deel_export
-def KR_loss():
+def KR_loss(y_true, y_pred):
     r"""
     Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
     The Kantorovich-Rubinstein duality is formulated as following:
@@ -32,36 +33,28 @@ def KR_loss():
         Callable, the function to compute Wasserstein loss
 
     """
-
-    @tf.function
-    def KR_loss_fct(y_true, y_pred):
-        # create two boolean masks each selecting one distribution
-        S0 = tf.equal(y_true, 1)
-        S1 = tf.not_equal(y_true, 1)
-        # compute the KR dual representation
-        return tf.reduce_mean(tf.boolean_mask(y_pred, S0)) - tf.reduce_mean(
-            tf.boolean_mask(y_pred, S1)
-        )
-
-    return KR_loss_fct
+    y_true = tf.cast(y_true, y_pred.dtype)
+    # create two boolean masks each selecting one distribution
+    S0 = tf.equal(y_true, 1)
+    S1 = tf.not_equal(y_true, 1)
+    # compute the KR dual representation
+    return tf.reduce_mean(tf.boolean_mask(y_pred, S0)) - tf.reduce_mean(
+        tf.boolean_mask(y_pred, S1)
+    )
 
 
+@tf.function
 @_deel_export
-def neg_KR_loss():
+def neg_KR_loss(y_true, y_pred):
     r"""
-    Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
-    duality. This allows the maximisation of the term using conventional optimizer.
+        Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
+        duality. This allows the maximisation of the term using conventional optimizer.
 
-    Returns:
-        Callable, the function to compute negative Wasserstein loss
+        Returns:
+            Callable, the function to compute negative Wasserstein loss
 
-    """
-
-    @tf.function
-    def neg_KR_loss_fct(y_true, y_pred):
-        return -KR_loss()(y_true, y_pred)
-
-    return neg_KR_loss_fct
+        """
+    return -KR_loss(y_true, y_pred)
 
 
 @_deel_export
