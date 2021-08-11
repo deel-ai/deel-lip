@@ -80,8 +80,8 @@ def HKR_loss(alpha, min_margin=1):
          a function that compute the regularized Wasserstein loss
 
     """
-    KR = KR_loss()
-    hinge = hinge_margin_loss(min_margin)
+    KR = KR_loss
+    hinge = HingeMarginLoss(min_margin)
 
     @tf.function
     def HKR_loss_fct(y_true, y_pred):
