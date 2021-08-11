@@ -48,20 +48,19 @@ def KR_loss(y_true, y_pred):
 @_deel_export
 def neg_KR_loss(y_true, y_pred):
     r"""
-        Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
-        duality. This allows the maximisation of the term using conventional optimizer.
+    Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
+    duality. This allows the maximisation of the term using conventional optimizer.
 
-        Returns:
-            Callable, the function to compute negative Wasserstein loss
+    Returns:
+        Callable, the function to compute negative Wasserstein loss
 
-        """
+    """
     return -KR_loss(y_true, y_pred)
 
 
 @_deel_export
 class HKR_loss(Loss):
-
-    def __init__(self, alpha, min_margin=1., *args, **kwargs):
+    def __init__(self, alpha, min_margin=1.0, *args, **kwargs):
         r"""
         Wasserstein loss with a regularization param based on hinge loss.
 

@@ -84,12 +84,12 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_hkr_loss(self):
-        loss = HKR_loss(0.5, 2.)
+        loss = HKR_loss(0.5, 2.0)
         check_serialization(1, loss)
 
     def test_hinge_margin_loss(self):
         loss = HingeMarginLoss(1.0)
-        y_true = tf.convert_to_tensor([1., 1., 1., 0., 0., 0.])
+        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l = loss(y_true, y_pred).numpy()
         np.testing.assert_almost_equal(
