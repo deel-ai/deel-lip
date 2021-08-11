@@ -102,7 +102,6 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         layers = list()
         for layer in self.layers:
             if isinstance(layer, Condensable):
-                layer.condense()
                 layers.append(layer.vanilla_export())
             else:
                 lay_cp = layer.__class__.from_config(layer.get_config())
@@ -160,7 +159,6 @@ class Model(KerasModel):
             # Condense+Export the layer if it is a non-vanilla layer, otherwise
             # just copy the layer:
             if isinstance(lay, Condensable):
-                lay.condense()
                 lay_cp = lay.vanilla_export()
             else:
                 # Duplicate layer (weights are not duplicated):

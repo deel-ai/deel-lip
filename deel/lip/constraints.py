@@ -9,12 +9,12 @@ regular layers.
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import Constraint
-from .normalizers import bjorck_normalization, spectral_normalization
+from .normalizers import reshaped_kernel_orthogonalization
 from .utils import _deel_export
 
 
 @_deel_export
-class WeightClip(Constraint):
+class WeightClipConstraint(Constraint):
     def __init__(self, c=2):
         """
         Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
@@ -28,11 +28,11 @@ class WeightClip(Constraint):
         return K.clip(p, -self.c, self.c)
 
     def get_config(self):
-        return {"name": self.__class__.__name__, "c": self.c}
+        return {"c": self.c}
 
 
 @_deel_export
-class AutoWeightClip(Constraint):
+class AutoWeightClipConstraint(Constraint):
     def __init__(self, scale=1):
         """
         Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
@@ -42,93 +42,75 @@ class AutoWeightClip(Constraint):
             scale: scaling factor to increase/decrease clipping value.
         """
         self.scale = scale
-        self.c = None
 
     def __call__(self, w):
-        self.c = 1 / (tf.sqrt(tf.cast(tf.size(w), dtype=tf.float64)) * self.scale)
-        return tf.clip_by_value(w, -self.c, self.c)
+        c = 1 / (tf.sqrt(tf.cast(tf.size(w), dtype=w.dtype)) * self.scale)
+        return tf.clip_by_value(w, -c, c)
 
     def get_config(self):
-        return {"name": self.__class__.__name__, "scale": self.scale, "c": self.c}
+        return {"scale": self.scale}
 
 
 @_deel_export
-class FrobeniusNormalizer(Constraint):
+class FrobeniusConstraint(Constraint):
     # todo: duplicate of keras/constraints/UnitNorm ?
 
-    def __init__(self, **kwargs):
+    def __init__(self, eps=1e-7):
         """
-        Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
-        With c = 1/norm(kernel).
+        Constrain the weights by dividing the weight matrix by it's L2 norm.
         """
-        super(FrobeniusNormalizer, self).__init__(**kwargs)
+        self.eps = eps
 
     def __call__(self, w):
-        return w * tf.sqrt(tf.reduce_sum(tf.square(w), keepdims=False))
+        return w / (tf.sqrt(tf.reduce_sum(tf.square(w), keepdims=False)) + self.eps)
+
+    def get_config(self):
+        return {"eps": self.eps}
 
 
 @_deel_export
-class SpectralNormalizer(Constraint):
-    def __init__(self, niter_spectral=3, u=None) -> None:
+class SpectralConstraint(Constraint):
+    def __init__(
+        self, k_coef_lip=1.0, niter_spectral=3, niter_bjorck=15, u=None
+    ) -> None:
         """
-        Ensure that the weights matrix have sigma_max == 1 (maximum singular value of
-        the weights matrix).
+        Ensure that *all* singular values of the weight matrix equals to 1. Computation
+        based on Bjorck algorithm. The computation is done in two steps:
+
+        1. reduce the larget singular value to k_coef_lip, using iterate power method.
+        2. increase other singular values to k_coef_lip, using bjorck algorithm.
 
         Args:
+            k_coef_lip: lipschitz coefficient of the weight matrix
             niter_spectral: number of iteration to find the maximum singular value.
+            niter_bjorck: number of iteration with Bjorck algorithm..
             u: vector used for iterated power method, can be set to None (used for
                 serialization/deserialization purposes).
         """
         self.niter_spectral = niter_spectral
+        self.niter_bjorck = niter_bjorck
+        self.k_coef_lip = k_coef_lip
         if not (isinstance(u, tf.Tensor) or (u is None)):
             u = tf.convert_to_tensor(u)
         self.u = u
-        super(SpectralNormalizer, self).__init__()
+        super(SpectralConstraint, self).__init__()
 
     def __call__(self, w):
-        w_bar, self.u, sigma = spectral_normalization(
-            super(SpectralNormalizer, self).__call__(w),
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
+            w,
             self.u,
-            niter=self.niter_spectral,
+            self.k_coef_lip,
+            self.niter_spectral,
+            self.niter_bjorck,
         )
-        return K.reshape(w_bar, w.shape)
+        return wbar
 
     def get_config(self):
         config = {
+            "k_coef_lip": self.k_coef_lip,
             "niter_spectral": self.niter_spectral,
+            "niter_bjorck": self.niter_bjorck,
             "u": None if self.u is None else self.u.numpy(),
         }
-        base_config = super(SpectralNormalizer, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
-
-
-@_deel_export
-class BjorckNormalizer(SpectralNormalizer):
-    def __init__(self, niter_spectral=3, niter_bjorck=15, u=None) -> None:
-        """
-        Ensure that *all* singular values of the weight matrix equals to 1. Computation
-        based on BjorckNormalizer algorithm. The computation is done in two steps:
-
-        1. reduce the larget singular value to 1, using iterated power method.
-        2. increase other singular values to 1, using BjorckNormalizer algorithm.
-
-        Args:
-            niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with BjorckNormalizer algorithm..
-            u: vector used for iterated power method, can be set to None (used for
-                serialization/deserialization purposes).
-        """
-        self.niter_bjorck = niter_bjorck
-        super(BjorckNormalizer, self).__init__(niter_spectral, u)
-
-    def __call__(self, w):
-        w_bar, self.u, sigma = spectral_normalization(
-            w, self.u, niter=self.niter_spectral
-        )
-        w_bar = bjorck_normalization(w_bar, niter=self.niter_bjorck)
-        return K.reshape(w_bar, shape=w.shape)
-
-    def get_config(self):
-        config = {"niter_bjorck": self.niter_bjorck}
-        base_config = super(BjorckNormalizer, self).get_config()
+        base_config = super(SpectralConstraint, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
