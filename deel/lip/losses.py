@@ -132,11 +132,16 @@ def hinge_margin_loss(min_margin=1):
 
 
 @_deel_export
-def KR_multiclass_loss():
+def KR_multiclass_loss(eps=1e-7):
     r"""
     Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over
     outputs. Note y_true should be one hot encoding (labels being 1s and 0s ). In
     this multiclass setup thr KR term is computed for each class and then averaged.
+
+    Args:
+        eps: a small positive to avoid zero division when a class is missing. This
+        does not impact results as the case leading to a zero denominator also imply
+        a zero numerator.
 
     Returns:
         Callable, the function to compute Wasserstein multiclass loss.
@@ -149,18 +154,21 @@ def KR_multiclass_loss():
         # use y_true to zero out y_pred where y_true != 1
         # espYtrue is the avg value of y_pred when y_true==1
         # (one average per output neuron)
-        espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / tf.reduce_sum(
-            y_true, axis=0
+        espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / (
+            tf.reduce_sum(y_true, axis=0) + eps
         )
         # use(1- y_true) to zero out y_pred where y_true == 1
         # espNotYtrue is the avg value of y_pred when y_true==0
         # (one average per output neuron)
         espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
-            tf.cast(tf.shape(y_true)[0], dtype="float32")
-            - tf.reduce_sum(y_true, axis=0)
+            (
+                tf.cast(tf.shape(y_true)[0], dtype="float32")
+                - tf.reduce_sum(y_true, axis=0)
+            )
+            + eps
         )
         # compute the differences to have the KR term for each output neuron,
-        # then compute the average over the classes
+        # and compute the average over the classes
         return tf.reduce_mean(-espNotYtrue + espYtrue)
 
     return KR_multiclass_loss_fct
