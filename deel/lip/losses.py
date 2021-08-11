@@ -59,41 +59,52 @@ def neg_KR_loss(y_true, y_pred):
 
 
 @_deel_export
-def HKR_loss(alpha, min_margin=1):
-    r"""
-    Wasserstein loss with a regularization param based on hinge loss.
+class HKR_loss(Loss):
 
-    .. math::
-        \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
-        \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
-        {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
-        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-        -Yf(\textbf{x})\right)_+
+    def __init__(self, alpha, min_margin=1., *args, **kwargs):
+        r"""
+        Wasserstein loss with a regularization param based on hinge loss.
 
-    Args:
-        alpha: regularization factor
-        min_margin: minimal margin ( see hinge_margin_loss )
-        Kantorovich-rubinstein term of the loss. In order to be consistent
-        between hinge and KR, the first label must yield the positve class
-        while the second yields negative class.
+        .. math::
+            \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+            \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+            {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
 
-    Returns:
-         a function that compute the regularized Wasserstein loss
+        Args:
+            alpha: regularization factor
+            min_margin: minimal margin ( see hinge_margin_loss )
+            Kantorovich-rubinstein term of the loss. In order to be consistent
+            between hinge and KR, the first label must yield the positve class
+            while the second yields negative class.
 
-    """
-    KR = KR_loss
-    hinge = HingeMarginLoss(min_margin)
+        Returns:
+             a function that compute the regularized Wasserstein loss
+
+        """
+        self.alpha = alpha
+        self.min_margin = min_margin
+        self.KR = KR_loss
+        self.hinge = HingeMarginLoss(min_margin)
+        super(HKR_loss, self).__init__(*args, **kwargs)
 
     @tf.function
-    def HKR_loss_fct(y_true, y_pred):
-        if alpha == np.inf:  # if alpha infinite, use hinge only
-            return hinge(y_true, y_pred)
+    def call(self, y_true, y_pred):
+        if self.alpha == np.inf:  # if alpha infinite, use hinge only
+            return self.hinge(y_true, y_pred)
         else:
             # true value: positive value should be the first to be coherent with the
             # hinge loss (positive y_pred)
-            return alpha * hinge(y_true, y_pred) - KR(y_true, y_pred)
+            return self.alpha * self.hinge(y_true, y_pred) - self.KR(y_true, y_pred)
 
-    return HKR_loss_fct
+    def get_config(self):
+        config = {
+            "alpha": self.alpha,
+            "min_margin": self.min_margin,
+        }
+        base_config = super(HKR_loss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
