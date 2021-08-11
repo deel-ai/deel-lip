@@ -87,7 +87,30 @@ class Test(TestCase):
         self.fail()
 
     def test_hinge_margin_loss(self):
-        self.fail()
+        loss = HingeMarginLoss(1.0)
+        y_true = tf.convert_to_tensor([1., 1., 1., 0., 0., 0.])
+        y_true2 = tf.convert_to_tensor([1., 1., 1., -1., -1., -1.])
+        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        l = loss(y_true, y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l, 0.66, 1, "test failed when y_true has shape (bs, )"
+        )
+        l2 = loss(
+            tf.expand_dims(y_true, axis=-1), tf.expand_dims(y_pred, axis=-1)
+        ).numpy()
+        np.testing.assert_almost_equal(
+            l2, 0.66, 1, "test failed when y_true has shape (bs, 1)"
+        )
+        l3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l3, 0.66, 1, "test failed when y_true has dtype int32"
+        )
+        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        l4 = loss(y_true2, y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l4, 0.66, 1, "test failed when labels are in (1, -1)"
+        )
+        check_serialization(1, loss)
 
     def test_kr_multiclass_loss(self):
         self.fail()

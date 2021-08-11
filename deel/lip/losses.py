@@ -9,6 +9,7 @@ https://arxiv.org/abs/2006.06520 for more information.
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
+from tensorflow.keras.losses import Loss
 from .utils import _deel_export
 
 
@@ -96,32 +97,44 @@ def HKR_loss(alpha, min_margin=1):
 
 
 @_deel_export
-def hinge_margin_loss(min_margin=1):
-    r"""
-    Compute the hinge margin loss.
+class HingeMarginLoss(Loss):
+    def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
+        r"""
+        Compute the hinge margin loss.
 
-    .. math::
-        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-        -Yf(\textbf{x})\right)_+
+        .. math::
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
 
-    Args:
-        min_margin: the minimal margin to enforce.
+        Args:
+            min_margin: the minimal margin to enforce.
+            eps: small value used to handle both (1,0) and (1,-1) labels. Uses
+                sign(y_true-eps) to convert labels.
 
-    Returns:
-        a function that compute the hinge loss.
+        Returns:
+            a function that compute the hinge loss.
 
-    """
-    eps = 1e-7
+        """
+        self.min_margin = min_margin
+        self.eps = eps
+        super(HingeMarginLoss, self).__init__(*args, **kwargs)
 
     @tf.function
-    def hinge_margin_fct(y_true, y_pred):
-        sign = K.sign(
-            tf.cast(y_true, y_pred.dtype) - eps
+    def call(self, y_true, y_pred):
+        y_true = tf.cast(y_true, y_pred.dtype)
+        sign = tf.sign(
+            y_true - self.eps
         )  # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
-        hinge = K.maximum(0.0, min_margin - sign * y_pred)
-        return K.mean(hinge)
+        hinge = tf.nn.relu(self.min_margin - sign * y_pred)
+        return tf.reduce_mean(hinge)
 
-    return hinge_margin_fct
+    def get_config(self):
+        config = {
+            "min_margin": self.min_margin,
+            "eps": self.eps,
+        }
+        base_config = super(HingeMarginLoss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
