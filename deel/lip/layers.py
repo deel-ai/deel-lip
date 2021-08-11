@@ -20,7 +20,7 @@ reparametrization. Currently, are implemented:
 By default the layers are 1 Lipschitz almost everywhere, which is efficient for
 wasserstein distance estimation. However for other problems (such as adversarial
 robustness) the user may want to use layers that are at most 1 lipschitz, this can
-be done by setting the param `niter_bjorck=0`.
+be done by setting the param `eps_bjorck=None`.
 """
 
 import abc
@@ -34,9 +34,8 @@ import tensorflow.keras.layers as keraslayers
 from .constraints import SpectralConstraint
 from .initializers import SpectralInitializer
 from .normalizers import (
-    DEFAULT_NITER_BJORCK,
-    DEFAULT_NITER_SPECTRAL,
-    DEFAULT_NITER_SPECTRAL_INIT,
+    DEFAULT_EPS_BJORCK,
+    DEFAULT_EPS_SPECTRAL,
     reshaped_kernel_orthogonalization,
     DEFAULT_BETA_BJORCK,
 )
@@ -159,8 +158,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
-            niter_bjorck=DEFAULT_NITER_BJORCK,
+            eps_spectral=DEFAULT_EPS_SPECTRAL,
+            eps_bjorck=DEFAULT_EPS_BJORCK,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -169,8 +168,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         kernel_constraint=None,
         bias_constraint=None,
         k_coef_lip=1.0,
-        niter_spectral=DEFAULT_NITER_SPECTRAL,
-        niter_bjorck=DEFAULT_NITER_BJORCK,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
@@ -199,8 +198,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
                 the `kernel` weights matrix.
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
-            niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with Bjorck algorithm.
+            eps_spectral: stopping criterion for the iterative power algorithm.
+            eps_bjorck: stopping criterion Bjorck algorithm.
             beta_bjorck: beta parameter in bjorck algorithm.
 
         Input shape:
@@ -230,8 +229,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         )
         self._kwargs = kwargs
         self.set_klip_factor(k_coef_lip)
-        self.niter_spectral = niter_spectral
-        self.niter_bjorck = niter_bjorck
+        self.eps_spectral = eps_spectral
+        self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
         if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
             raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
@@ -239,8 +238,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         self.sig = None
         self.wbar = None
         self.built = False
-        if self.niter_spectral < 1:
-            raise RuntimeError("niter_spectral has to be > 0")
+        if self.eps_spectral < 0:
+            raise RuntimeError("eps_spectral has to be > 0")
 
     def build(self, input_shape):
         super(SpectralDense, self).build(input_shape)
@@ -273,8 +272,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
                 self.kernel,
                 self.u,
                 self._get_coef(),
-                self.niter_spectral,
-                self.niter_bjorck,
+                self.eps_spectral,
+                self.eps_bjorck,
                 self.beta_bjorck,
             )
             self.wbar.assign(wbar)
@@ -292,8 +291,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
     def get_config(self):
         config = {
             "k_coef_lip": self.k_coef_lip,
-            "niter_spectral": self.niter_spectral,
-            "niter_bjorck": self.niter_bjorck,
+            "eps_spectral": self.eps_spectral,
+            "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralDense, self).get_config()
@@ -304,8 +303,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
             self.kernel,
             self.u,
             self._get_coef(),
-            self.niter_spectral,
-            self.niter_bjorck,
+            self.eps_spectral,
+            self.eps_bjorck,
             self.beta_bjorck,
         )
         self.kernel.assign(wbar)
@@ -342,8 +341,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
-            niter_bjorck=DEFAULT_NITER_BJORCK,
+            eps_spectral=DEFAULT_EPS_SPECTRAL,
+            eps_bjorck=DEFAULT_EPS_BJORCK,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -352,8 +351,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         kernel_constraint=None,
         bias_constraint=None,
         k_coef_lip=1.0,
-        niter_spectral=DEFAULT_NITER_SPECTRAL,
-        niter_bjorck=DEFAULT_NITER_BJORCK,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
@@ -412,8 +411,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             kernel_constraint: Constraint function applied to the kernel matrix.
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
-            niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with Bjorck algorithm.
+            eps_spectral: stopping criterion for the iterative power algorithm.
+            eps_bjorck: stopping criterion Bjorck algorithm.
             beta_bjorck: beta parameter in bjorck algorithm.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
@@ -449,13 +448,13 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.u = None
         self.sig = None
         self.wbar = None
-        self.niter_spectral = niter_spectral
+        self.eps_spectral = eps_spectral
         self.beta_bjorck = beta_bjorck
         if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
             raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
-        self.niter_bjorck = niter_bjorck
-        if self.niter_spectral < 1:
-            raise RuntimeError("niter_spectral has to be > 0")
+        self.eps_bjorck = eps_bjorck
+        if self.eps_spectral < 0:
+            raise RuntimeError("eps_spectral has to be > 0")
 
     def build(self, input_shape):
         super(SpectralConv2D, self).build(input_shape)
@@ -527,8 +526,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
                 self.kernel,
                 self.u,
                 self._get_coef(),
-                self.niter_spectral,
-                self.niter_bjorck,
+                self.eps_spectral,
+                self.eps_bjorck,
                 self.beta_bjorck,
             )
             self.wbar.assign(wbar)
@@ -553,8 +552,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
     def get_config(self):
         config = {
             "k_coef_lip": self.k_coef_lip,
-            "niter_spectral": self.niter_spectral,
-            "niter_bjorck": self.niter_bjorck,
+            "eps_spectral": self.eps_spectral,
+            "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralConv2D, self).get_config()
@@ -565,8 +564,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             self.kernel,
             self.u,
             self._get_coef(),
-            self.niter_spectral,
-            self.niter_bjorck,
+            self.eps_spectral,
+            self.eps_bjorck,
             self.beta_bjorck,
         )
         self.kernel.assign(wbar)
@@ -614,8 +613,8 @@ class FrobeniusDense(keraslayers.Dense, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
-            niter_bjorck=0,
+            eps_spectral=DEFAULT_EPS_SPECTRAL,
+            eps_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -722,8 +721,8 @@ class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
-            niter_bjorck=0,
+            eps_spectral=DEFAULT_EPS_SPECTRAL,
+            eps_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
