@@ -17,8 +17,8 @@ from deel.lip.losses import *
 
 
 def get_gaussian_data(n=500, mean1=1.0, mean2=-1.0):
-    x1 = tf.random.normal((n, 1), mean=1.0, stddev=0.1)
-    x2 = tf.random.normal((n, 1), mean=-1.0, stddev=0.1)
+    x1 = tf.random.normal((n, 1), mean=mean1, stddev=0.1)
+    x2 = tf.random.normal((n, 1), mean=-mean2, stddev=0.1)
     y_pred = tf.concat([x1, x2], axis=0)
     y_true = tf.concat([tf.ones(n), tf.zeros(n)], axis=0)
     return y_pred, y_true
@@ -84,6 +84,7 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_hkr_loss(self):
+        # assuming KR and hinge have been properly tested
         loss = HKR_loss(0.5, 2.0)
         check_serialization(1, loss)
 
@@ -113,7 +114,31 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_kr_multiclass_loss(self):
-        self.fail()
+        multiclass_kr = KRMulticlassLoss(1e-7)
+        kr = KR_loss
+        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        l_single = kr(y_true, y_pred).numpy()
+        l_multi = multiclass_kr(y_true, y_pred).numpy()
+        self.assertEqual(l_single, l_multi, "KR multiclass must yield the same "
+                                            "results when given a single class "
+                                            "vector")
+        n_class = 10
+        n_items = 100
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        l = multiclass_kr(y_true, y_pred).numpy()
+        l2 = multiclass_kr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l2, l, 1, "test failed when y_true has dtype int32"
+        )
+        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        l3 = multiclass_kr(y_true2, y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l3, l2, 1, "test failed when labels are in (1, -1)"
+        )
+        check_serialization(1, multiclass_kr)
+
 
     def test_hinge_multiclass_loss(self):
         self.fail()
