@@ -149,7 +149,6 @@ class HingeMarginLoss(Loss):
 
 @_deel_export
 class KRMulticlassLoss(Loss):
-
     def __init__(self, eps=1e-7, *args, **kwargs):
         r"""
         Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over
@@ -201,31 +200,46 @@ class KRMulticlassLoss(Loss):
 
 
 @_deel_export
-def Hinge_multiclass_loss(min_margin=1):
-    """
-    Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise
-    hinge term. Note that this formulation differs from the one commonly found in
-    tensorflow/pytorch (with marximise the difference between the two largest
-    logits). This formulation is consistent with the binary classification loss used
-    in a multiclass fashion. Note y_true should be one hot encoded. labels in (1,0)
+class HingeMulticlassLoss(Loss):
+    def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
+        """
+        Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise
+        hinge term. Note that this formulation differs from the one commonly found in
+        tensorflow/pytorch (with marximise the difference between the two largest
+        logits). This formulation is consistent with the binary classification loss used
+        in a multiclass fashion. Note y_true should be one hot encoded. labels in (1,0)
 
-    Returns:
-        Callable, the function to compute multiclass Hinge loss
-        #Note y_true has to be one hot encoded
+        Returns:
+            Callable, the function to compute multiclass Hinge loss
+            #Note y_true has to be one hot encoded
 
-    """
+        """
+        self.min_margin = min_margin
+        self.eps = eps
+        super(HingeMulticlassLoss, self).__init__(*args, **kwargs)
 
     @tf.function
-    def Hinge_multiclass_loss_fct(y_true, y_pred):
-        # convert (1,0) labels into (1,-1)
-        sign = 2 * y_true - 1
+    def call(self, y_true, y_pred):
+        y_true = tf.cast(y_true, y_pred.dtype)
+        sign = tf.sign(y_true - self.eps)
+        # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
         # compute the elementwise hinge term
-        hinge = tf.nn.relu(min_margin - sign * y_pred)
+        hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         # reweight positive elements
-        hinge = tf.where(sign > 0, hinge * (y_true.shape[-1] - 1), hinge)
-        return K.mean(hinge)
+        if len(tf.shape(y_pred)) == 2:
+            factor = y_true.shape[-1] - 1
+        else:
+            factor = 1.
+        hinge = tf.where(sign > 0, hinge * factor, hinge)
+        return tf.reduce_mean(hinge)
 
-    return Hinge_multiclass_loss_fct
+    def get_config(self):
+        config = {
+            "min_margin": self.min_margin,
+            "eps": self.eps,
+        }
+        base_config = super(HingeMulticlassLoss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
@@ -242,8 +256,8 @@ def HKR_multiclass_loss(alpha=0.0, min_margin=1):
         Callable, the function to compute HKR loss
         #Note y_true has to be one hot encoded
     """
-    hingeloss = Hinge_multiclass_loss(min_margin)
-    KRloss = KR_multiclass_loss()
+    hingeloss = HingeMulticlassLoss(min_margin)
+    KRloss = KRMulticlassLoss()
 
     @tf.function
     def HKR_multiclass_loss_fct(y_true, y_pred):
