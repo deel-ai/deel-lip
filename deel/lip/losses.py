@@ -77,6 +77,8 @@ class HKR(Loss):
             Kantorovich-rubinstein term of the loss. In order to be consistent
             between hinge and KR, the first label must yield the positve class
             while the second yields negative class.
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
 
         Returns:
              a function that compute the regularized Wasserstein loss
@@ -118,6 +120,8 @@ class HingeMargin(Loss):
 
         Args:
             min_margin: the minimal margin to enforce.
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
 
         Returns:
             a function that compute the hinge loss.
@@ -154,6 +158,8 @@ class MulticlassKR(Loss):
             eps: a small positive to avoid zero division when a class is missing. This
             does not impact results as the case leading to a zero denominator also imply
             a zero numerator.
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
 
         Returns:
             Callable, the function to compute Wasserstein multiclass loss.
@@ -207,6 +213,11 @@ class MulticlassHinge(Loss):
         classification loss used in a multiclass fashion. Note y_true should be one
         hot encoded. labels in (1,0)
 
+        Args:
+            min_margin: positive float, margin to enforce.
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+
         Returns:
             Callable, the function to compute multiclass Hinge loss
             #Note y_true has to be one hot encoded
@@ -257,6 +268,8 @@ class MulticlassHKR(Loss):
             min_margin: minimal margin ( see Hinge_multiclass_loss )
             eps_kr: epsilon used in the KR loss to handle case where all classes are
             not present
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
 
         Returns:
             Callable, the function to compute HKR loss
@@ -299,6 +312,8 @@ class MultiMargin(Loss):
 
         Args:
             min_margin: the minimal margin to enforce.
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
 
         Notes:
             y_true has to be to_categorical
