@@ -295,30 +295,42 @@ class HKRmulticlassLoss(Loss):
 
 
 @_deel_export
-def MultiMarginLoss(min_margin=1):
-    """
-    Compute the mean hinge margin loss for multi class (equivalent to Pytorch
-     multi_margin_loss)
+class MultiMarginLoss(Loss):
+    def __init__(self, min_margin=1, *args, **kwargs):
+        """
+        Compute the mean hinge margin loss for multi class (equivalent to Pytorch
+         multi_margin_loss)
 
-    Args:
-        min_margin: the minimal margin to enforce.
-        y_true has to be to_categorical
+        Args:
+            min_margin: the minimal margin to enforce.
 
-    Returns:
-        Callable, the function to compute multi margin loss
-    """
+        Notes:
+            y_true has to be to_categorical
+
+        Returns:
+            Callable, the function to compute multi margin loss
+        """
+        self.min_margin = min_margin
+        super(MultiMarginLoss, self).__init__(*args, **kwargs)
 
     @tf.function
-    def MultiMargin_fct(y_true, y_pred):
+    def call(self, y_true, y_pred):
+        y_true = tf.where(y_true == 1, 1, 0)
+        y_true = tf.cast(y_true, y_pred.dtype)
         # get the y_pred[target_class]
         # (zeroing out all elements of y_pred where y_true=0)
-        vYtrue = tf.reduce_sum(y_pred * y_true, axis=1, keepdims=True)
+        vYtrue = tf.reduce_sum(y_pred * y_true, axis=-1, keepdims=True)
         # computing elementwise margin term : margin + y_pred[i]-y_pred[target_class]
-        margin = tf.nn.relu(min_margin - vYtrue + y_pred)
+        margin = tf.nn.relu(self.min_margin - vYtrue + y_pred)
         # averaging on all outputs and batch
         final_loss = tf.reduce_mean(
             tf.where(y_true == 1, 0.0, margin)
         )  # two steps is useless
         return final_loss
 
-    return MultiMargin_fct
+    def get_config(self):
+        config = {
+            "min_margin": self.min_margin,
+        }
+        base_config = super(MultiMarginLoss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))

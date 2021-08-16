@@ -185,7 +185,7 @@ class Test(TestCase):
         self.assertEqual(
             l_single,
             l_multi,
-            "hinge multiclass must yield the same "
+            "hkr multiclass must yield the same "
             "results when given a single class "
             "vector",
         )
@@ -206,4 +206,19 @@ class Test(TestCase):
         check_serialization(1, multiclass_hkr)
 
     def test_multi_margin_loss(self):
-        self.fail()
+        multimargin_loss = MultiMarginLoss(1.0)
+        n_class = 10
+        n_items = 100
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        l = multimargin_loss(y_true, y_pred).numpy()
+        l2 = multimargin_loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l2, l, 1, "test failed when y_true has dtype int32"
+        )
+        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        l3 = multimargin_loss(y_true2, y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l3, l2, 1, "test failed when labels are in (1, -1)"
+        )
+        check_serialization(1, multimargin_loss)
