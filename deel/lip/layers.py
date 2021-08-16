@@ -990,7 +990,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return np.sqrt(np.prod(np.asarray(self.pool_size)))
+        return 1.
 
     @staticmethod
     def _sqrt(eps_grad_sqrt):
@@ -1018,6 +1018,96 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
             "k_coef_lip": self.k_coef_lip,
         }
         base_config = super(ScaledL2NormPooling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@_deel_export
+class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
+    def __init__(
+        self,
+        data_format=None,
+        k_coef_lip=1.0,
+        eps_grad_sqrt=1e-6,
+        **kwargs
+    ):
+        """
+        Average pooling operation for spatial data, with a lipschitz bound. This
+        pooling operation is norm preserving (aka gradient=1 almost everywhere).
+
+        [1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature
+        Pooling in Visual Recognition »,p.8.
+
+        Arguments:
+            data_format: A string,
+                one of `channels_last` (default) or `channels_first`.
+                The ordering of the dimensions in the inputs.
+                `channels_last` corresponds to inputs with shape
+                `(batch, height, width, channels)` while `channels_first`
+                corresponds to inputs with shape
+                `(batch, channels, height, width)`.
+                It defaults to the `image_data_format` value found in your
+                Keras config file at `~/.keras/keras.json`.
+                If you never set it, then it will be "channels_last".
+            k_coef_lip: the lipschitz factor to ensure
+            eps_grad_sqrt: Epsilon value to avoid numerical instability
+                due to non-defined gradient at 0 in the sqrt function
+
+        Input shape:
+            - If `data_format='channels_last'`:
+                4D tensor with shape `(batch_size, rows, cols, channels)`.
+            - If `data_format='channels_first'`:
+                4D tensor with shape `(batch_size, channels, rows, cols)`.
+
+        Output shape:
+            - If `data_format='channels_last'`:
+                4D tensor with shape `(batch_size, channels)`.
+            - If `data_format='channels_first'`:
+                4D tensor with shape `(batch_size, pooled_cols)`.
+        """
+        if eps_grad_sqrt < 0.0:
+            raise RuntimeError("eps_grad_sqrt must be positive")
+        super(ScaledGlobalL2NormPooling2D, self).__init__(
+            data_format=data_format,
+            **kwargs
+        )
+        self.set_klip_factor(k_coef_lip)
+        self.eps_grad_sqrt = eps_grad_sqrt
+        self._kwargs = kwargs
+
+    def build(self, input_shape):
+        super(ScaledGlobalL2NormPooling2D, self).build(input_shape)
+        self._init_lip_coef(input_shape)
+        self.built = True
+
+    def _compute_lip_coef(self, input_shape=None):
+        return 1.
+
+    @staticmethod
+    def _sqrt(eps_grad_sqrt):
+        @tf.custom_gradient
+        def sqrt_op(x):
+            sqrtx = tf.sqrt(x)
+
+            def grad(dy):
+                return dy / (2 * (sqrtx + eps_grad_sqrt))
+
+            return sqrtx, grad
+
+        return sqrt_op
+
+    def call(self, x, training=True):
+        return (
+            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
+                super(ScaledGlobalL2NormPooling2D, self).call(tf.square(x))
+            )
+            * self._get_coef()
+        )
+
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+        }
+        base_config = super(ScaledGlobalL2NormPooling2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
