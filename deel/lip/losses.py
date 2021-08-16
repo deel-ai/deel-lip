@@ -214,7 +214,7 @@ class MulticlassHinge(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        sign = tf.where(y_true == 1, 1., -1.)
+        sign = tf.where(y_true == 1, 1.0, -1.0)
         y_true = tf.cast(y_true, y_pred.dtype)
         # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
         # compute the elementwise hinge term
@@ -237,9 +237,7 @@ class MulticlassHinge(Loss):
 
 @_deel_export
 class MulticlassHKR(Loss):
-    def __init__(
-        self, alpha=10.0, min_margin=1.0, eps_kr=1e-7, *args, **kwargs
-    ):
+    def __init__(self, alpha=10.0, min_margin=1.0, eps_kr=1e-7, *args, **kwargs):
         """
         The multiclass version of HKR. This is done by computing the HKR term over each
         class and averaging the results.
