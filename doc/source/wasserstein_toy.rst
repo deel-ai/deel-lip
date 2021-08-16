@@ -21,7 +21,7 @@ representation.
     from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, FullSort
     from deel.lip.utils import load_model
-    from deel.lip.losses import KR_loss
+    from deel.lip.losses import KR
     from deel.lip.model import Model
 
     from model_samples.model_samples import get_lipMLP
@@ -258,7 +258,7 @@ Build lipschitz Model
 
 .. code:: ipython3
 
-    wass.compile(loss=KR_loss(), optimizer=optimizer, metrics=[KR_loss()])
+    wass.compile(loss=KR(), optimizer=optimizer, metrics=[KR()])
 
 Learn on toy dataset
 ~~~~~~~~~~~~~~~~~~~~

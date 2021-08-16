@@ -103,7 +103,8 @@ Choosing activations:
      - Input and GradientNorm preserving. Also limit the need of biases (as it is shift invariant).
      - more computationally expensive, (when it's parameter `n` is large)
 
-Please note that when learning with the :class:`.HKR_loss` and :class:`.HKR_multiclass_loss`, no activation is
+Please note that when learning with the :class:`.HKR` and :class:`.MulticlassHKR`, no
+activation is
 required on the last layer.
 
 How to use it?

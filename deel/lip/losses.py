@@ -14,7 +14,7 @@ from .utils import _deel_export
 
 @tf.function
 @_deel_export
-def KR_loss(y_true, y_pred):
+def KR(y_true, y_pred):
     r"""
     Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
     The Kantorovich-Rubinstein duality is formulated as following:
@@ -45,7 +45,7 @@ def KR_loss(y_true, y_pred):
 
 @tf.function
 @_deel_export
-def neg_KR_loss(y_true, y_pred):
+def negative_KR(y_true, y_pred):
     r"""
     Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
     duality. This allows the maximisation of the term using conventional optimizer.
@@ -54,11 +54,11 @@ def neg_KR_loss(y_true, y_pred):
         Callable, the function to compute negative Wasserstein loss
 
     """
-    return -KR_loss(y_true, y_pred)
+    return -KR(y_true, y_pred)
 
 
 @_deel_export
-class HKR_loss(Loss):
+class HKR(Loss):
     def __init__(self, alpha, min_margin=1.0, *args, **kwargs):
         r"""
         Wasserstein loss with a regularization param based on hinge loss.
@@ -83,9 +83,9 @@ class HKR_loss(Loss):
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.KR = KR_loss
-        self.hinge = HingeMarginLoss(min_margin)
-        super(HKR_loss, self).__init__(*args, **kwargs)
+        self.KR = KR
+        self.hinge = HingeMargin(min_margin)
+        super(HKR, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -101,12 +101,12 @@ class HKR_loss(Loss):
             "alpha": self.alpha,
             "min_margin": self.min_margin,
         }
-        base_config = super(HKR_loss, self).get_config()
+        base_config = super(HKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
-class HingeMarginLoss(Loss):
+class HingeMargin(Loss):
     def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
         r"""
         Compute the hinge margin loss.
@@ -126,7 +126,7 @@ class HingeMarginLoss(Loss):
         """
         self.min_margin = min_margin
         self.eps = eps
-        super(HingeMarginLoss, self).__init__(*args, **kwargs)
+        super(HingeMargin, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -142,12 +142,12 @@ class HingeMarginLoss(Loss):
             "min_margin": self.min_margin,
             "eps": self.eps,
         }
-        base_config = super(HingeMarginLoss, self).get_config()
+        base_config = super(HingeMargin, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
-class KRMulticlassLoss(Loss):
+class MulticlassKR(Loss):
     def __init__(self, eps=1e-7, *args, **kwargs):
         r"""
         Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality
@@ -166,7 +166,7 @@ class KRMulticlassLoss(Loss):
 
         """
         self.eps = eps
-        super(KRMulticlassLoss, self).__init__(*args, **kwargs)
+        super(MulticlassKR, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -195,12 +195,12 @@ class KRMulticlassLoss(Loss):
         config = {
             "eps": self.eps,
         }
-        base_config = super(KRMulticlassLoss, self).get_config()
+        base_config = super(MulticlassKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
-class HingeMulticlassLoss(Loss):
+class MulticlassHinge(Loss):
     def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
         """
         Loss to estimate the Hinge loss in a multiclass setup. It compute the
@@ -217,7 +217,7 @@ class HingeMulticlassLoss(Loss):
         """
         self.min_margin = min_margin
         self.eps = eps
-        super(HingeMulticlassLoss, self).__init__(*args, **kwargs)
+        super(MulticlassHinge, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -239,12 +239,12 @@ class HingeMulticlassLoss(Loss):
             "min_margin": self.min_margin,
             "eps": self.eps,
         }
-        base_config = super(HingeMulticlassLoss, self).get_config()
+        base_config = super(MulticlassHinge, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
-class HKRmulticlassLoss(Loss):
+class MulticlassHKR(Loss):
     def __init__(
         self, alpha=10.0, min_margin=1.0, eps_hinge=1e-7, eps_kr=1e-7, *args, **kwargs
     ):
@@ -268,9 +268,9 @@ class HKRmulticlassLoss(Loss):
         self.min_margin = min_margin
         self.eps_hinge = eps_hinge
         self.eps_kr = eps_kr
-        self.hingeloss = HingeMulticlassLoss(self.min_margin, self.eps_hinge)
-        self.KRloss = KRMulticlassLoss(self.eps_kr)
-        super(HKRmulticlassLoss, self).__init__(*args, **kwargs)
+        self.hingeloss = MulticlassHinge(self.min_margin, self.eps_hinge)
+        self.KRloss = MulticlassKR(self.eps_kr)
+        super(MulticlassHKR, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -290,12 +290,12 @@ class HKRmulticlassLoss(Loss):
             "eps_hinge": self.eps_hinge,
             "eps_kr": self.eps_kr,
         }
-        base_config = super(HKRmulticlassLoss, self).get_config()
+        base_config = super(MulticlassHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export
-class MultiMarginLoss(Loss):
+class MultiMargin(Loss):
     def __init__(self, min_margin=1, *args, **kwargs):
         """
         Compute the mean hinge margin loss for multi class (equivalent to Pytorch
@@ -311,7 +311,7 @@ class MultiMarginLoss(Loss):
             Callable, the function to compute multi margin loss
         """
         self.min_margin = min_margin
-        super(MultiMarginLoss, self).__init__(*args, **kwargs)
+        super(MultiMargin, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -332,5 +332,5 @@ class MultiMarginLoss(Loss):
         config = {
             "min_margin": self.min_margin,
         }
-        base_config = super(MultiMarginLoss, self).get_config()
+        base_config = super(MultiMargin, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))

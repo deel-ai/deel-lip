@@ -36,7 +36,7 @@ def check_serialization(nb_class, loss):
 
 class Test(TestCase):
     def test_kr_loss(self):
-        loss = KR_loss
+        loss = KR
         y_pred, y_true = get_gaussian_data(5000)
         l = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
@@ -60,7 +60,7 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_neg_kr_loss(self):
-        loss = neg_KR_loss
+        loss = negative_KR
         y_pred, y_true = get_gaussian_data(5000)
         l = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
@@ -85,11 +85,11 @@ class Test(TestCase):
 
     def test_hkr_loss(self):
         # assuming KR and hinge have been properly tested
-        loss = HKR_loss(0.5, 2.0)
+        loss = HKR(0.5, 2.0)
         check_serialization(1, loss)
 
     def test_hinge_margin_loss(self):
-        loss = HingeMarginLoss(1.0)
+        loss = HingeMargin(1.0)
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l = loss(y_true, y_pred).numpy()
@@ -114,8 +114,8 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_kr_multiclass_loss(self):
-        multiclass_kr = KRMulticlassLoss(1e-7)
-        kr = KR_loss
+        multiclass_kr = MulticlassKR(1e-7)
+        kr = KR
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = kr(y_true, y_pred).numpy()
@@ -144,8 +144,8 @@ class Test(TestCase):
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
-        multiclass_hinge = HingeMulticlassLoss(1.0, 1e-7)
-        hinge = HingeMarginLoss(1.0, 1e-4)
+        multiclass_hinge = MulticlassHinge(1.0, 1e-7)
+        hinge = HingeMargin(1.0, 1e-4)
         # testing with an other value for eps ensure that eps has no influence
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
@@ -175,8 +175,8 @@ class Test(TestCase):
         check_serialization(1, multiclass_hinge)
 
     def test_hkr_multiclass_loss(self):
-        multiclass_hkr = HKRmulticlassLoss(5, 1.0, 1e-12)
-        hkr_binary = HKR_loss(5.0, 1.0)
+        multiclass_hkr = MulticlassHKR(5, 1.0, 1e-12)
+        hkr_binary = HKR(5.0, 1.0)
         # testing with an other value for eps ensure that eps has no influence
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
@@ -206,7 +206,7 @@ class Test(TestCase):
         check_serialization(1, multiclass_hkr)
 
     def test_multi_margin_loss(self):
-        multimargin_loss = MultiMarginLoss(1.0)
+        multimargin_loss = MultiMargin(1.0)
         n_class = 10
         n_items = 100
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
