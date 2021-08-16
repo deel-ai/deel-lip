@@ -144,9 +144,8 @@ class Test(TestCase):
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
-        multiclass_hinge = MulticlassHinge(1.0, 1e-7)
-        hinge = HingeMargin(1.0, 1e-4)
-        # testing with an other value for eps ensure that eps has no influence
+        multiclass_hinge = MulticlassHinge(1.0)
+        hinge = HingeMargin(1.0)
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()

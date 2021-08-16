@@ -107,7 +107,7 @@ class HKR(Loss):
 
 @_deel_export
 class HingeMargin(Loss):
-    def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
+    def __init__(self, min_margin=1.0, *args, **kwargs):
         r"""
         Compute the hinge margin loss.
 
@@ -117,30 +117,24 @@ class HingeMargin(Loss):
 
         Args:
             min_margin: the minimal margin to enforce.
-            eps: small value used to handle both (1,0) and (1,-1) labels. Uses
-                sign(y_true-eps) to convert labels.
 
         Returns:
             a function that compute the hinge loss.
 
         """
         self.min_margin = min_margin
-        self.eps = eps
         super(HingeMargin, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
-        y_true = tf.cast(y_true, y_pred.dtype)
-        sign = tf.sign(
-            y_true - self.eps
-        )  # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
+        y_true = tf.where(y_true == 1, 1, -1)
+        sign = tf.cast(y_true, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         return tf.reduce_mean(hinge)
 
     def get_config(self):
         config = {
             "min_margin": self.min_margin,
-            "eps": self.eps,
         }
         base_config = super(HingeMargin, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -201,7 +195,7 @@ class MulticlassKR(Loss):
 
 @_deel_export
 class MulticlassHinge(Loss):
-    def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
+    def __init__(self, min_margin=1.0, *args, **kwargs):
         """
         Loss to estimate the Hinge loss in a multiclass setup. It compute the
         elementwise hinge term. Note that this formulation differs from the one
@@ -216,13 +210,12 @@ class MulticlassHinge(Loss):
 
         """
         self.min_margin = min_margin
-        self.eps = eps
         super(MulticlassHinge, self).__init__(*args, **kwargs)
 
     @tf.function
     def call(self, y_true, y_pred):
+        sign = tf.where(y_true == 1, 1., -1.)
         y_true = tf.cast(y_true, y_pred.dtype)
-        sign = tf.sign(y_true - self.eps)
         # subtracting a small eps makes the loss work for (1,0) and (1,-1) labels
         # compute the elementwise hinge term
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
@@ -237,7 +230,6 @@ class MulticlassHinge(Loss):
     def get_config(self):
         config = {
             "min_margin": self.min_margin,
-            "eps": self.eps,
         }
         base_config = super(MulticlassHinge, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -246,7 +238,7 @@ class MulticlassHinge(Loss):
 @_deel_export
 class MulticlassHKR(Loss):
     def __init__(
-        self, alpha=10.0, min_margin=1.0, eps_hinge=1e-7, eps_kr=1e-7, *args, **kwargs
+        self, alpha=10.0, min_margin=1.0, eps_kr=1e-7, *args, **kwargs
     ):
         """
         The multiclass version of HKR. This is done by computing the HKR term over each
@@ -255,8 +247,6 @@ class MulticlassHKR(Loss):
         Args:
             alpha: regularization factor
             min_margin: minimal margin ( see Hinge_multiclass_loss )
-            eps_hinge: epsilon used in hinge loss to handle labels in both {0,
-            1} and {-1,1}
             eps_kr: epsilon used in the KR loss to handle case where all classes are
             not present
 
@@ -266,9 +256,8 @@ class MulticlassHKR(Loss):
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.eps_hinge = eps_hinge
         self.eps_kr = eps_kr
-        self.hingeloss = MulticlassHinge(self.min_margin, self.eps_hinge)
+        self.hingeloss = MulticlassHinge(self.min_margin)
         self.KRloss = MulticlassKR(self.eps_kr)
         super(MulticlassHKR, self).__init__(*args, **kwargs)
 
@@ -287,7 +276,6 @@ class MulticlassHKR(Loss):
         config = {
             "alpha": self.alpha,
             "min_margin": self.min_margin,
-            "eps_hinge": self.eps_hinge,
             "eps_kr": self.eps_kr,
         }
         base_config = super(MulticlassHKR, self).get_config()
