@@ -9,6 +9,7 @@ https://arxiv.org/abs/2006.06520 for more information.
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
+from tensorflow.keras.losses import Reduction
 from .utils import _deel_export
 
 
@@ -59,7 +60,7 @@ def negative_KR(y_true, y_pred):
 
 @_deel_export
 class HKR(Loss):
-    def __init__(self, alpha, min_margin=1.0, *args, **kwargs):
+    def __init__(self, alpha, min_margin=1.0, reduction=Reduction.AUTO, name="HKR"):
         r"""
         Wasserstein loss with a regularization param based on hinge loss.
 
@@ -85,7 +86,7 @@ class HKR(Loss):
         self.min_margin = min_margin
         self.KR = KR
         self.hinge = HingeMargin(min_margin)
-        super(HKR, self).__init__(*args, **kwargs)
+        super(HKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -107,7 +108,7 @@ class HKR(Loss):
 
 @_deel_export
 class HingeMargin(Loss):
-    def __init__(self, min_margin=1.0, *args, **kwargs):
+    def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="HingeMargin"):
         r"""
         Compute the hinge margin loss.
 
@@ -123,7 +124,7 @@ class HingeMargin(Loss):
 
         """
         self.min_margin = min_margin
-        super(HingeMargin, self).__init__(*args, **kwargs)
+        super(HingeMargin, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -142,7 +143,7 @@ class HingeMargin(Loss):
 
 @_deel_export
 class MulticlassKR(Loss):
-    def __init__(self, eps=1e-7, *args, **kwargs):
+    def __init__(self, eps=1e-7, reduction=Reduction.AUTO, name="MulticlassKR"):
         r"""
         Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality
         over outputs. Note y_true should be one hot encoding (labels being 1s and 0s
@@ -160,7 +161,7 @@ class MulticlassKR(Loss):
 
         """
         self.eps = eps
-        super(MulticlassKR, self).__init__(*args, **kwargs)
+        super(MulticlassKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -195,7 +196,9 @@ class MulticlassKR(Loss):
 
 @_deel_export
 class MulticlassHinge(Loss):
-    def __init__(self, min_margin=1.0, *args, **kwargs):
+    def __init__(
+        self, min_margin=1.0, reduction=Reduction.AUTO, name="MulticlassHinge"
+    ):
         """
         Loss to estimate the Hinge loss in a multiclass setup. It compute the
         elementwise hinge term. Note that this formulation differs from the one
@@ -210,7 +213,7 @@ class MulticlassHinge(Loss):
 
         """
         self.min_margin = min_margin
-        super(MulticlassHinge, self).__init__(*args, **kwargs)
+        super(MulticlassHinge, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -237,7 +240,14 @@ class MulticlassHinge(Loss):
 
 @_deel_export
 class MulticlassHKR(Loss):
-    def __init__(self, alpha=10.0, min_margin=1.0, eps_kr=1e-7, *args, **kwargs):
+    def __init__(
+        self,
+        alpha=10.0,
+        min_margin=1.0,
+        eps_kr=1e-7,
+        reduction=Reduction.AUTO,
+        name="MulticlassHKR",
+    ):
         """
         The multiclass version of HKR. This is done by computing the HKR term over each
         class and averaging the results.
@@ -257,7 +267,7 @@ class MulticlassHKR(Loss):
         self.eps_kr = eps_kr
         self.hingeloss = MulticlassHinge(self.min_margin)
         self.KRloss = MulticlassKR(self.eps_kr)
-        super(MulticlassHKR, self).__init__(*args, **kwargs)
+        super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
@@ -282,7 +292,7 @@ class MulticlassHKR(Loss):
 
 @_deel_export
 class MultiMargin(Loss):
-    def __init__(self, min_margin=1, *args, **kwargs):
+    def __init__(self, min_margin=1, reduction=Reduction.AUTO, name="MultiMargin"):
         """
         Compute the mean hinge margin loss for multi class (equivalent to Pytorch
          multi_margin_loss)
@@ -297,7 +307,7 @@ class MultiMargin(Loss):
             Callable, the function to compute multi margin loss
         """
         self.min_margin = min_margin
-        super(MultiMargin, self).__init__(*args, **kwargs)
+        super(MultiMargin, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
