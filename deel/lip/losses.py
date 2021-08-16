@@ -8,7 +8,6 @@ https://arxiv.org/abs/2006.06520 for more information.
 """
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend as K
 from tensorflow.keras.losses import Loss
 from .utils import _deel_export
 
@@ -151,9 +150,10 @@ class HingeMarginLoss(Loss):
 class KRMulticlassLoss(Loss):
     def __init__(self, eps=1e-7, *args, **kwargs):
         r"""
-        Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality over
-        outputs. Note y_true should be one hot encoding (labels being 1s and 0s ). In
-        this multiclass setup thr KR term is computed for each class and then averaged.
+        Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality
+        over outputs. Note y_true should be one hot encoding (labels being 1s and 0s
+        ). In this multiclass setup thr KR term is computed for each class and then
+        averaged.
 
         Args:
             eps: a small positive to avoid zero division when a class is missing. This
@@ -203,11 +203,12 @@ class KRMulticlassLoss(Loss):
 class HingeMulticlassLoss(Loss):
     def __init__(self, min_margin=1.0, eps=1e-7, *args, **kwargs):
         """
-        Loss to estimate the Hinge loss in a multiclass setup. It compute the elementwise
-        hinge term. Note that this formulation differs from the one commonly found in
-        tensorflow/pytorch (with marximise the difference between the two largest
-        logits). This formulation is consistent with the binary classification loss used
-        in a multiclass fashion. Note y_true should be one hot encoded. labels in (1,0)
+        Loss to estimate the Hinge loss in a multiclass setup. It compute the
+        elementwise hinge term. Note that this formulation differs from the one
+        commonly found in tensorflow/pytorch (with marximise the difference between
+        the two largest logits). This formulation is consistent with the binary
+        classification loss used in a multiclass fashion. Note y_true should be one
+        hot encoded. labels in (1,0)
 
         Returns:
             Callable, the function to compute multiclass Hinge loss
@@ -229,7 +230,7 @@ class HingeMulticlassLoss(Loss):
         if len(tf.shape(y_pred)) == 2:
             factor = y_true.shape[-1] - 1
         else:
-            factor = 1.
+            factor = 1.0
         hinge = tf.where(sign > 0, hinge * factor, hinge)
         return tf.reduce_mean(hinge)
 
@@ -243,34 +244,54 @@ class HingeMulticlassLoss(Loss):
 
 
 @_deel_export
-def HKR_multiclass_loss(alpha=0.0, min_margin=1):
-    """
-    The multiclass version of HKR. This is done by computing the HKR term over each
-    class and averaging the results.
+class HKRmulticlassLoss(Loss):
+    def __init__(
+        self, alpha=10.0, min_margin=1.0, eps_hinge=1e-7, eps_kr=1e-7, *args, **kwargs
+    ):
+        """
+        The multiclass version of HKR. This is done by computing the HKR term over each
+        class and averaging the results.
 
-    Args:
-        alpha: regularization factor
-        min_margin: minimal margin ( see Hinge_multiclass_loss )
+        Args:
+            alpha: regularization factor
+            min_margin: minimal margin ( see Hinge_multiclass_loss )
+            eps_hinge: epsilon used in hinge loss to handle labels in both {0,
+            1} and {-1,1}
+            eps_kr: epsilon used in the KR loss to handle case where all classes are
+            not present
 
-    Returns:
-        Callable, the function to compute HKR loss
-        #Note y_true has to be one hot encoded
-    """
-    hingeloss = HingeMulticlassLoss(min_margin)
-    KRloss = KRMulticlassLoss()
+        Returns:
+            Callable, the function to compute HKR loss
+            #Note y_true has to be one hot encoded
+        """
+        self.alpha = alpha
+        self.min_margin = min_margin
+        self.eps_hinge = eps_hinge
+        self.eps_kr = eps_kr
+        self.hingeloss = HingeMulticlassLoss(self.min_margin, self.eps_hinge)
+        self.KRloss = KRMulticlassLoss(self.eps_kr)
+        super(HKRmulticlassLoss, self).__init__(*args, **kwargs)
 
     @tf.function
-    def HKR_multiclass_loss_fct(y_true, y_pred):
-        if alpha == np.inf:  # alpha = inf => hinge only
-            return hingeloss(y_true, y_pred)
-        elif alpha == 0.0:  # alpha = 0 => KR only
-            return -KRloss(y_true, y_pred)
+    def call(self, y_true, y_pred):
+        if self.alpha == np.inf:  # alpha = inf => hinge only
+            return self.hingeloss(y_true, y_pred)
+        elif self.alpha == 0.0:  # alpha = 0 => KR only
+            return -self.KRloss(y_true, y_pred)
         else:
-            a = -KRloss(y_true, y_pred)
-            b = hingeloss(y_true, y_pred)
-            return a + alpha * b
+            a = -self.KRloss(y_true, y_pred)
+            b = self.hingeloss(y_true, y_pred)
+            return a + self.alpha * b
 
-    return HKR_multiclass_loss_fct
+    def get_config(self):
+        config = {
+            "alpha": self.alpha,
+            "min_margin": self.min_margin,
+            "eps_hinge": self.eps_hinge,
+            "eps_kr": self.eps_kr,
+        }
+        base_config = super(HKRmulticlassLoss, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @_deel_export

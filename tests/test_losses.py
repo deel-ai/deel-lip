@@ -174,8 +174,36 @@ class Test(TestCase):
         )
         check_serialization(1, multiclass_hinge)
 
-    """def test_hkr_multiclass_loss(self):
-        self.fail()
+    def test_hkr_multiclass_loss(self):
+        multiclass_hkr = HKRmulticlassLoss(5, 1.0, 1e-12)
+        hkr_binary = HKR_loss(5.0, 1.0)
+        # testing with an other value for eps ensure that eps has no influence
+        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        l_single = hkr_binary(y_true, y_pred).numpy()
+        l_multi = multiclass_hkr(y_true, y_pred).numpy()
+        self.assertEqual(
+            l_single,
+            l_multi,
+            "hinge multiclass must yield the same "
+            "results when given a single class "
+            "vector",
+        )
+        n_class = 10
+        n_items = 100
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        l = multiclass_hkr(y_true, y_pred).numpy()
+        l2 = multiclass_hkr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l2, l, 1, "test failed when y_true has dtype int32"
+        )
+        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        l3 = multiclass_hkr(y_true2, y_pred).numpy()
+        np.testing.assert_almost_equal(
+            l3, l2, 1, "test failed when labels are in (1, -1)"
+        )
+        check_serialization(1, multiclass_hkr)
 
     def test_multi_margin_loss(self):
-        self.fail()"""
+        self.fail()
