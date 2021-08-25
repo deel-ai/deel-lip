@@ -10,7 +10,7 @@ from typing import Optional, Dict, Iterable
 
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
-
+import numpy as np
 from .layers import Condensable
 
 
@@ -164,3 +164,31 @@ class MonitorCallback(Callback):
         }
         base_config = super(MonitorCallback, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+class TauScheduler(Callback):
+    def __init__(self, fp, xp, step=0):
+        """
+        Scheduler which allow to modify tau depending on the optimization step. It
+        use linear interpolation.
+        Args:
+            fp: array, tau values as steps given by the xp
+            xp: array, step where tau equals fp
+            step: step value, for serialization/deserialization purposes
+        """
+        self.xp = xp
+        self.fp = fp
+        self.step = step
+
+    def on_train_batch_begin(self, batch: int, logs=None):
+        tau = np.interp(self.step, self.xp, self.fp)
+        self.model.loss.tau.assign(tau)
+        self.step += 1
+        super(TauScheduler, self).on_train_batch_end(batch, logs)
+
+    def get_config(self):
+        return {
+            "xp": self.xp,
+            "fp": self.fp,
+            "step": self.step,
+        }

@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.losses import Reduction
+from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -393,4 +394,36 @@ class MultiMargin(Loss):
             "min_margin": self.min_margin,
         }
         base_config = super(MultiMargin, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class TauCategoricalCrossentropy(Loss):
+    def __init__(
+        self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
+    ):
+        """
+        Similar to original categorical crossentropy, but with a settable temperature
+        parameter.
+
+        Args:
+            tau: temperature parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.tau = tf.Variable(tau)
+        super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred, *args, **kwargs):
+        return (
+            categorical_crossentropy(
+                y_true, self.tau * y_pred, from_logits=True, *args, **kwargs
+            )
+            / self.tau
+        )
+
+    def get_config(self):
+        config = {
+            "tau": self.tau,
+        }
+        base_config = super(TauCategoricalCrossentropy, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
