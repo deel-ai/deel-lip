@@ -166,12 +166,14 @@ class MonitorCallback(Callback):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class TauScheduler(Callback):
-    def __init__(self, fp, xp, step=0):
+class LossParamScheduler(Callback):
+    def __init__(self, param_name, fp, xp, step=0):
         """
         Scheduler which allow to modify tau depending on the optimization step. It
         use linear interpolation.
         Args:
+            param_name: name of the parameter of the loss to tune. Must be a
+                tf.Variable
             fp: array, tau values as steps given by the xp
             xp: array, step where tau equals fp
             step: step value, for serialization/deserialization purposes
@@ -179,16 +181,18 @@ class TauScheduler(Callback):
         self.xp = xp
         self.fp = fp
         self.step = step
+        self.param_name = param_name
 
     def on_train_batch_begin(self, batch: int, logs=None):
         tau = np.interp(self.step, self.xp, self.fp)
-        self.model.loss.tau.assign(tau)
+        self.model.loss.__getattribute__(self.param_name).assign(tau)
         self.step += 1
-        super(TauScheduler, self).on_train_batch_end(batch, logs)
+        super(LossParamScheduler, self).on_train_batch_end(batch, logs)
 
     def get_config(self):
         return {
             "xp": self.xp,
             "fp": self.fp,
             "step": self.step,
+            "param_name": self.param_name,
         }
