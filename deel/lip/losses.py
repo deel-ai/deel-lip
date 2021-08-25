@@ -397,6 +397,38 @@ class MultiMargin(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class CategoricalHinge(Loss):
+    def __init__(
+        self, min_margin, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
+    ):
+        """
+        Similar to original categorical hinge, but with a settable margin
+        parameter.
+
+        Args:
+            min_margin: margin parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.min_margin = tf.Variable(min_margin)
+        super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred):
+        y_pred = tf.convert_to_tensor(y_pred)
+        y_true = tf.cast(y_true, y_pred.dtype)
+        pos = tf.reduce_sum(y_true * y_pred, axis=-1)
+        neg = tf.reduce_max((1. - y_true) * y_pred, axis=-1)
+        zero = tf.cast(0., y_pred.dtype)
+        return tf.maximum(neg - pos + self.min_margin, zero)
+
+    def get_config(self):
+        config = {
+            "min_margin": self.min_margin,
+        }
+        base_config = super(CategoricalHinge, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class TauCategoricalCrossentropy(Loss):
     def __init__(
         self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
