@@ -1095,7 +1095,7 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
             axes = [2, 3]
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
-                tf.reduce_sum(tf.square(1.8*x), axis=axes)
+                tf.reduce_sum(tf.square(x), axis=axes)
             )
             * self._get_coef()
         )
