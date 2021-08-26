@@ -146,8 +146,8 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     y_pred_var = model.predict(x_var)
     dx = x - x_var
     dfx = y_pred - y_pred_var
-    ndx = K.sum(K.square(dx), axis=range(1, len(x.shape)))
-    ndfx = K.sum(K.square(dfx), axis=range(1, len(y_pred.shape)))
-    lip_cst = K.sqrt(K.max(ndfx / ndx))
+    ndx = K.sqrt(K.sum(K.square(dx), axis=range(1, len(x.shape))))
+    ndfx = K.sqrt(K.sum(K.square(dfx), axis=range(1, len(y_pred.shape))))
+    lip_cst = K.max(ndfx / ndx)
     print("lip cst: %.3f" % lip_cst)
     return lip_cst
