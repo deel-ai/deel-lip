@@ -36,6 +36,7 @@ from deel.lip.layers import (
     ScaledL2NormPooling2D,
     InvertibleDownSampling,
     InvertibleUpSampling,
+    ScaledGlobalL2NormPooling2D,
 )
 from deel.lip.model import Sequential
 from deel.lip.utils import load_model, evaluate_lip_const
@@ -731,6 +732,61 @@ class LipschitzLayersTest(unittest.TestCase):
                         "layers": [
                             Input((5, 5, 1)),
                             ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_scaledgloball2normpooling2d(self):
+        self._apply_tests_bank(
+            [
+                # tests only checks that lip cons is enforced
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
                         ]
                     },
                     batch_size=250,
