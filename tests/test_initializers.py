@@ -49,5 +49,6 @@ class MyTestCase(unittest.TestCase):
         else:
             np.testing.assert_almost_equal(sigmas.max(), 1.0, 5)
 
+
 if __name__ == "__main__":
     unittest.main()
