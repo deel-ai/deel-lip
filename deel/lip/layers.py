@@ -990,7 +990,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return 1.
+        return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     @staticmethod
     def _sqrt(eps_grad_sqrt):
@@ -1023,13 +1023,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
 @_deel_export
 class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
-    def __init__(
-        self,
-        data_format=None,
-        k_coef_lip=1.0,
-        eps_grad_sqrt=1e-6,
-        **kwargs
-    ):
+    def __init__(self, data_format=None, k_coef_lip=1.0, eps_grad_sqrt=1e-6, **kwargs):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This
         pooling operation is norm preserving (aka gradient=1 almost everywhere).
@@ -1067,8 +1061,7 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         if eps_grad_sqrt < 0.0:
             raise RuntimeError("eps_grad_sqrt must be positive")
         super(ScaledGlobalL2NormPooling2D, self).__init__(
-            data_format=data_format,
-            **kwargs
+            data_format=data_format, **kwargs
         )
         self.set_klip_factor(k_coef_lip)
         self.eps_grad_sqrt = eps_grad_sqrt
@@ -1080,7 +1073,7 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return 1.
+        return 1.0
 
     @staticmethod
     def _sqrt(eps_grad_sqrt):
@@ -1096,9 +1089,13 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return sqrt_op
 
     def call(self, x, training=True):
+        if self.data_format == "channels_last":
+            axes = [1, 2]
+        else:
+            axes = [2, 3]
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
-                super(ScaledGlobalL2NormPooling2D, self).call(tf.square(x))
+                tf.reduce_sum(tf.square(1.8*x), axis=axes)
             )
             * self._get_coef()
         )
