@@ -66,7 +66,9 @@ def bjorck_normalization(w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK):
     # it won't affect computation as the firt action done in the loop overwrite it.
     old_w = 10 * w
     # define the loop condition
-    cond = lambda w, old_w: tf.linalg.norm(w - old_w) >= eps
+
+    def cond(w, old_w):
+        return tf.linalg.norm(w - old_w) >= eps
 
     # define the loop body
     def body(w, old_w):
@@ -101,7 +103,9 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
     # define the loop condition
-    cond = lambda _u, _v, old_u: tf.linalg.norm(_u - old_u) >= eps
+
+    def cond(_u, _v, old_u):
+        return tf.linalg.norm(_u - old_u) >= eps
 
     # define the loop body
     def body(_u, _v, _old_u):
