@@ -120,26 +120,32 @@ class GroupSort(Layer, LipschitzLayer):
         self.data_format = data_format
 
     def build(self, input_shape):
+        input_shape = tf.TensorShape(input_shape)
         super(GroupSort, self).build(input_shape)
         self._init_lip_coef(input_shape)
         if (self.n is None) or (self.n > input_shape[self.channel_axis]):
             self.n = input_shape[self.channel_axis]
         if (input_shape[self.channel_axis] % self.n) != 0:
             raise RuntimeError("self.n has to be a divisor of the number of channels")
+        input_shape = tuple(input_shape.as_list())
+        self.flat_shape = (
+            (-1,) + input_shape[1:-1] + (input_shape[-1] // self.n, self.n)
+        )
+        self.out_shape = (-1,) + input_shape[1:]
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
     def call(self, x, **kwargs):
-        fv = tf.reshape(x, [-1, self.n])
+        fv = tf.reshape(x, self.flat_shape)
         if self.n == 2:
-            b, c = tf.split(fv, 2, 1)
-            newv = tf.concat([tf.minimum(b, c), tf.maximum(b, c)], axis=1)
-            newv = tf.reshape(newv, tf.shape(x))
-            return newv
+            b, c = tf.split(fv, 2, -1)
+            newv = tf.concat([tf.minimum(b, c), tf.maximum(b, c)], axis=-1)
+            newv = tf.reshape(newv, self.out_shape)
+            return newv * self._get_coef()
 
         newv = tf.sort(fv)
-        newv = tf.reshape(newv, tf.shape(x))
+        newv = tf.reshape(newv, self.out_shape)
         return newv * self._get_coef()
 
     def get_config(self):
