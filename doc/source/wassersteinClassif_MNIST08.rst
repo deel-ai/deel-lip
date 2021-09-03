@@ -14,7 +14,7 @@ dataset.
     from deel.lip.layers import SpectralConv2D, SpectralDense, FrobeniusDense
     from deel.lip.activations import MaxMin, GroupSort, GroupSort2, FullSort
     from deel.lip.utils import load_model
-    from deel.lip.losses import HKR, KR, hinge_margin_loss
+    from deel.lip.losses import HKR, KR, HingeMargin
 
     from model_samples.model_samples import get_lipMLP, get_lipVGG_model
 
@@ -152,8 +152,8 @@ But ``Deel-lip`` also provide state of the art 1-Lipschitz convolutions.
     wass.compile(
         loss=HKR(alpha=alpha,min_margin=min_margin),  # HKR stands for the hinge regularized KR loss
         metrics=[
-            KR(),  # shows the KR term of the loss
-            hinge_margin_loss(min_margin=min_margin),  # shows the hinge term of the loss
+            KR,  # shows the KR term of the loss
+            HingeMargin(min_margin=min_margin),  # shows the hinge term of the loss
             HKR_binary_accuracy  # shows the classification accuracy
         ],
         optimizer=optimizer

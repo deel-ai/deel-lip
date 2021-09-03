@@ -258,7 +258,7 @@ Build lipschitz Model
 
 .. code:: ipython3
 
-    wass.compile(loss=KR(), optimizer=optimizer, metrics=[KR()])
+    wass.compile(loss=KR, optimizer=optimizer, metrics=[KR])
 
 Learn on toy dataset
 ~~~~~~~~~~~~~~~~~~~~
