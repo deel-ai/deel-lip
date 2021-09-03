@@ -167,6 +167,17 @@ class Test(TestCase):
             "results when given a single class "
             "vector",
         )
+        y_true = tf.expand_dims(y_true, -1)
+        y_pred = tf.expand_dims(y_pred, -1)
+        l_single = hinge(y_true, y_pred).numpy()
+        l_multi = multiclass_hinge(y_true, y_pred).numpy()
+        self.assertEqual(
+            l_single,
+            l_multi,
+            "hinge multiclass must yield the same "
+            "results when given a single class "
+            "vector",
+        )
         n_class = 10
         n_items = 100
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)

@@ -234,8 +234,8 @@ class MulticlassHinge(Loss):
         # compute the elementwise hinge term
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         # reweight positive elements
-        if len(tf.shape(y_pred)) == 2:
-            factor = y_true.shape[-1] - 1
+        if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
+            factor = y_true.shape[-1] - 1.
         else:
             factor = 1.0
         hinge = tf.where(sign > 0, hinge * factor, hinge)
