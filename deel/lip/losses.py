@@ -147,7 +147,7 @@ class HingeMargin(Loss):
 
 @_deel_export
 class MulticlassKR(Loss):
-    def __init__(self, eps=1e-7, reduction=Reduction.AUTO, name="MulticlassKR"):
+    def __init__(self, reduction=Reduction.AUTO, name="MulticlassKR"):
         r"""
         Loss to estimate average of W1 distance using Kantorovich-Rubinstein duality
         over outputs. Note y_true should be one hot encoding (labels being 1s and 0s
@@ -155,9 +155,6 @@ class MulticlassKR(Loss):
         averaged.
 
         Args:
-            eps: a small positive to avoid zero division when a class is missing. This
-            does not impact results as the case leading to a zero denominator also imply
-            a zero numerator.
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
@@ -166,7 +163,7 @@ class MulticlassKR(Loss):
             #Note y_true has to be one hot encoded
 
         """
-        self.eps = eps
+        self.eps = 1e-7
         super(MulticlassKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -193,11 +190,7 @@ class MulticlassKR(Loss):
         return tf.reduce_mean(-espNotYtrue + espYtrue)
 
     def get_config(self):
-        config = {
-            "eps": self.eps,
-        }
-        base_config = super(MulticlassKR, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
+        return super(MulticlassKR, self).get_config()
 
 
 @_deel_export
@@ -235,7 +228,7 @@ class MulticlassHinge(Loss):
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         # reweight positive elements
         if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
-            factor = y_true.shape[-1] - 1.
+            factor = y_true.shape[-1] - 1.0
         else:
             factor = 1.0
         hinge = tf.where(sign > 0, hinge * factor, hinge)
@@ -255,7 +248,6 @@ class MulticlassHKR(Loss):
         self,
         alpha=10.0,
         min_margin=1.0,
-        eps_kr=1e-7,
         reduction=Reduction.AUTO,
         name="MulticlassHKR",
     ):
@@ -266,8 +258,6 @@ class MulticlassHKR(Loss):
         Args:
             alpha: regularization factor
             min_margin: minimal margin ( see Hinge_multiclass_loss )
-            eps_kr: epsilon used in the KR loss to handle case where all classes are
-            not present
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
@@ -277,9 +267,8 @@ class MulticlassHKR(Loss):
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.eps_kr = eps_kr
         self.hingeloss = MulticlassHinge(self.min_margin)
-        self.KRloss = MulticlassKR(self.eps_kr)
+        self.KRloss = MulticlassKR(reduction=reduction, name=name)
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -297,7 +286,6 @@ class MulticlassHKR(Loss):
         config = {
             "alpha": self.alpha,
             "min_margin": self.min_margin,
-            "eps_kr": self.eps_kr,
         }
         base_config = super(MulticlassHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
