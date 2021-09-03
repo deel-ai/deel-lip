@@ -1066,6 +1066,10 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         self.set_klip_factor(k_coef_lip)
         self.eps_grad_sqrt = eps_grad_sqrt
         self._kwargs = kwargs
+        if self.data_format == "channels_last":
+            self.axes = [1, 2]
+        else:
+            self.axes = [2, 3]
 
     def build(self, input_shape):
         super(ScaledGlobalL2NormPooling2D, self).build(input_shape)
@@ -1089,13 +1093,9 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return sqrt_op
 
     def call(self, x, training=True):
-        if self.data_format == "channels_last":
-            axes = [1, 2]
-        else:
-            axes = [2, 3]
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
-                tf.reduce_sum(tf.square(x), axis=axes)
+                tf.reduce_sum(tf.square(x), axis=self.axes)
             )
             * self._get_coef()
         )
