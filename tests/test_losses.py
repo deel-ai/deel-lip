@@ -4,7 +4,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
-from deel.lip.utils import load_model
+from tensorflow.keras.models import load_model
 from deel.lip.losses import (
     KR,
     negative_KR,

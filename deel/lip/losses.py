@@ -10,11 +10,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.losses import Reduction
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
 @tf.function
-@_deel_export
+@register_keras_serializable("deel-lip", "KR")
 def KR(y_true, y_pred):
     r"""
     Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
@@ -45,7 +45,7 @@ def KR(y_true, y_pred):
 
 
 @tf.function
-@_deel_export
+@register_keras_serializable("deel-lip", "negative_KR")
 def negative_KR(y_true, y_pred):
     r"""
     Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
@@ -58,7 +58,7 @@ def negative_KR(y_true, y_pred):
     return -KR(y_true, y_pred)
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "HKR")
 class HKR(Loss):
     def __init__(self, alpha, min_margin=1.0, reduction=Reduction.AUTO, name="HKR"):
         r"""
@@ -108,7 +108,7 @@ class HKR(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "HingeMargin")
 class HingeMargin(Loss):
     def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="HingeMargin"):
         r"""
@@ -145,7 +145,7 @@ class HingeMargin(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "MulticlassKR")
 class MulticlassKR(Loss):
     def __init__(self, reduction=Reduction.AUTO, name="MulticlassKR"):
         r"""
@@ -193,7 +193,7 @@ class MulticlassKR(Loss):
         return super(MulticlassKR, self).get_config()
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "MulticlassHinge")
 class MulticlassHinge(Loss):
     def __init__(
         self, min_margin=1.0, reduction=Reduction.AUTO, name="MulticlassHinge"
@@ -241,7 +241,7 @@ class MulticlassHinge(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "MulticlassHKR")
 class MulticlassHKR(Loss):
     def __init__(
         self,
@@ -290,7 +290,7 @@ class MulticlassHKR(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "MultiMargin")
 class MultiMargin(Loss):
     def __init__(self, min_margin=1, reduction=Reduction.AUTO, name="MultiMargin"):
         """

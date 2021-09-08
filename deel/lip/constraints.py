@@ -10,10 +10,10 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import Constraint
 from .normalizers import reshaped_kernel_orthogonalization
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "WeightClipConstraint")
 class WeightClipConstraint(Constraint):
     def __init__(self, c=2):
         """
@@ -31,7 +31,7 @@ class WeightClipConstraint(Constraint):
         return {"c": self.c}
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "AutoWeightClipConstraint")
 class AutoWeightClipConstraint(Constraint):
     def __init__(self, scale=1):
         """
@@ -51,7 +51,7 @@ class AutoWeightClipConstraint(Constraint):
         return {"scale": self.scale}
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FrobeniusConstraint")
 class FrobeniusConstraint(Constraint):
     # todo: duplicate of keras/constraints/UnitNorm ?
 
@@ -68,7 +68,7 @@ class FrobeniusConstraint(Constraint):
         return {"eps": self.eps}
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralConstraint")
 class SpectralConstraint(Constraint):
     def __init__(
         self, k_coef_lip=1.0, niter_spectral=3, niter_bjorck=15, u=None

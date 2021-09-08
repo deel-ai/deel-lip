@@ -46,7 +46,7 @@ from .normalizers import (
     reshaped_kernel_orthogonalization,
     DEFAULT_BETA_BJORCK,
 )
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
 class LipschitzLayer(abc.ABC):
@@ -157,7 +157,7 @@ class Condensable(abc.ABC):
         pass
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralDense")
 class SpectralDense(Dense, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -335,7 +335,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralConv2D")
 class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -601,7 +601,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FrobeniusDense")
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
     Identical and faster than a SpectralDense in the case of a single output. In the
@@ -711,7 +711,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FrobeniusConv2D")
 class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     """
     Same as SpectralConv2D but in the case of a single output.
@@ -828,7 +828,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return SpectralConv2D.vanilla_export(self)
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledAveragePooling2D")
 class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -912,7 +912,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledL2NormPooling2D")
 class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -1021,7 +1021,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledGlobalL2NormPooling2D")
 class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, eps_grad_sqrt=1e-6, **kwargs):
         """
@@ -1108,7 +1108,7 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledGlobalAveragePooling2D")
 class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.
@@ -1168,7 +1168,7 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "InvertibleDownSampling")
 class InvertibleDownSampling(Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
@@ -1235,7 +1235,7 @@ class InvertibleDownSampling(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "InvertibleUpSampling")
 class InvertibleUpSampling(Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
