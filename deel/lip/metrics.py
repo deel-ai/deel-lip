@@ -10,10 +10,10 @@ import math
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.losses import Reduction
-from deel.lip.utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ProvableRobustness")
 class ProvableRobustness(tf.keras.losses.Loss):
     def __init__(
         self,
@@ -79,7 +79,7 @@ class ProvableRobustness(tf.keras.losses.Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "AdjustedRobustness")
 class AdjustedRobustness(Loss):
     def __init__(
         self,
