@@ -17,7 +17,7 @@ from tensorflow.keras.utils import register_keras_serializable
 class ProvableRobustness(tf.keras.losses.Loss):
     def __init__(
         self,
-        l=1.0,
+        lip_const=1.0,
         disjoint_neurons=True,
         reduction=Reduction.AUTO,
         name="ProvableRobustness",
@@ -49,18 +49,19 @@ class ProvableRobustness(tf.keras.losses.Loss):
             Serrurier et al. https://arxiv.org/abs/2006.06520
 
         Args:
+            lip_const: lipschitz constant of the network
             disjoint_neurons: must be set to True is your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             name: metrics name.
             **kwargs: parameters passed to the tf.keras.Loss constructor
         """
-        self.l = l
+        self.lip_const = lip_const
         self.disjoint_neurons = disjoint_neurons
         if disjoint_neurons:
-            self.certificate_factor = 2 * l
+            self.certificate_factor = 2 * lip_const
         else:
-            self.certificate_factor = math.sqrt(2) * l
+            self.certificate_factor = math.sqrt(2) * lip_const
         super(ProvableRobustness, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
@@ -72,7 +73,7 @@ class ProvableRobustness(tf.keras.losses.Loss):
 
     def get_config(self):
         config = {
-            "l": self.l,
+            "lip_const": self.lip_const,
             "disjoint_neurons": self.disjoint_neurons,
         }
         base_config = super(ProvableRobustness, self).get_config()
@@ -83,7 +84,7 @@ class ProvableRobustness(tf.keras.losses.Loss):
 class AdjustedRobustness(Loss):
     def __init__(
         self,
-        l=1.0,
+        lip_const=1.0,
         disjoint_neurons=True,
         reduction=Reduction.AUTO,
         name="AdjustedRobustness",
@@ -115,18 +116,19 @@ class AdjustedRobustness(Loss):
             Serrurier et al. https://arxiv.org/abs/2006.06520
 
         Args:
+            lip_const: lipschitz constant of the network.
             disjoint_neurons: must be set to True is your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             name: metrics name.
             **kwargs: parameters passed to the tf.keras.Loss constructor
         """
-        self.l = l
+        self.lip_const = lip_const
         self.disjoint_neurons = disjoint_neurons
         if disjoint_neurons:
-            self.certificate_factor = 2 * l
+            self.certificate_factor = 2 * lip_const
         else:
-            self.certificate_factor = math.sqrt(2) * l
+            self.certificate_factor = math.sqrt(2) * lip_const
         super(AdjustedRobustness, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
@@ -142,7 +144,7 @@ class AdjustedRobustness(Loss):
 
     def get_config(self):
         config = {
-            "l": self.l,
+            "lip_const": self.lip_const,
             "disjoint_neurons": self.disjoint_neurons,
         }
         base_config = super(AdjustedRobustness, self).get_config()
