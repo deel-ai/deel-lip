@@ -94,7 +94,7 @@ Indices and tables
    :caption: Contents:
    :glob:
 
-   demo0.rst
+   basic_example.rst
    demo1.rst
    demo2.rst
    demo3.rst

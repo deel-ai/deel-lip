@@ -46,7 +46,7 @@ perform adversarial attacks on the trained network.
 
 .. parsed-literal::
 
-    2021-09-09 15:23:54.246047: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 17:58:04.926453: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
 
 
 For this example, the dataset ``fashion_mnist`` will be used. In order
@@ -154,47 +154,47 @@ network ( proxy of the average certificate )
 
 .. parsed-literal::
 
-    2021-09-09 15:23:56.513089: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
-    2021-09-09 15:23:56.513588: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
-    2021-09-09 15:23:56.546765: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.547011: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
+    2021-09-09 17:58:07.192723: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
+    2021-09-09 17:58:07.193276: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+    2021-09-09 17:58:07.216142: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.216390: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
     pciBusID: 0000:01:00.0 name: GeForce RTX 2070 SUPER computeCapability: 7.5
     coreClock: 1.785GHz coreCount: 40 deviceMemorySize: 7.79GiB deviceMemoryBandwidth: 417.29GiB/s
-    2021-09-09 15:23:56.547026: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:23:56.548076: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:23:56.548107: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:23:56.548580: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
-    2021-09-09 15:23:56.548761: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
-    2021-09-09 15:23:56.550018: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
-    2021-09-09 15:23:56.550268: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
-    2021-09-09 15:23:56.550337: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
-    2021-09-09 15:23:56.550407: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.550681: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.550918: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
-    2021-09-09 15:23:56.551346: I tensorflow/compiler/jit/xla_gpu_device.cc:99] Not creating XLA devices, tf_xla_enable_xla_devices not set
-    2021-09-09 15:23:56.551425: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.551647: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
+    2021-09-09 17:58:07.216405: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 17:58:07.217511: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 17:58:07.217542: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 17:58:07.218021: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+    2021-09-09 17:58:07.218146: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+    2021-09-09 17:58:07.219231: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
+    2021-09-09 17:58:07.219482: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+    2021-09-09 17:58:07.219552: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 17:58:07.219612: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.219883: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.220102: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
+    2021-09-09 17:58:07.220555: I tensorflow/compiler/jit/xla_gpu_device.cc:99] Not creating XLA devices, tf_xla_enable_xla_devices not set
+    2021-09-09 17:58:07.220625: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.220850: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
     pciBusID: 0000:01:00.0 name: GeForce RTX 2070 SUPER computeCapability: 7.5
     coreClock: 1.785GHz coreCount: 40 deviceMemorySize: 7.79GiB deviceMemoryBandwidth: 417.29GiB/s
-    2021-09-09 15:23:56.551658: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:23:56.551668: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:23:56.551675: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:23:56.551683: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
-    2021-09-09 15:23:56.551690: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
-    2021-09-09 15:23:56.551698: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
-    2021-09-09 15:23:56.551705: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
-    2021-09-09 15:23:56.551713: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
-    2021-09-09 15:23:56.551743: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.551978: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:56.552189: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
-    2021-09-09 15:23:56.552208: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:23:57.006551: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1261] Device interconnect StreamExecutor with strength 1 edge matrix:
-    2021-09-09 15:23:57.006572: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1267]      0 
-    2021-09-09 15:23:57.006577: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1280] 0:   N 
-    2021-09-09 15:23:57.006710: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:57.006959: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:57.007177: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:23:57.007384: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1406] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7250 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2070 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5)
+    2021-09-09 17:58:07.220860: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 17:58:07.220869: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 17:58:07.220877: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 17:58:07.220884: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+    2021-09-09 17:58:07.220892: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+    2021-09-09 17:58:07.220899: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
+    2021-09-09 17:58:07.220907: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+    2021-09-09 17:58:07.220915: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 17:58:07.220946: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.221184: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.221396: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
+    2021-09-09 17:58:07.221412: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 17:58:07.697723: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1261] Device interconnect StreamExecutor with strength 1 edge matrix:
+    2021-09-09 17:58:07.697743: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1267]      0 
+    2021-09-09 17:58:07.697748: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1280] 0:   N 
+    2021-09-09 17:58:07.697897: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.698167: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.698396: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 17:58:07.698610: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1406] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7250 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2070 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5)
 
 
 .. parsed-literal::
@@ -265,8 +265,8 @@ weight projection, this setting can be lowered greatly.
 
 .. parsed-literal::
 
-    2021-09-09 15:23:57.884782: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:116] None of the MLIR optimization passes are enabled (registered 2)
-    2021-09-09 15:23:57.904825: I tensorflow/core/platform/profile_utils/cpu_utils.cc:112] CPU Frequency: 3600000000 Hz
+    2021-09-09 17:58:08.656770: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:116] None of the MLIR optimization passes are enabled (registered 2)
+    2021-09-09 17:58:08.676810: I tensorflow/core/platform/profile_utils/cpu_utils.cc:112] CPU Frequency: 3600000000 Hz
 
 
 .. parsed-literal::
@@ -276,219 +276,219 @@ weight projection, this setting can be lowered greatly.
 
 .. parsed-literal::
 
-    2021-09-09 15:23:59.845878: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:24:00.073154: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:24:00.085078: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 17:58:10.853708: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 17:58:11.092771: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 17:58:11.103425: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
 
 
 .. parsed-literal::
 
-    15/15 [==============================] - 5s 122ms/step - loss: 39.1980 - accuracy: 0.1978 - MulticlassKR: 0.0696 - val_loss: 27.9635 - val_accuracy: 0.4333 - val_MulticlassKR: 0.2131
+    15/15 [==============================] - 5s 126ms/step - loss: 40.0878 - accuracy: 0.2037 - MulticlassKR: 0.0577 - val_loss: 29.1768 - val_accuracy: 0.5092 - val_MulticlassKR: 0.1908
     Epoch 2/100
-    15/15 [==============================] - 1s 80ms/step - loss: 24.6199 - accuracy: 0.5132 - MulticlassKR: 0.2621 - val_loss: 19.2440 - val_accuracy: 0.5799 - val_MulticlassKR: 0.3644
+    15/15 [==============================] - 1s 81ms/step - loss: 25.7057 - accuracy: 0.5380 - MulticlassKR: 0.2388 - val_loss: 20.0280 - val_accuracy: 0.5860 - val_MulticlassKR: 0.3384
     Epoch 3/100
-    15/15 [==============================] - 1s 80ms/step - loss: 17.6495 - accuracy: 0.6024 - MulticlassKR: 0.4085 - val_loss: 15.3187 - val_accuracy: 0.6053 - val_MulticlassKR: 0.4932
+    15/15 [==============================] - 1s 80ms/step - loss: 18.4855 - accuracy: 0.6345 - MulticlassKR: 0.3775 - val_loss: 15.9338 - val_accuracy: 0.6572 - val_MulticlassKR: 0.4531
     Epoch 4/100
-    15/15 [==============================] - 1s 80ms/step - loss: 14.4405 - accuracy: 0.6281 - MulticlassKR: 0.5255 - val_loss: 13.4606 - val_accuracy: 0.6310 - val_MulticlassKR: 0.5746
+    15/15 [==============================] - 1s 81ms/step - loss: 15.1617 - accuracy: 0.6878 - MulticlassKR: 0.4845 - val_loss: 13.8722 - val_accuracy: 0.6853 - val_MulticlassKR: 0.5431
     Epoch 5/100
-    15/15 [==============================] - 1s 80ms/step - loss: 12.8692 - accuracy: 0.6524 - MulticlassKR: 0.5970 - val_loss: 12.2739 - val_accuracy: 0.6726 - val_MulticlassKR: 0.6353
+    15/15 [==============================] - 1s 81ms/step - loss: 13.3074 - accuracy: 0.7049 - MulticlassKR: 0.5643 - val_loss: 12.4911 - val_accuracy: 0.7171 - val_MulticlassKR: 0.6025
     Epoch 6/100
-    15/15 [==============================] - 1s 80ms/step - loss: 11.8301 - accuracy: 0.6904 - MulticlassKR: 0.6541 - val_loss: 11.4644 - val_accuracy: 0.6902 - val_MulticlassKR: 0.6832
+    15/15 [==============================] - 1s 81ms/step - loss: 12.0289 - accuracy: 0.7280 - MulticlassKR: 0.6194 - val_loss: 11.5203 - val_accuracy: 0.7216 - val_MulticlassKR: 0.6515
     Epoch 7/100
-    15/15 [==============================] - 1s 80ms/step - loss: 11.0723 - accuracy: 0.7139 - MulticlassKR: 0.6963 - val_loss: 10.9075 - val_accuracy: 0.7059 - val_MulticlassKR: 0.7175
+    15/15 [==============================] - 1s 81ms/step - loss: 11.1567 - accuracy: 0.7354 - MulticlassKR: 0.6670 - val_loss: 10.8559 - val_accuracy: 0.7306 - val_MulticlassKR: 0.6948
     Epoch 8/100
-    15/15 [==============================] - 1s 80ms/step - loss: 10.5191 - accuracy: 0.7273 - MulticlassKR: 0.7315 - val_loss: 10.4545 - val_accuracy: 0.7131 - val_MulticlassKR: 0.7519
+    15/15 [==============================] - 1s 81ms/step - loss: 10.5467 - accuracy: 0.7405 - MulticlassKR: 0.7072 - val_loss: 10.3484 - val_accuracy: 0.7382 - val_MulticlassKR: 0.7304
     Epoch 9/100
-    15/15 [==============================] - 1s 80ms/step - loss: 10.1356 - accuracy: 0.7285 - MulticlassKR: 0.7638 - val_loss: 10.1174 - val_accuracy: 0.7267 - val_MulticlassKR: 0.7819
+    15/15 [==============================] - 1s 81ms/step - loss: 10.0374 - accuracy: 0.7503 - MulticlassKR: 0.7439 - val_loss: 9.9335 - val_accuracy: 0.7427 - val_MulticlassKR: 0.7616
     Epoch 10/100
-    15/15 [==============================] - 1s 80ms/step - loss: 9.8334 - accuracy: 0.7364 - MulticlassKR: 0.7928 - val_loss: 9.7973 - val_accuracy: 0.7290 - val_MulticlassKR: 0.8084
+    15/15 [==============================] - 1s 81ms/step - loss: 9.6808 - accuracy: 0.7540 - MulticlassKR: 0.7716 - val_loss: 9.5888 - val_accuracy: 0.7485 - val_MulticlassKR: 0.7882
     Epoch 11/100
-    15/15 [==============================] - 1s 80ms/step - loss: 9.4521 - accuracy: 0.7439 - MulticlassKR: 0.8200 - val_loss: 9.5241 - val_accuracy: 0.7374 - val_MulticlassKR: 0.8316
+    15/15 [==============================] - 1s 81ms/step - loss: 9.3094 - accuracy: 0.7611 - MulticlassKR: 0.7991 - val_loss: 9.2754 - val_accuracy: 0.7552 - val_MulticlassKR: 0.8130
     Epoch 12/100
-    15/15 [==============================] - 1s 80ms/step - loss: 9.3002 - accuracy: 0.7440 - MulticlassKR: 0.8408 - val_loss: 9.2828 - val_accuracy: 0.7418 - val_MulticlassKR: 0.8562
+    15/15 [==============================] - 1s 81ms/step - loss: 8.9756 - accuracy: 0.7668 - MulticlassKR: 0.8220 - val_loss: 9.0202 - val_accuracy: 0.7561 - val_MulticlassKR: 0.8318
     Epoch 13/100
-    15/15 [==============================] - 1s 80ms/step - loss: 8.9698 - accuracy: 0.7490 - MulticlassKR: 0.8663 - val_loss: 9.0458 - val_accuracy: 0.7437 - val_MulticlassKR: 0.8799
+    15/15 [==============================] - 1s 81ms/step - loss: 8.7555 - accuracy: 0.7678 - MulticlassKR: 0.8405 - val_loss: 8.7386 - val_accuracy: 0.7637 - val_MulticlassKR: 0.8522
     Epoch 14/100
-    15/15 [==============================] - 1s 81ms/step - loss: 8.7180 - accuracy: 0.7550 - MulticlassKR: 0.8897 - val_loss: 8.8594 - val_accuracy: 0.7425 - val_MulticlassKR: 0.9006
+    15/15 [==============================] - 1s 81ms/step - loss: 8.4321 - accuracy: 0.7752 - MulticlassKR: 0.8623 - val_loss: 8.5103 - val_accuracy: 0.7692 - val_MulticlassKR: 0.8738
     Epoch 15/100
-    15/15 [==============================] - 1s 80ms/step - loss: 8.5727 - accuracy: 0.7532 - MulticlassKR: 0.9091 - val_loss: 8.6463 - val_accuracy: 0.7503 - val_MulticlassKR: 0.9226
+    15/15 [==============================] - 1s 82ms/step - loss: 8.2744 - accuracy: 0.7724 - MulticlassKR: 0.8829 - val_loss: 8.2975 - val_accuracy: 0.7696 - val_MulticlassKR: 0.8931
     Epoch 16/100
-    15/15 [==============================] - 1s 81ms/step - loss: 8.3025 - accuracy: 0.7582 - MulticlassKR: 0.9316 - val_loss: 8.4805 - val_accuracy: 0.7526 - val_MulticlassKR: 0.9404
+    15/15 [==============================] - 1s 82ms/step - loss: 7.9598 - accuracy: 0.7805 - MulticlassKR: 0.9055 - val_loss: 8.0954 - val_accuracy: 0.7760 - val_MulticlassKR: 0.9157
     Epoch 17/100
-    15/15 [==============================] - 1s 80ms/step - loss: 8.1680 - accuracy: 0.7661 - MulticlassKR: 0.9498 - val_loss: 8.3038 - val_accuracy: 0.7531 - val_MulticlassKR: 0.9568
+    15/15 [==============================] - 1s 82ms/step - loss: 7.8381 - accuracy: 0.7858 - MulticlassKR: 0.9252 - val_loss: 7.9242 - val_accuracy: 0.7781 - val_MulticlassKR: 0.9354
     Epoch 18/100
-    15/15 [==============================] - 1s 80ms/step - loss: 7.8900 - accuracy: 0.7666 - MulticlassKR: 0.9673 - val_loss: 8.1444 - val_accuracy: 0.7539 - val_MulticlassKR: 0.9752
+    15/15 [==============================] - 1s 82ms/step - loss: 7.6170 - accuracy: 0.7868 - MulticlassKR: 0.9445 - val_loss: 7.7746 - val_accuracy: 0.7776 - val_MulticlassKR: 0.9535
     Epoch 19/100
-    15/15 [==============================] - 1s 80ms/step - loss: 7.7125 - accuracy: 0.7701 - MulticlassKR: 0.9861 - val_loss: 8.0073 - val_accuracy: 0.7519 - val_MulticlassKR: 0.9961
+    15/15 [==============================] - 1s 82ms/step - loss: 7.5284 - accuracy: 0.7888 - MulticlassKR: 0.9633 - val_loss: 7.6160 - val_accuracy: 0.7816 - val_MulticlassKR: 0.9728
     Epoch 20/100
-    15/15 [==============================] - 1s 82ms/step - loss: 7.6346 - accuracy: 0.7705 - MulticlassKR: 1.0042 - val_loss: 7.8422 - val_accuracy: 0.7686 - val_MulticlassKR: 1.0116
+    15/15 [==============================] - 1s 82ms/step - loss: 7.3629 - accuracy: 0.7901 - MulticlassKR: 0.9836 - val_loss: 7.4579 - val_accuracy: 0.7853 - val_MulticlassKR: 0.9915
     Epoch 21/100
-    15/15 [==============================] - 1s 80ms/step - loss: 7.3864 - accuracy: 0.7789 - MulticlassKR: 1.0214 - val_loss: 7.7221 - val_accuracy: 0.7660 - val_MulticlassKR: 1.0287
+    15/15 [==============================] - 1s 82ms/step - loss: 7.1216 - accuracy: 0.7954 - MulticlassKR: 1.0011 - val_loss: 7.3194 - val_accuracy: 0.7879 - val_MulticlassKR: 1.0094
     Epoch 22/100
-    15/15 [==============================] - 1s 81ms/step - loss: 7.3328 - accuracy: 0.7789 - MulticlassKR: 1.0367 - val_loss: 7.5913 - val_accuracy: 0.7705 - val_MulticlassKR: 1.0487
+    15/15 [==============================] - 1s 83ms/step - loss: 7.0231 - accuracy: 0.7975 - MulticlassKR: 1.0192 - val_loss: 7.1827 - val_accuracy: 0.7896 - val_MulticlassKR: 1.0290
     Epoch 23/100
-    15/15 [==============================] - 1s 80ms/step - loss: 7.1376 - accuracy: 0.7830 - MulticlassKR: 1.0591 - val_loss: 7.4604 - val_accuracy: 0.7779 - val_MulticlassKR: 1.0618
+    15/15 [==============================] - 1s 83ms/step - loss: 6.9164 - accuracy: 0.8002 - MulticlassKR: 1.0354 - val_loss: 7.0663 - val_accuracy: 0.7906 - val_MulticlassKR: 1.0481
     Epoch 24/100
-    15/15 [==============================] - 1s 81ms/step - loss: 7.1185 - accuracy: 0.7847 - MulticlassKR: 1.0719 - val_loss: 7.3675 - val_accuracy: 0.7734 - val_MulticlassKR: 1.0780
+    15/15 [==============================] - 1s 83ms/step - loss: 6.7940 - accuracy: 0.8017 - MulticlassKR: 1.0534 - val_loss: 6.9609 - val_accuracy: 0.7898 - val_MulticlassKR: 1.0647
     Epoch 25/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.9846 - accuracy: 0.7899 - MulticlassKR: 1.0879 - val_loss: 7.2500 - val_accuracy: 0.7778 - val_MulticlassKR: 1.0941
+    15/15 [==============================] - 1s 83ms/step - loss: 6.6503 - accuracy: 0.8022 - MulticlassKR: 1.0754 - val_loss: 6.8544 - val_accuracy: 0.7930 - val_MulticlassKR: 1.0780
     Epoch 26/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.8701 - accuracy: 0.7897 - MulticlassKR: 1.1024 - val_loss: 7.1813 - val_accuracy: 0.7765 - val_MulticlassKR: 1.1133
+    15/15 [==============================] - 1s 83ms/step - loss: 6.6405 - accuracy: 0.8044 - MulticlassKR: 1.0894 - val_loss: 6.7565 - val_accuracy: 0.7975 - val_MulticlassKR: 1.0946
     Epoch 27/100
-    15/15 [==============================] - 1s 81ms/step - loss: 6.7242 - accuracy: 0.7937 - MulticlassKR: 1.1218 - val_loss: 7.0798 - val_accuracy: 0.7793 - val_MulticlassKR: 1.1259
+    15/15 [==============================] - 1s 82ms/step - loss: 6.4966 - accuracy: 0.8059 - MulticlassKR: 1.1044 - val_loss: 6.6637 - val_accuracy: 0.8003 - val_MulticlassKR: 1.1161
     Epoch 28/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.6596 - accuracy: 0.7935 - MulticlassKR: 1.1366 - val_loss: 6.9680 - val_accuracy: 0.7824 - val_MulticlassKR: 1.1438
+    15/15 [==============================] - 1s 83ms/step - loss: 6.4719 - accuracy: 0.8070 - MulticlassKR: 1.1202 - val_loss: 6.5552 - val_accuracy: 0.8013 - val_MulticlassKR: 1.1300
     Epoch 29/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.5917 - accuracy: 0.7961 - MulticlassKR: 1.1527 - val_loss: 6.8959 - val_accuracy: 0.7856 - val_MulticlassKR: 1.1557
+    15/15 [==============================] - 1s 82ms/step - loss: 6.2606 - accuracy: 0.8105 - MulticlassKR: 1.1408 - val_loss: 6.4798 - val_accuracy: 0.8003 - val_MulticlassKR: 1.1471
     Epoch 30/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.4942 - accuracy: 0.7997 - MulticlassKR: 1.1641 - val_loss: 6.8149 - val_accuracy: 0.7871 - val_MulticlassKR: 1.1710
+    15/15 [==============================] - 1s 82ms/step - loss: 6.2234 - accuracy: 0.8133 - MulticlassKR: 1.1548 - val_loss: 6.3994 - val_accuracy: 0.8052 - val_MulticlassKR: 1.1625
     Epoch 31/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.3914 - accuracy: 0.8001 - MulticlassKR: 1.1840 - val_loss: 6.7261 - val_accuracy: 0.7895 - val_MulticlassKR: 1.1879
+    15/15 [==============================] - 1s 82ms/step - loss: 6.2011 - accuracy: 0.8128 - MulticlassKR: 1.1703 - val_loss: 6.3422 - val_accuracy: 0.8064 - val_MulticlassKR: 1.1764
     Epoch 32/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.3011 - accuracy: 0.8027 - MulticlassKR: 1.1963 - val_loss: 6.6700 - val_accuracy: 0.7895 - val_MulticlassKR: 1.2034
+    15/15 [==============================] - 1s 82ms/step - loss: 6.0845 - accuracy: 0.8142 - MulticlassKR: 1.1839 - val_loss: 6.2488 - val_accuracy: 0.8105 - val_MulticlassKR: 1.1929
     Epoch 33/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.2331 - accuracy: 0.8044 - MulticlassKR: 1.2143 - val_loss: 6.5813 - val_accuracy: 0.7947 - val_MulticlassKR: 1.2163
+    15/15 [==============================] - 1s 83ms/step - loss: 5.9358 - accuracy: 0.8167 - MulticlassKR: 1.2027 - val_loss: 6.2032 - val_accuracy: 0.8089 - val_MulticlassKR: 1.2045
     Epoch 34/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.2195 - accuracy: 0.8054 - MulticlassKR: 1.2278 - val_loss: 6.5227 - val_accuracy: 0.7988 - val_MulticlassKR: 1.2278
+    15/15 [==============================] - 1s 82ms/step - loss: 5.9577 - accuracy: 0.8182 - MulticlassKR: 1.2160 - val_loss: 6.1109 - val_accuracy: 0.8148 - val_MulticlassKR: 1.2204
     Epoch 35/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.1537 - accuracy: 0.8067 - MulticlassKR: 1.2368 - val_loss: 6.4530 - val_accuracy: 0.7993 - val_MulticlassKR: 1.2438
+    15/15 [==============================] - 1s 81ms/step - loss: 5.8412 - accuracy: 0.8193 - MulticlassKR: 1.2315 - val_loss: 6.0551 - val_accuracy: 0.8154 - val_MulticlassKR: 1.2355
     Epoch 36/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.0333 - accuracy: 0.8084 - MulticlassKR: 1.2552 - val_loss: 6.3854 - val_accuracy: 0.8001 - val_MulticlassKR: 1.2583
+    15/15 [==============================] - 1s 82ms/step - loss: 5.8165 - accuracy: 0.8185 - MulticlassKR: 1.2456 - val_loss: 5.9879 - val_accuracy: 0.8162 - val_MulticlassKR: 1.2503
     Epoch 37/100
-    15/15 [==============================] - 1s 80ms/step - loss: 6.0244 - accuracy: 0.8095 - MulticlassKR: 1.2657 - val_loss: 6.3288 - val_accuracy: 0.8027 - val_MulticlassKR: 1.2720
+    15/15 [==============================] - 1s 82ms/step - loss: 5.7427 - accuracy: 0.8202 - MulticlassKR: 1.2568 - val_loss: 5.9252 - val_accuracy: 0.8191 - val_MulticlassKR: 1.2603
     Epoch 38/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.9371 - accuracy: 0.8120 - MulticlassKR: 1.2816 - val_loss: 6.2673 - val_accuracy: 0.8043 - val_MulticlassKR: 1.2860
+    15/15 [==============================] - 1s 82ms/step - loss: 5.7044 - accuracy: 0.8222 - MulticlassKR: 1.2705 - val_loss: 5.8942 - val_accuracy: 0.8196 - val_MulticlassKR: 1.2753
     Epoch 39/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.8368 - accuracy: 0.8152 - MulticlassKR: 1.2955 - val_loss: 6.2108 - val_accuracy: 0.8040 - val_MulticlassKR: 1.3003
+    15/15 [==============================] - 1s 82ms/step - loss: 5.5446 - accuracy: 0.8247 - MulticlassKR: 1.2903 - val_loss: 5.8193 - val_accuracy: 0.8220 - val_MulticlassKR: 1.2906
     Epoch 40/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.8105 - accuracy: 0.8121 - MulticlassKR: 1.3105 - val_loss: 6.1553 - val_accuracy: 0.8066 - val_MulticlassKR: 1.3136
+    15/15 [==============================] - 1s 83ms/step - loss: 5.6068 - accuracy: 0.8235 - MulticlassKR: 1.2981 - val_loss: 5.7960 - val_accuracy: 0.8222 - val_MulticlassKR: 1.3032
     Epoch 41/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.7592 - accuracy: 0.8161 - MulticlassKR: 1.3237 - val_loss: 6.1118 - val_accuracy: 0.8065 - val_MulticlassKR: 1.3281
+    15/15 [==============================] - 1s 83ms/step - loss: 5.4788 - accuracy: 0.8268 - MulticlassKR: 1.3153 - val_loss: 5.7084 - val_accuracy: 0.8251 - val_MulticlassKR: 1.3190
     Epoch 42/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.7048 - accuracy: 0.8153 - MulticlassKR: 1.3377 - val_loss: 6.1198 - val_accuracy: 0.8050 - val_MulticlassKR: 1.3402
+    15/15 [==============================] - 1s 82ms/step - loss: 5.4458 - accuracy: 0.8264 - MulticlassKR: 1.3306 - val_loss: 5.6737 - val_accuracy: 0.8238 - val_MulticlassKR: 1.3339
     Epoch 43/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.6486 - accuracy: 0.8169 - MulticlassKR: 1.3522 - val_loss: 6.0392 - val_accuracy: 0.8088 - val_MulticlassKR: 1.3495
+    15/15 [==============================] - 1s 82ms/step - loss: 5.3669 - accuracy: 0.8288 - MulticlassKR: 1.3440 - val_loss: 5.6242 - val_accuracy: 0.8245 - val_MulticlassKR: 1.3500
     Epoch 44/100
-    15/15 [==============================] - 1s 81ms/step - loss: 5.6033 - accuracy: 0.8174 - MulticlassKR: 1.3636 - val_loss: 5.9718 - val_accuracy: 0.8063 - val_MulticlassKR: 1.3680
+    15/15 [==============================] - 1s 82ms/step - loss: 5.3726 - accuracy: 0.8296 - MulticlassKR: 1.3588 - val_loss: 5.5685 - val_accuracy: 0.8209 - val_MulticlassKR: 1.3618
     Epoch 45/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.5901 - accuracy: 0.8195 - MulticlassKR: 1.3762 - val_loss: 5.9189 - val_accuracy: 0.8111 - val_MulticlassKR: 1.3761
+    15/15 [==============================] - 1s 80ms/step - loss: 5.3034 - accuracy: 0.8302 - MulticlassKR: 1.3707 - val_loss: 5.5104 - val_accuracy: 0.8257 - val_MulticlassKR: 1.3773
     Epoch 46/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.5301 - accuracy: 0.8210 - MulticlassKR: 1.3898 - val_loss: 5.8990 - val_accuracy: 0.8092 - val_MulticlassKR: 1.3881
+    15/15 [==============================] - 1s 81ms/step - loss: 5.2051 - accuracy: 0.8333 - MulticlassKR: 1.3861 - val_loss: 5.4733 - val_accuracy: 0.8276 - val_MulticlassKR: 1.3928
     Epoch 47/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.5151 - accuracy: 0.8208 - MulticlassKR: 1.3952 - val_loss: 5.8144 - val_accuracy: 0.8131 - val_MulticlassKR: 1.4015
+    15/15 [==============================] - 1s 81ms/step - loss: 5.1750 - accuracy: 0.8333 - MulticlassKR: 1.3968 - val_loss: 5.4462 - val_accuracy: 0.8291 - val_MulticlassKR: 1.4018
     Epoch 48/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.4303 - accuracy: 0.8225 - MulticlassKR: 1.4106 - val_loss: 5.8048 - val_accuracy: 0.8125 - val_MulticlassKR: 1.4126
+    15/15 [==============================] - 1s 81ms/step - loss: 5.1151 - accuracy: 0.8343 - MulticlassKR: 1.4147 - val_loss: 5.3839 - val_accuracy: 0.8292 - val_MulticlassKR: 1.4170
     Epoch 49/100
-    15/15 [==============================] - 1s 81ms/step - loss: 5.3855 - accuracy: 0.8238 - MulticlassKR: 1.4215 - val_loss: 5.7342 - val_accuracy: 0.8126 - val_MulticlassKR: 1.4261
+    15/15 [==============================] - 1s 81ms/step - loss: 5.1099 - accuracy: 0.8332 - MulticlassKR: 1.4258 - val_loss: 5.3473 - val_accuracy: 0.8285 - val_MulticlassKR: 1.4262
     Epoch 50/100
-    15/15 [==============================] - 1s 81ms/step - loss: 5.3562 - accuracy: 0.8240 - MulticlassKR: 1.4338 - val_loss: 5.7158 - val_accuracy: 0.8144 - val_MulticlassKR: 1.4337
+    15/15 [==============================] - 1s 81ms/step - loss: 5.0497 - accuracy: 0.8358 - MulticlassKR: 1.4388 - val_loss: 5.3231 - val_accuracy: 0.8297 - val_MulticlassKR: 1.4452
     Epoch 51/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.3135 - accuracy: 0.8245 - MulticlassKR: 1.4464 - val_loss: 5.6677 - val_accuracy: 0.8144 - val_MulticlassKR: 1.4457
+    15/15 [==============================] - 1s 81ms/step - loss: 5.0396 - accuracy: 0.8334 - MulticlassKR: 1.4514 - val_loss: 5.3079 - val_accuracy: 0.8269 - val_MulticlassKR: 1.4533
     Epoch 52/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.2805 - accuracy: 0.8256 - MulticlassKR: 1.4520 - val_loss: 5.6259 - val_accuracy: 0.8169 - val_MulticlassKR: 1.4605
+    15/15 [==============================] - 1s 81ms/step - loss: 4.9781 - accuracy: 0.8379 - MulticlassKR: 1.4654 - val_loss: 5.2498 - val_accuracy: 0.8300 - val_MulticlassKR: 1.4616
     Epoch 53/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.2739 - accuracy: 0.8252 - MulticlassKR: 1.4680 - val_loss: 5.5821 - val_accuracy: 0.8158 - val_MulticlassKR: 1.4677
+    15/15 [==============================] - 1s 81ms/step - loss: 4.9637 - accuracy: 0.8356 - MulticlassKR: 1.4717 - val_loss: 5.2210 - val_accuracy: 0.8282 - val_MulticlassKR: 1.4806
     Epoch 54/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.2184 - accuracy: 0.8271 - MulticlassKR: 1.4746 - val_loss: 5.5683 - val_accuracy: 0.8167 - val_MulticlassKR: 1.4786
+    15/15 [==============================] - 1s 81ms/step - loss: 4.9291 - accuracy: 0.8350 - MulticlassKR: 1.4854 - val_loss: 5.1923 - val_accuracy: 0.8306 - val_MulticlassKR: 1.4872
     Epoch 55/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.2022 - accuracy: 0.8221 - MulticlassKR: 1.4908 - val_loss: 5.5331 - val_accuracy: 0.8174 - val_MulticlassKR: 1.4887
+    15/15 [==============================] - 1s 81ms/step - loss: 4.8767 - accuracy: 0.8362 - MulticlassKR: 1.5016 - val_loss: 5.1191 - val_accuracy: 0.8326 - val_MulticlassKR: 1.5048
     Epoch 56/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.1353 - accuracy: 0.8272 - MulticlassKR: 1.5026 - val_loss: 5.4929 - val_accuracy: 0.8169 - val_MulticlassKR: 1.5027
+    15/15 [==============================] - 1s 82ms/step - loss: 4.7747 - accuracy: 0.8412 - MulticlassKR: 1.5135 - val_loss: 5.0839 - val_accuracy: 0.8350 - val_MulticlassKR: 1.5132
     Epoch 57/100
-    15/15 [==============================] - 1s 81ms/step - loss: 5.0135 - accuracy: 0.8306 - MulticlassKR: 1.5123 - val_loss: 5.4555 - val_accuracy: 0.8172 - val_MulticlassKR: 1.5137
+    15/15 [==============================] - 1s 81ms/step - loss: 4.7632 - accuracy: 0.8387 - MulticlassKR: 1.5212 - val_loss: 5.0562 - val_accuracy: 0.8375 - val_MulticlassKR: 1.5267
     Epoch 58/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.0075 - accuracy: 0.8312 - MulticlassKR: 1.5234 - val_loss: 5.4184 - val_accuracy: 0.8203 - val_MulticlassKR: 1.5227
+    15/15 [==============================] - 1s 81ms/step - loss: 4.7676 - accuracy: 0.8403 - MulticlassKR: 1.5342 - val_loss: 5.0491 - val_accuracy: 0.8385 - val_MulticlassKR: 1.5315
     Epoch 59/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.9462 - accuracy: 0.8322 - MulticlassKR: 1.5349 - val_loss: 5.4142 - val_accuracy: 0.8153 - val_MulticlassKR: 1.5350
+    15/15 [==============================] - 1s 81ms/step - loss: 4.7390 - accuracy: 0.8403 - MulticlassKR: 1.5440 - val_loss: 4.9987 - val_accuracy: 0.8373 - val_MulticlassKR: 1.5496
     Epoch 60/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.0240 - accuracy: 0.8301 - MulticlassKR: 1.5387 - val_loss: 5.3523 - val_accuracy: 0.8215 - val_MulticlassKR: 1.5435
+    15/15 [==============================] - 1s 81ms/step - loss: 4.7287 - accuracy: 0.8407 - MulticlassKR: 1.5560 - val_loss: 4.9637 - val_accuracy: 0.8338 - val_MulticlassKR: 1.5616
     Epoch 61/100
-    15/15 [==============================] - 1s 80ms/step - loss: 5.0011 - accuracy: 0.8297 - MulticlassKR: 1.5521 - val_loss: 5.3138 - val_accuracy: 0.8222 - val_MulticlassKR: 1.5525
+    15/15 [==============================] - 1s 81ms/step - loss: 4.7054 - accuracy: 0.8396 - MulticlassKR: 1.5683 - val_loss: 4.9430 - val_accuracy: 0.8414 - val_MulticlassKR: 1.5661
     Epoch 62/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.9619 - accuracy: 0.8341 - MulticlassKR: 1.5624 - val_loss: 5.3004 - val_accuracy: 0.8204 - val_MulticlassKR: 1.5608
+    15/15 [==============================] - 1s 81ms/step - loss: 4.5582 - accuracy: 0.8452 - MulticlassKR: 1.5803 - val_loss: 4.8944 - val_accuracy: 0.8370 - val_MulticlassKR: 1.5808
     Epoch 63/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.8721 - accuracy: 0.8339 - MulticlassKR: 1.5654 - val_loss: 5.2834 - val_accuracy: 0.8210 - val_MulticlassKR: 1.5755
+    15/15 [==============================] - 1s 81ms/step - loss: 4.5549 - accuracy: 0.8445 - MulticlassKR: 1.5901 - val_loss: 4.8723 - val_accuracy: 0.8399 - val_MulticlassKR: 1.5870
     Epoch 64/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.8733 - accuracy: 0.8285 - MulticlassKR: 1.5845 - val_loss: 5.2610 - val_accuracy: 0.8227 - val_MulticlassKR: 1.5822
+    15/15 [==============================] - 1s 81ms/step - loss: 4.5699 - accuracy: 0.8442 - MulticlassKR: 1.6025 - val_loss: 4.8329 - val_accuracy: 0.8388 - val_MulticlassKR: 1.6001
     Epoch 65/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.8200 - accuracy: 0.8337 - MulticlassKR: 1.5916 - val_loss: 5.2251 - val_accuracy: 0.8242 - val_MulticlassKR: 1.5879
+    15/15 [==============================] - 1s 81ms/step - loss: 4.5179 - accuracy: 0.8467 - MulticlassKR: 1.6127 - val_loss: 4.8466 - val_accuracy: 0.8397 - val_MulticlassKR: 1.6019
     Epoch 66/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.8683 - accuracy: 0.8327 - MulticlassKR: 1.5991 - val_loss: 5.1835 - val_accuracy: 0.8239 - val_MulticlassKR: 1.6015
+    15/15 [==============================] - 1s 81ms/step - loss: 4.5753 - accuracy: 0.8423 - MulticlassKR: 1.6198 - val_loss: 4.7863 - val_accuracy: 0.8422 - val_MulticlassKR: 1.6216
     Epoch 67/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.7378 - accuracy: 0.8316 - MulticlassKR: 1.6143 - val_loss: 5.1520 - val_accuracy: 0.8250 - val_MulticlassKR: 1.6108
+    15/15 [==============================] - 1s 81ms/step - loss: 4.4899 - accuracy: 0.8437 - MulticlassKR: 1.6299 - val_loss: 4.7950 - val_accuracy: 0.8437 - val_MulticlassKR: 1.6319
     Epoch 68/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.7909 - accuracy: 0.8358 - MulticlassKR: 1.6208 - val_loss: 5.1399 - val_accuracy: 0.8244 - val_MulticlassKR: 1.6198
+    15/15 [==============================] - 1s 82ms/step - loss: 4.4861 - accuracy: 0.8417 - MulticlassKR: 1.6432 - val_loss: 4.7566 - val_accuracy: 0.8411 - val_MulticlassKR: 1.6355
     Epoch 69/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.7028 - accuracy: 0.8361 - MulticlassKR: 1.6289 - val_loss: 5.1110 - val_accuracy: 0.8259 - val_MulticlassKR: 1.6279
+    15/15 [==============================] - 1s 83ms/step - loss: 4.4620 - accuracy: 0.8445 - MulticlassKR: 1.6487 - val_loss: 4.7080 - val_accuracy: 0.8404 - val_MulticlassKR: 1.6526
     Epoch 70/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.7550 - accuracy: 0.8329 - MulticlassKR: 1.6345 - val_loss: 5.0870 - val_accuracy: 0.8254 - val_MulticlassKR: 1.6371
+    15/15 [==============================] - 1s 82ms/step - loss: 4.3756 - accuracy: 0.8466 - MulticlassKR: 1.6632 - val_loss: 4.6835 - val_accuracy: 0.8426 - val_MulticlassKR: 1.6673
     Epoch 71/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.7727 - accuracy: 0.8365 - MulticlassKR: 1.6418 - val_loss: 5.0472 - val_accuracy: 0.8271 - val_MulticlassKR: 1.6463
+    15/15 [==============================] - 1s 82ms/step - loss: 4.3342 - accuracy: 0.8474 - MulticlassKR: 1.6722 - val_loss: 4.6563 - val_accuracy: 0.8423 - val_MulticlassKR: 1.6701
     Epoch 72/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.6440 - accuracy: 0.8385 - MulticlassKR: 1.6552 - val_loss: 5.0187 - val_accuracy: 0.8259 - val_MulticlassKR: 1.6526
+    15/15 [==============================] - 1s 82ms/step - loss: 4.3469 - accuracy: 0.8488 - MulticlassKR: 1.6793 - val_loss: 4.6552 - val_accuracy: 0.8462 - val_MulticlassKR: 1.6792
     Epoch 73/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.6614 - accuracy: 0.8379 - MulticlassKR: 1.6612 - val_loss: 5.0198 - val_accuracy: 0.8276 - val_MulticlassKR: 1.6636
+    15/15 [==============================] - 1s 83ms/step - loss: 4.3538 - accuracy: 0.8461 - MulticlassKR: 1.6866 - val_loss: 4.6152 - val_accuracy: 0.8446 - val_MulticlassKR: 1.6861
     Epoch 74/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.6213 - accuracy: 0.8384 - MulticlassKR: 1.6710 - val_loss: 4.9736 - val_accuracy: 0.8304 - val_MulticlassKR: 1.6691
+    15/15 [==============================] - 1s 83ms/step - loss: 4.2928 - accuracy: 0.8480 - MulticlassKR: 1.6949 - val_loss: 4.6021 - val_accuracy: 0.8405 - val_MulticlassKR: 1.7009
     Epoch 75/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.5920 - accuracy: 0.8382 - MulticlassKR: 1.6763 - val_loss: 4.9604 - val_accuracy: 0.8282 - val_MulticlassKR: 1.6774
+    15/15 [==============================] - 1s 82ms/step - loss: 4.2792 - accuracy: 0.8485 - MulticlassKR: 1.7054 - val_loss: 4.5929 - val_accuracy: 0.8405 - val_MulticlassKR: 1.7055
     Epoch 76/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.5519 - accuracy: 0.8388 - MulticlassKR: 1.6882 - val_loss: 4.9267 - val_accuracy: 0.8316 - val_MulticlassKR: 1.6850
+    15/15 [==============================] - 1s 83ms/step - loss: 4.2585 - accuracy: 0.8477 - MulticlassKR: 1.7210 - val_loss: 4.5700 - val_accuracy: 0.8417 - val_MulticlassKR: 1.7172
     Epoch 77/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.5838 - accuracy: 0.8395 - MulticlassKR: 1.6937 - val_loss: 4.9075 - val_accuracy: 0.8330 - val_MulticlassKR: 1.6961
+    15/15 [==============================] - 1s 83ms/step - loss: 4.2282 - accuracy: 0.8490 - MulticlassKR: 1.7251 - val_loss: 4.5282 - val_accuracy: 0.8433 - val_MulticlassKR: 1.7201
     Epoch 78/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.4766 - accuracy: 0.8410 - MulticlassKR: 1.7044 - val_loss: 4.8950 - val_accuracy: 0.8311 - val_MulticlassKR: 1.6990
+    15/15 [==============================] - 1s 82ms/step - loss: 4.2477 - accuracy: 0.8483 - MulticlassKR: 1.7303 - val_loss: 4.5341 - val_accuracy: 0.8409 - val_MulticlassKR: 1.7282
     Epoch 79/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.5261 - accuracy: 0.8391 - MulticlassKR: 1.7108 - val_loss: 4.8688 - val_accuracy: 0.8319 - val_MulticlassKR: 1.7111
+    15/15 [==============================] - 1s 82ms/step - loss: 4.2507 - accuracy: 0.8491 - MulticlassKR: 1.7352 - val_loss: 4.5203 - val_accuracy: 0.8417 - val_MulticlassKR: 1.7385
     Epoch 80/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.4511 - accuracy: 0.8431 - MulticlassKR: 1.7205 - val_loss: 4.8572 - val_accuracy: 0.8314 - val_MulticlassKR: 1.7183
+    15/15 [==============================] - 1s 83ms/step - loss: 4.1124 - accuracy: 0.8510 - MulticlassKR: 1.7535 - val_loss: 4.4674 - val_accuracy: 0.8432 - val_MulticlassKR: 1.7465
     Epoch 81/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.4914 - accuracy: 0.8416 - MulticlassKR: 1.7240 - val_loss: 4.8231 - val_accuracy: 0.8325 - val_MulticlassKR: 1.7255
+    15/15 [==============================] - 1s 83ms/step - loss: 4.1747 - accuracy: 0.8494 - MulticlassKR: 1.7543 - val_loss: 4.4418 - val_accuracy: 0.8451 - val_MulticlassKR: 1.7489
     Epoch 82/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.4594 - accuracy: 0.8406 - MulticlassKR: 1.7336 - val_loss: 4.8671 - val_accuracy: 0.8278 - val_MulticlassKR: 1.7342
+    15/15 [==============================] - 1s 82ms/step - loss: 4.1789 - accuracy: 0.8503 - MulticlassKR: 1.7588 - val_loss: 4.4222 - val_accuracy: 0.8469 - val_MulticlassKR: 1.7651
     Epoch 83/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.4123 - accuracy: 0.8412 - MulticlassKR: 1.7466 - val_loss: 4.7951 - val_accuracy: 0.8331 - val_MulticlassKR: 1.7415
+    15/15 [==============================] - 1s 82ms/step - loss: 4.1436 - accuracy: 0.8491 - MulticlassKR: 1.7736 - val_loss: 4.4206 - val_accuracy: 0.8431 - val_MulticlassKR: 1.7736
     Epoch 84/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.3057 - accuracy: 0.8441 - MulticlassKR: 1.7506 - val_loss: 4.7815 - val_accuracy: 0.8322 - val_MulticlassKR: 1.7477
+    15/15 [==============================] - 1s 82ms/step - loss: 4.0483 - accuracy: 0.8523 - MulticlassKR: 1.7858 - val_loss: 4.3831 - val_accuracy: 0.8487 - val_MulticlassKR: 1.7780
     Epoch 85/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.3868 - accuracy: 0.8438 - MulticlassKR: 1.7535 - val_loss: 4.7763 - val_accuracy: 0.8329 - val_MulticlassKR: 1.7540
+    15/15 [==============================] - 1s 82ms/step - loss: 4.1186 - accuracy: 0.8522 - MulticlassKR: 1.7821 - val_loss: 4.3525 - val_accuracy: 0.8460 - val_MulticlassKR: 1.7880
     Epoch 86/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.3815 - accuracy: 0.8422 - MulticlassKR: 1.7612 - val_loss: 4.7423 - val_accuracy: 0.8354 - val_MulticlassKR: 1.7597
+    15/15 [==============================] - 1s 82ms/step - loss: 3.9638 - accuracy: 0.8530 - MulticlassKR: 1.7967 - val_loss: 4.3520 - val_accuracy: 0.8441 - val_MulticlassKR: 1.7916
     Epoch 87/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.3078 - accuracy: 0.8458 - MulticlassKR: 1.7692 - val_loss: 4.7037 - val_accuracy: 0.8369 - val_MulticlassKR: 1.7659
+    15/15 [==============================] - 1s 83ms/step - loss: 4.0484 - accuracy: 0.8511 - MulticlassKR: 1.8013 - val_loss: 4.3187 - val_accuracy: 0.8474 - val_MulticlassKR: 1.8012
     Epoch 88/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.3330 - accuracy: 0.8445 - MulticlassKR: 1.7725 - val_loss: 4.6838 - val_accuracy: 0.8362 - val_MulticlassKR: 1.7722
+    15/15 [==============================] - 1s 82ms/step - loss: 4.0346 - accuracy: 0.8529 - MulticlassKR: 1.8113 - val_loss: 4.3083 - val_accuracy: 0.8493 - val_MulticlassKR: 1.8111
     Epoch 89/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.2461 - accuracy: 0.8473 - MulticlassKR: 1.7818 - val_loss: 4.6907 - val_accuracy: 0.8377 - val_MulticlassKR: 1.7787
+    15/15 [==============================] - 1s 82ms/step - loss: 4.0074 - accuracy: 0.8524 - MulticlassKR: 1.8163 - val_loss: 4.3005 - val_accuracy: 0.8455 - val_MulticlassKR: 1.8153
     Epoch 90/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.2975 - accuracy: 0.8443 - MulticlassKR: 1.7860 - val_loss: 4.6683 - val_accuracy: 0.8389 - val_MulticlassKR: 1.7841
+    15/15 [==============================] - 1s 83ms/step - loss: 3.9788 - accuracy: 0.8551 - MulticlassKR: 1.8218 - val_loss: 4.2931 - val_accuracy: 0.8510 - val_MulticlassKR: 1.8233
     Epoch 91/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.2759 - accuracy: 0.8440 - MulticlassKR: 1.7970 - val_loss: 4.6498 - val_accuracy: 0.8362 - val_MulticlassKR: 1.7905
+    15/15 [==============================] - 1s 82ms/step - loss: 3.9037 - accuracy: 0.8546 - MulticlassKR: 1.8301 - val_loss: 4.2455 - val_accuracy: 0.8482 - val_MulticlassKR: 1.8338
     Epoch 92/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.2226 - accuracy: 0.8450 - MulticlassKR: 1.8044 - val_loss: 4.6115 - val_accuracy: 0.8366 - val_MulticlassKR: 1.8014
+    15/15 [==============================] - 1s 82ms/step - loss: 3.9696 - accuracy: 0.8536 - MulticlassKR: 1.8398 - val_loss: 4.2445 - val_accuracy: 0.8469 - val_MulticlassKR: 1.8383
     Epoch 93/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.1851 - accuracy: 0.8469 - MulticlassKR: 1.8099 - val_loss: 4.5928 - val_accuracy: 0.8372 - val_MulticlassKR: 1.8064
+    15/15 [==============================] - 1s 82ms/step - loss: 3.9272 - accuracy: 0.8564 - MulticlassKR: 1.8483 - val_loss: 4.2150 - val_accuracy: 0.8463 - val_MulticlassKR: 1.8419
     Epoch 94/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.2466 - accuracy: 0.8462 - MulticlassKR: 1.8117 - val_loss: 4.5803 - val_accuracy: 0.8369 - val_MulticlassKR: 1.8112
+    15/15 [==============================] - 1s 81ms/step - loss: 3.8466 - accuracy: 0.8555 - MulticlassKR: 1.8533 - val_loss: 4.2036 - val_accuracy: 0.8485 - val_MulticlassKR: 1.8540
     Epoch 95/100
-    15/15 [==============================] - 1s 81ms/step - loss: 4.1717 - accuracy: 0.8472 - MulticlassKR: 1.8230 - val_loss: 4.5755 - val_accuracy: 0.8354 - val_MulticlassKR: 1.8204
+    15/15 [==============================] - 1s 83ms/step - loss: 3.8552 - accuracy: 0.8524 - MulticlassKR: 1.8614 - val_loss: 4.1959 - val_accuracy: 0.8473 - val_MulticlassKR: 1.8563
     Epoch 96/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.1737 - accuracy: 0.8458 - MulticlassKR: 1.8266 - val_loss: 4.5771 - val_accuracy: 0.8379 - val_MulticlassKR: 1.8216
+    15/15 [==============================] - 1s 82ms/step - loss: 3.8768 - accuracy: 0.8552 - MulticlassKR: 1.8705 - val_loss: 4.1969 - val_accuracy: 0.8469 - val_MulticlassKR: 1.8609
     Epoch 97/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.1255 - accuracy: 0.8478 - MulticlassKR: 1.8370 - val_loss: 4.5456 - val_accuracy: 0.8397 - val_MulticlassKR: 1.8282
+    15/15 [==============================] - 1s 82ms/step - loss: 3.8657 - accuracy: 0.8573 - MulticlassKR: 1.8716 - val_loss: 4.2415 - val_accuracy: 0.8478 - val_MulticlassKR: 1.8812
     Epoch 98/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.0964 - accuracy: 0.8479 - MulticlassKR: 1.8409 - val_loss: 4.5388 - val_accuracy: 0.8367 - val_MulticlassKR: 1.8389
+    15/15 [==============================] - 1s 81ms/step - loss: 3.8588 - accuracy: 0.8547 - MulticlassKR: 1.8827 - val_loss: 4.1623 - val_accuracy: 0.8462 - val_MulticlassKR: 1.8775
     Epoch 99/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.1505 - accuracy: 0.8456 - MulticlassKR: 1.8443 - val_loss: 4.5409 - val_accuracy: 0.8367 - val_MulticlassKR: 1.8409
+    15/15 [==============================] - 1s 80ms/step - loss: 3.7358 - accuracy: 0.8565 - MulticlassKR: 1.8890 - val_loss: 4.1222 - val_accuracy: 0.8505 - val_MulticlassKR: 1.8807
     Epoch 100/100
-    15/15 [==============================] - 1s 80ms/step - loss: 4.1035 - accuracy: 0.8469 - MulticlassKR: 1.8526 - val_loss: 4.5051 - val_accuracy: 0.8387 - val_MulticlassKR: 1.8466
+    15/15 [==============================] - 1s 80ms/step - loss: 3.8728 - accuracy: 0.8539 - MulticlassKR: 1.8911 - val_loss: 4.1190 - val_accuracy: 0.8514 - val_MulticlassKR: 1.8852
 
 
 
 
 .. parsed-literal::
 
-    <tensorflow.python.keras.callbacks.History at 0x7fec84096390>
+    <tensorflow.python.keras.callbacks.History at 0x7fd7441ef410>
 
 
 
@@ -518,7 +518,7 @@ certificates generation and adversarial attacks
 
 .. parsed-literal::
 
-    Matplotlib created a temporary config/cache directory at /tmp/matplotlib-6irxwacj because the default path (/home/thibaut.boissin/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+    Matplotlib created a temporary config/cache directory at /tmp/matplotlib-gjz7o_5w because the default path (/home/thibaut.boissin/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
 
 
 .. code:: ipython3
@@ -586,8 +586,8 @@ Where epsilon is the robustness radius for the considered sample.
 .. parsed-literal::
 
     <tf.Tensor: shape=(10,), dtype=float32, numpy=
-    array([0.2283156 , 0.96209514, 0.27557668, 0.566778  , 0.1825619 ,
-           0.19050844, 0.08764243, 0.3844621 , 0.5962895 , 0.13158661],
+    array([0.24586639, 1.0486494 , 0.3931088 , 0.6219739 , 0.11728327,
+           0.18362167, 0.10275207, 0.31268358, 0.8438709 , 0.12713265],
           dtype=float32)>
 
 
@@ -609,8 +609,8 @@ similar results.
 
 .. parsed-literal::
 
-    array([1.1371366 , 3.5836186 , 1.5971001 , 1.896952  , 0.7880295 ,
-           0.7716466 , 0.50510913, 1.2022731 , 2.5170467 , 0.5953121 ],
+    array([1.3269427 , 3.4852803 , 1.9593451 , 2.0121973 , 0.5386271 ,
+           0.68774724, 0.52505064, 0.9842906 , 2.7767034 , 0.52573997],
           dtype=float32)
 
 

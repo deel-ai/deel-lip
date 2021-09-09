@@ -1,147 +1,12 @@
-Example and usage
------------------
+How to use it ?
+~~~~~~~~~~~~~~~
 
 |Open In Colab|
 
-In order to make things simple the following rules have been followed
-during development:
-
--  ``deel-lip`` follows the ``keras`` package structure.
--  All elements (layers, activations, initializers, …) are compatible
-   with standard the ``keras`` elements.
--  When a k-Lipschitz layer overrides a standard keras layer, it uses
-   the same interface and the same parameters. The only difference is a
-   new parameter to control the Lipschitz constant of a layer.
+Here is an example of 1-lipschitz network trained on MNIST:
 
 .. |Open In Colab| image:: https://colab.research.google.com/assets/colab-badge.svg
    :target: https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/doc/notebooks/demo0.ipynb
-
-Which layers are safe to use?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following table indicates which layers are safe to use in a Lipshitz
-network, and which are not.
-
-+--------------+---+------------------+---------------------------------+
-| layer        | 1 | deel-lip         | comments                        |
-|              | - | equivalent       |                                 |
-|              | l |                  |                                 |
-|              | i |                  |                                 |
-|              | p |                  |                                 |
-|              | ? |                  |                                 |
-+==============+===+==================+=================================+
-| ``Dense``    | n | ``SpectralDense` | ``SpectralDense`` and           |
-|              | o | `\ \ ``Frobenius | \ ``FrobeniusDense`` are        |
-|              |   | Dense``          | similarwhen there is a single   |
-|              |   |                  | output                          |
-+--------------+---+------------------+---------------------------------+
-| ``Conv2D``   | n | ``SpectralConv2D | ``SpectralConv2D`` also         |
-|              | o | ``\ \ ``Frobeniu | implement Björck normalization  |
-|              |   | sConv2D``        |                                 |
-+--------------+---+------------------+---------------------------------+
-| ``MaxPooling | y | na.              |                                 |
-| ``\ \ ``Glob | e |                  |                                 |
-| alMaxPooling | s |                  |                                 |
-| ``           |   |                  |                                 |
-+--------------+---+------------------+---------------------------------+
-| ``AveragePoo | n | ``ScaledAverageP | The lipschitz constant is       |
-| ling``\ \ `` | o | ooling``\ \ ``Sc | bounded by sqrt(pool_h*pool_h)  |
-| GlobalAverag |   | aledGlobalAverag |                                 |
-| ePooling``   |   | ePooling``       |                                 |
-+--------------+---+------------------+---------------------------------+
-| ``Flatten``  | y | na.              |                                 |
-|              | e |                  |                                 |
-|              | s |                  |                                 |
-+--------------+---+------------------+---------------------------------+
-| ``Dropout``  | n | None             | The lipschitz constant is       |
-|              | o |                  | bounded by the dropout factor   |
-+--------------+---+------------------+---------------------------------+
-| ``BatchNorm` | n | None             | It is suspected that layer      |
-| `            | o |                  | normalization alreadylimits     |
-|              |   |                  | internal covariateshift         |
-+--------------+---+------------------+---------------------------------+
-
-Design tips
------------
-
-Designing lipschitz networks require a careful design in order to avoid
-vanishing/exploding gradient problem.
-
-Choosing pooling layers:
-
-+-------------+------------------------+------------------------------+
-| layer       | advantages             | disadvantages                |
-+=============+========================+==============================+
-| ``ScaledAve | very similar to        | not norm preserving nor      |
-| ragePooling | original               | gradient norm preserving.    |
-| 2D``        | implementation (just   |                              |
-| and         | add a scaling factor   |                              |
-| ``MaxPoolin | for avg).              |                              |
-| g2D``       |                        |                              |
-+-------------+------------------------+------------------------------+
-| ``Invertibl | norm preserving and    | increases the number of      |
-| eDownSampli | gradient norm          | channels (and the number of  |
-| ng``        | preserving.            | parameters of the next       |
-|             |                        | layer).                      |
-+-------------+------------------------+------------------------------+
-| ``ScaledL2N | norm preserving.       | lower numerical stability of |
-| ormPooling2 |                        | the gradient when inputs are |
-| D``         |                        | close to zero.               |
-| (           |                        |                              |
-| ``sqrt(avgp |                        |                              |
-| ool(x**2))` |                        |                              |
-| `           |                        |                              |
-| )           |                        |                              |
-+-------------+------------------------+------------------------------+
-
-Choosing activations:
-
-+-------------+------------------------+------------------------------+
-| layer       | advantages             | disadvantages                |
-+=============+========================+==============================+
-| ReLU\ ``| w |                        |                              |
-| idely used  |                        |                              |
-| | create a  |                        |                              |
-| strong vani |                        |                              |
-| shing gradi |                        |                              |
-| ent effect. |                        |                              |
-|  | |``\ Max |                        |                              |
-| Min\ ``(``\ |                        |                              |
-|  stack([ReL |                        |                              |
-| U(x),       |                        |                              |
-| ReLU(-x)])\ |                        |                              |
-|  ``) | have |                        |                              |
-|  similar pr |                        |                              |
-| operties to |                        |                              |
-|  ReLU, but  |                        |                              |
-| is norm and |                        |                              |
-|  gradient n |                        |                              |
-| orm preserv |                        |                              |
-| ing | doubl |                        |                              |
-| e the numbe |                        |                              |
-| r of output |                        |                              |
-| s | |``\ Gr |                        |                              |
-| oupSort\ `` |                        |                              |
-| | Input and |                        |                              |
-|  GradientNo |                        |                              |
-| rm preservi |                        |                              |
-| ng. Also li |                        |                              |
-| mit the nee |                        |                              |
-| d of biases |                        |                              |
-|  (as it is  |                        |                              |
-| shift invar |                        |                              |
-| iant). | mo |                        |                              |
-| re computat |                        |                              |
-| ionally exp |                        |                              |
-| ensive, (wh |                        |                              |
-| en it's par |                        |                              |
-| ameter``\ n |                        |                              |
-| \`          |                        |                              |
-| is large)   |                        |                              |
-+-------------+------------------------+------------------------------+
-
-Please note that when learning with the :class:``.HKR`` and
-:class:``.MulticlassHKR``, no activation is required on the last layer.
 
 .. code:: ipython3
 
@@ -162,7 +27,8 @@ Please note that when learning with the :class:``.HKR`` and
     
     # Sequential (resp Model) from deel.model has the same properties as any lipschitz model.
     # It act only as a container, with features specific to lipschitz
-    # functions (condensation, vanilla_exportation...)
+    # functions (condensation, vanilla_exportation...) but The layers are fully compatible
+    # with the tf.keras.model.Sequential/Model
     model = Sequential(
         [
             Input(shape=(28, 28, 1)),
@@ -246,48 +112,48 @@ Please note that when learning with the :class:``.HKR`` and
 
 .. parsed-literal::
 
-    2021-09-09 15:16:01.159175: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:16:02.890348: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
-    2021-09-09 15:16:02.890831: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
-    2021-09-09 15:16:02.922959: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.923206: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
+    2021-09-09 18:20:38.651881: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 18:20:41.859471: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
+    2021-09-09 18:20:41.859959: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcuda.so.1
+    2021-09-09 18:20:41.887947: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.888196: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
     pciBusID: 0000:01:00.0 name: GeForce RTX 2070 SUPER computeCapability: 7.5
     coreClock: 1.785GHz coreCount: 40 deviceMemorySize: 7.79GiB deviceMemoryBandwidth: 417.29GiB/s
-    2021-09-09 15:16:02.923219: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:16:02.924425: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:16:02.924448: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:16:02.924976: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
-    2021-09-09 15:16:02.925093: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
-    2021-09-09 15:16:02.926353: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
-    2021-09-09 15:16:02.926644: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
-    2021-09-09 15:16:02.926707: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
-    2021-09-09 15:16:02.926755: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.927005: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.927218: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
-    2021-09-09 15:16:02.927730: I tensorflow/compiler/jit/xla_gpu_device.cc:99] Not creating XLA devices, tf_xla_enable_xla_devices not set
-    2021-09-09 15:16:02.927803: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.928022: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
+    2021-09-09 18:20:41.888209: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 18:20:41.889435: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 18:20:41.889461: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 18:20:41.889997: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+    2021-09-09 18:20:41.890121: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+    2021-09-09 18:20:41.891391: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
+    2021-09-09 18:20:41.891695: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+    2021-09-09 18:20:41.891762: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 18:20:41.891814: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.892071: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.892288: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
+    2021-09-09 18:20:41.892775: I tensorflow/compiler/jit/xla_gpu_device.cc:99] Not creating XLA devices, tf_xla_enable_xla_devices not set
+    2021-09-09 18:20:41.892838: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.893060: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1720] Found device 0 with properties: 
     pciBusID: 0000:01:00.0 name: GeForce RTX 2070 SUPER computeCapability: 7.5
     coreClock: 1.785GHz coreCount: 40 deviceMemorySize: 7.79GiB deviceMemoryBandwidth: 417.29GiB/s
-    2021-09-09 15:16:02.928033: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:16:02.928042: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:16:02.928050: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:16:02.928057: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
-    2021-09-09 15:16:02.928064: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
-    2021-09-09 15:16:02.928071: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
-    2021-09-09 15:16:02.928079: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
-    2021-09-09 15:16:02.928086: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
-    2021-09-09 15:16:02.928114: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.928343: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:02.928551: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
-    2021-09-09 15:16:02.928567: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
-    2021-09-09 15:16:03.382533: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1261] Device interconnect StreamExecutor with strength 1 edge matrix:
-    2021-09-09 15:16:03.382554: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1267]      0 
-    2021-09-09 15:16:03.382558: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1280] 0:   N 
-    2021-09-09 15:16:03.382680: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:03.382924: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:03.383140: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
-    2021-09-09 15:16:03.383346: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1406] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7250 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2070 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5)
+    2021-09-09 18:20:41.893071: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 18:20:41.893079: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 18:20:41.893086: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 18:20:41.893094: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcufft.so.10
+    2021-09-09 18:20:41.893101: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcurand.so.10
+    2021-09-09 18:20:41.893107: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusolver.so.10
+    2021-09-09 18:20:41.893115: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcusparse.so.11
+    2021-09-09 18:20:41.893122: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 18:20:41.893153: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.893390: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:41.893601: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1862] Adding visible gpu devices: 0
+    2021-09-09 18:20:41.893617: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+    2021-09-09 18:20:42.348799: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1261] Device interconnect StreamExecutor with strength 1 edge matrix:
+    2021-09-09 18:20:42.348820: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1267]      0 
+    2021-09-09 18:20:42.348824: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1280] 0:   N 
+    2021-09-09 18:20:42.348955: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:42.349207: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:42.349427: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:941] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+    2021-09-09 18:20:42.349634: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1406] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 7250 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2070 SUPER, pci bus id: 0000:01:00.0, compute capability: 7.5)
     /home/thibaut.boissin/projects/repo_github/deel-lip/deel/lip/model.py:56: UserWarning: Sequential model contains a layer wich is not a Lipschitz layer: flatten
       layer.name
 
@@ -320,8 +186,8 @@ Please note that when learning with the :class:``.HKR`` and
 
 .. parsed-literal::
 
-    2021-09-09 15:16:04.662404: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:116] None of the MLIR optimization passes are enabled (registered 2)
-    2021-09-09 15:16:04.680914: I tensorflow/core/platform/profile_utils/cpu_utils.cc:112] CPU Frequency: 3600000000 Hz
+    2021-09-09 18:20:43.638117: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:116] None of the MLIR optimization passes are enabled (registered 2)
+    2021-09-09 18:20:43.656873: I tensorflow/core/platform/profile_utils/cpu_utils.cc:112] CPU Frequency: 3600000000 Hz
 
 
 .. parsed-literal::
@@ -331,70 +197,70 @@ Please note that when learning with the :class:``.HKR`` and
 
 .. parsed-literal::
 
-    2021-09-09 15:16:06.629816: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
-    2021-09-09 15:16:06.849059: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
-    2021-09-09 15:16:06.859078: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
+    2021-09-09 18:20:45.586440: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublas.so.11
+    2021-09-09 18:20:45.805767: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcublasLt.so.11
+    2021-09-09 18:20:45.815934: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudnn.so.8
 
 
 .. parsed-literal::
 
-    30/30 [==============================] - 4s 49ms/step - loss: 6.6052 - accuracy: 0.2772 - MulticlassKR: 0.1076 - val_loss: 0.8885 - val_accuracy: 0.7818 - val_MulticlassKR: 0.3007
+    30/30 [==============================] - 4s 52ms/step - loss: 5.7859 - accuracy: 0.3059 - MulticlassKR: 0.0994 - val_loss: 0.7743 - val_accuracy: 0.8195 - val_MulticlassKR: 0.3336
     Epoch 2/30
-    30/30 [==============================] - 1s 34ms/step - loss: 0.7030 - accuracy: 0.8191 - MulticlassKR: 0.3289 - val_loss: 0.2899 - val_accuracy: 0.8886 - val_MulticlassKR: 0.4163
+    30/30 [==============================] - 1s 35ms/step - loss: 0.5617 - accuracy: 0.8488 - MulticlassKR: 0.3664 - val_loss: 0.2028 - val_accuracy: 0.8998 - val_MulticlassKR: 0.4562
     Epoch 3/30
-    30/30 [==============================] - 1s 44ms/step - loss: 0.2362 - accuracy: 0.8910 - MulticlassKR: 0.4383 - val_loss: 0.0432 - val_accuracy: 0.9129 - val_MulticlassKR: 0.5269
+    30/30 [==============================] - 1s 40ms/step - loss: 0.1443 - accuracy: 0.9037 - MulticlassKR: 0.4800 - val_loss: -0.0439 - val_accuracy: 0.9243 - val_MulticlassKR: 0.5668
     Epoch 4/30
-    30/30 [==============================] - 1s 40ms/step - loss: 0.0201 - accuracy: 0.9141 - MulticlassKR: 0.5554 - val_loss: -0.1618 - val_accuracy: 0.9284 - val_MulticlassKR: 0.6757
+    30/30 [==============================] - 1s 39ms/step - loss: -0.0865 - accuracy: 0.9233 - MulticlassKR: 0.6017 - val_loss: -0.2614 - val_accuracy: 0.9352 - val_MulticlassKR: 0.7281
     Epoch 5/30
-    30/30 [==============================] - 1s 38ms/step - loss: -0.1892 - accuracy: 0.9269 - MulticlassKR: 0.7151 - val_loss: -0.3834 - val_accuracy: 0.9376 - val_MulticlassKR: 0.8826
+    30/30 [==============================] - 1s 44ms/step - loss: -0.3090 - accuracy: 0.9345 - MulticlassKR: 0.7771 - val_loss: -0.5085 - val_accuracy: 0.9448 - val_MulticlassKR: 0.9635
     Epoch 6/30
-    30/30 [==============================] - 1s 38ms/step - loss: -0.3982 - accuracy: 0.9318 - MulticlassKR: 0.9375 - val_loss: -0.6242 - val_accuracy: 0.9383 - val_MulticlassKR: 1.1741
+    30/30 [==============================] - 1s 35ms/step - loss: -0.5742 - accuracy: 0.9418 - MulticlassKR: 1.0413 - val_loss: -0.8245 - val_accuracy: 0.9469 - val_MulticlassKR: 1.3165
     Epoch 7/30
-    30/30 [==============================] - 1s 35ms/step - loss: -0.6932 - accuracy: 0.9369 - MulticlassKR: 1.2578 - val_loss: -0.9868 - val_accuracy: 0.9412 - val_MulticlassKR: 1.5829
+    30/30 [==============================] - 1s 36ms/step - loss: -0.8896 - accuracy: 0.9426 - MulticlassKR: 1.4164 - val_loss: -1.2121 - val_accuracy: 0.9464 - val_MulticlassKR: 1.7998
     Epoch 8/30
-    30/30 [==============================] - 1s 34ms/step - loss: -1.0436 - accuracy: 0.9388 - MulticlassKR: 1.7083 - val_loss: -1.4178 - val_accuracy: 0.9458 - val_MulticlassKR: 2.1600
+    30/30 [==============================] - 1s 35ms/step - loss: -1.3101 - accuracy: 0.9430 - MulticlassKR: 1.9421 - val_loss: -1.7661 - val_accuracy: 0.9515 - val_MulticlassKR: 2.4609
     Epoch 9/30
-    30/30 [==============================] - 1s 38ms/step - loss: -1.4851 - accuracy: 0.9356 - MulticlassKR: 2.3177 - val_loss: -1.9688 - val_accuracy: 0.9402 - val_MulticlassKR: 2.8508
+    30/30 [==============================] - 1s 47ms/step - loss: -1.8807 - accuracy: 0.9425 - MulticlassKR: 2.6451 - val_loss: -2.4294 - val_accuracy: 0.9480 - val_MulticlassKR: 3.2977
     Epoch 10/30
-    30/30 [==============================] - 1s 46ms/step - loss: -2.0808 - accuracy: 0.9380 - MulticlassKR: 3.0365 - val_loss: -2.5709 - val_accuracy: 0.9406 - val_MulticlassKR: 3.6565
+    30/30 [==============================] - 1s 43ms/step - loss: -2.5482 - accuracy: 0.9444 - MulticlassKR: 3.4797 - val_loss: -3.0506 - val_accuracy: 0.9478 - val_MulticlassKR: 4.1679
     Epoch 11/30
-    30/30 [==============================] - 1s 35ms/step - loss: -2.6181 - accuracy: 0.9396 - MulticlassKR: 3.7817 - val_loss: -3.1971 - val_accuracy: 0.9460 - val_MulticlassKR: 4.3753
+    30/30 [==============================] - 1s 38ms/step - loss: -3.1723 - accuracy: 0.9439 - MulticlassKR: 4.3124 - val_loss: -3.6976 - val_accuracy: 0.9475 - val_MulticlassKR: 4.9445
     Epoch 12/30
-    30/30 [==============================] - 1s 35ms/step - loss: -3.2213 - accuracy: 0.9419 - MulticlassKR: 4.4936 - val_loss: -3.7071 - val_accuracy: 0.9461 - val_MulticlassKR: 5.0001
+    30/30 [==============================] - 1s 34ms/step - loss: -3.7133 - accuracy: 0.9441 - MulticlassKR: 5.0248 - val_loss: -4.2211 - val_accuracy: 0.9525 - val_MulticlassKR: 5.5240
     Epoch 13/30
-    30/30 [==============================] - 1s 45ms/step - loss: -3.6440 - accuracy: 0.9407 - MulticlassKR: 5.0669 - val_loss: -4.1264 - val_accuracy: 0.9487 - val_MulticlassKR: 5.5340
+    30/30 [==============================] - 1s 37ms/step - loss: -4.1847 - accuracy: 0.9456 - MulticlassKR: 5.5629 - val_loss: -4.5868 - val_accuracy: 0.9538 - val_MulticlassKR: 5.9152
     Epoch 14/30
-    30/30 [==============================] - 1s 36ms/step - loss: -4.0550 - accuracy: 0.9429 - MulticlassKR: 5.5451 - val_loss: -4.4434 - val_accuracy: 0.9459 - val_MulticlassKR: 5.8784
+    30/30 [==============================] - 1s 46ms/step - loss: -4.4194 - accuracy: 0.9447 - MulticlassKR: 5.9083 - val_loss: -4.8092 - val_accuracy: 0.9530 - val_MulticlassKR: 6.2309
     Epoch 15/30
-    30/30 [==============================] - 1s 36ms/step - loss: -4.2643 - accuracy: 0.9441 - MulticlassKR: 5.8402 - val_loss: -4.7133 - val_accuracy: 0.9532 - val_MulticlassKR: 6.1418
+    30/30 [==============================] - 1s 42ms/step - loss: -4.6380 - accuracy: 0.9473 - MulticlassKR: 6.1855 - val_loss: -4.9103 - val_accuracy: 0.9499 - val_MulticlassKR: 6.4634
     Epoch 16/30
-    30/30 [==============================] - 1s 36ms/step - loss: -4.5803 - accuracy: 0.9482 - MulticlassKR: 6.1061 - val_loss: -4.8904 - val_accuracy: 0.9512 - val_MulticlassKR: 6.3929
+    30/30 [==============================] - 1s 36ms/step - loss: -4.8019 - accuracy: 0.9476 - MulticlassKR: 6.3995 - val_loss: -5.1251 - val_accuracy: 0.9541 - val_MulticlassKR: 6.6381
     Epoch 17/30
-    30/30 [==============================] - 1s 36ms/step - loss: -4.7383 - accuracy: 0.9452 - MulticlassKR: 6.3495 - val_loss: -5.0702 - val_accuracy: 0.9538 - val_MulticlassKR: 6.5704
+    30/30 [==============================] - 1s 40ms/step - loss: -4.9292 - accuracy: 0.9503 - MulticlassKR: 6.5580 - val_loss: -5.2763 - val_accuracy: 0.9563 - val_MulticlassKR: 6.7558
     Epoch 18/30
-    30/30 [==============================] - 1s 38ms/step - loss: -4.9243 - accuracy: 0.9498 - MulticlassKR: 6.5062 - val_loss: -5.1903 - val_accuracy: 0.9541 - val_MulticlassKR: 6.7263
+    30/30 [==============================] - 1s 35ms/step - loss: -5.0473 - accuracy: 0.9504 - MulticlassKR: 6.6735 - val_loss: -5.3574 - val_accuracy: 0.9554 - val_MulticlassKR: 6.8654
     Epoch 19/30
-    30/30 [==============================] - 1s 41ms/step - loss: -5.1261 - accuracy: 0.9522 - MulticlassKR: 6.6473 - val_loss: -5.2914 - val_accuracy: 0.9531 - val_MulticlassKR: 6.8514
+    30/30 [==============================] - 1s 41ms/step - loss: -5.1484 - accuracy: 0.9503 - MulticlassKR: 6.7765 - val_loss: -5.4485 - val_accuracy: 0.9561 - val_MulticlassKR: 6.9638
     Epoch 20/30
-    30/30 [==============================] - 1s 36ms/step - loss: -5.1228 - accuracy: 0.9497 - MulticlassKR: 6.7646 - val_loss: -5.4142 - val_accuracy: 0.9560 - val_MulticlassKR: 6.9832
+    30/30 [==============================] - 1s 47ms/step - loss: -5.2245 - accuracy: 0.9506 - MulticlassKR: 6.8670 - val_loss: -5.5184 - val_accuracy: 0.9558 - val_MulticlassKR: 7.0767
     Epoch 21/30
-    30/30 [==============================] - 1s 37ms/step - loss: -5.1569 - accuracy: 0.9514 - MulticlassKR: 6.8529 - val_loss: -5.5265 - val_accuracy: 0.9566 - val_MulticlassKR: 7.0741
+    30/30 [==============================] - 1s 35ms/step - loss: -5.3259 - accuracy: 0.9507 - MulticlassKR: 6.9613 - val_loss: -5.5777 - val_accuracy: 0.9573 - val_MulticlassKR: 7.1658
     Epoch 22/30
-    30/30 [==============================] - 1s 36ms/step - loss: -5.3783 - accuracy: 0.9545 - MulticlassKR: 6.9732 - val_loss: -5.6297 - val_accuracy: 0.9577 - val_MulticlassKR: 7.1469
+    30/30 [==============================] - 1s 35ms/step - loss: -5.4587 - accuracy: 0.9519 - MulticlassKR: 7.0682 - val_loss: -5.7211 - val_accuracy: 0.9595 - val_MulticlassKR: 7.2207
     Epoch 23/30
-    30/30 [==============================] - 1s 47ms/step - loss: -5.4597 - accuracy: 0.9546 - MulticlassKR: 7.0535 - val_loss: -5.6792 - val_accuracy: 0.9583 - val_MulticlassKR: 7.2324
+    30/30 [==============================] - 1s 37ms/step - loss: -5.5685 - accuracy: 0.9534 - MulticlassKR: 7.1410 - val_loss: -5.7894 - val_accuracy: 0.9618 - val_MulticlassKR: 7.2921
     Epoch 24/30
-    30/30 [==============================] - 1s 36ms/step - loss: -5.5423 - accuracy: 0.9544 - MulticlassKR: 7.1429 - val_loss: -5.7364 - val_accuracy: 0.9593 - val_MulticlassKR: 7.2954
+    30/30 [==============================] - 1s 35ms/step - loss: -5.4871 - accuracy: 0.9533 - MulticlassKR: 7.1789 - val_loss: -5.8136 - val_accuracy: 0.9606 - val_MulticlassKR: 7.3730
     Epoch 25/30
-    30/30 [==============================] - 1s 44ms/step - loss: -5.6056 - accuracy: 0.9562 - MulticlassKR: 7.1997 - val_loss: -5.7986 - val_accuracy: 0.9588 - val_MulticlassKR: 7.3697
+    30/30 [==============================] - 1s 46ms/step - loss: -5.6827 - accuracy: 0.9551 - MulticlassKR: 7.2730 - val_loss: -5.9069 - val_accuracy: 0.9588 - val_MulticlassKR: 7.4427
     Epoch 26/30
-    30/30 [==============================] - 1s 40ms/step - loss: -5.6212 - accuracy: 0.9541 - MulticlassKR: 7.2370 - val_loss: -5.8694 - val_accuracy: 0.9618 - val_MulticlassKR: 7.3834
+    30/30 [==============================] - 1s 34ms/step - loss: -5.7042 - accuracy: 0.9556 - MulticlassKR: 7.3001 - val_loss: -5.9921 - val_accuracy: 0.9606 - val_MulticlassKR: 7.4756
     Epoch 27/30
-    30/30 [==============================] - 1s 35ms/step - loss: -5.7346 - accuracy: 0.9554 - MulticlassKR: 7.3269 - val_loss: -5.9372 - val_accuracy: 0.9622 - val_MulticlassKR: 7.4778
+    30/30 [==============================] - 1s 48ms/step - loss: -5.7871 - accuracy: 0.9549 - MulticlassKR: 7.3868 - val_loss: -6.0014 - val_accuracy: 0.9609 - val_MulticlassKR: 7.5259
     Epoch 28/30
-    30/30 [==============================] - 1s 43ms/step - loss: -5.6740 - accuracy: 0.9550 - MulticlassKR: 7.3377 - val_loss: -5.9493 - val_accuracy: 0.9590 - val_MulticlassKR: 7.5607
+    30/30 [==============================] - 1s 38ms/step - loss: -5.8166 - accuracy: 0.9548 - MulticlassKR: 7.3946 - val_loss: -5.9561 - val_accuracy: 0.9573 - val_MulticlassKR: 7.5932
     Epoch 29/30
-    30/30 [==============================] - 1s 42ms/step - loss: -5.7000 - accuracy: 0.9557 - MulticlassKR: 7.3908 - val_loss: -6.0002 - val_accuracy: 0.9601 - val_MulticlassKR: 7.5647
+    30/30 [==============================] - 1s 36ms/step - loss: -5.8229 - accuracy: 0.9551 - MulticlassKR: 7.4779 - val_loss: -6.1211 - val_accuracy: 0.9593 - val_MulticlassKR: 7.6141
     Epoch 30/30
-    30/30 [==============================] - 1s 36ms/step - loss: -5.8546 - accuracy: 0.9571 - MulticlassKR: 7.4730 - val_loss: -6.0826 - val_accuracy: 0.9607 - val_MulticlassKR: 7.6294
+    30/30 [==============================] - 1s 34ms/step - loss: -5.9549 - accuracy: 0.9559 - MulticlassKR: 7.5246 - val_loss: -6.2155 - val_accuracy: 0.9606 - val_MulticlassKR: 7.6790
 
