@@ -94,9 +94,10 @@ Indices and tables
    :caption: Contents:
    :glob:
 
-   basic_example.rst
-   wasserstein_toy.rst
-   wassersteinClassif_toy.rst
-   wassersteinClassif_MNIST08.rst
+   demo0.rst
+   demo1.rst
+   demo2.rst
+   demo3.rst
+   demo4.rst
 
    deel.lip
