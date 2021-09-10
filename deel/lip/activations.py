@@ -12,10 +12,10 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import MinMaxNorm
 from tensorflow.keras.layers import Layer, PReLU
 from .layers import LipschitzLayer
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "MaxMin")
 class MaxMin(Layer, LipschitzLayer):
     def __init__(self, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs):
         """
@@ -80,7 +80,7 @@ class MaxMin(Layer, LipschitzLayer):
         return new_shape
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "GroupSort")
 class GroupSort(Layer, LipschitzLayer):
     def __init__(
         self, n=None, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs
@@ -155,7 +155,7 @@ class GroupSort(Layer, LipschitzLayer):
         return input_shape
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "GroupSort2")
 class GroupSort2(GroupSort):
     def __init__(self, **kwargs):
         """
@@ -174,7 +174,7 @@ class GroupSort2(GroupSort):
         super().__init__(**kwargs)
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FullSort")
 class FullSort(GroupSort):
     def __init__(self, **kwargs):
         """
@@ -193,7 +193,7 @@ class FullSort(GroupSort):
         super().__init__(**kwargs)
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "PReLUlip")
 def PReLUlip(k_coef_lip=1.0):
     """
     PreLu activation, with Lipschitz constraint.

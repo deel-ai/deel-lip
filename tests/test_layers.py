@@ -24,6 +24,7 @@ else:
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Layer
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import load_model
 from deel.lip.callbacks import CondenseCallback, MonitorCallback
 from deel.lip.layers import (
     LipschitzLayer,
@@ -39,7 +40,7 @@ from deel.lip.layers import (
     ScaledGlobalL2NormPooling2D,
 )
 from deel.lip.model import Sequential
-from deel.lip.utils import load_model, evaluate_lip_const
+from deel.lip.utils import evaluate_lip_const
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"

@@ -14,10 +14,10 @@ from tensorflow import Tensor
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
 from tensorflow.keras.layers import Input, InputLayer
 from .layers import LipschitzLayer, Condensable
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "Sequential")
 class Sequential(KerasSequential, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -117,7 +117,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "Model")
 class Model(KerasModel):
     """
     Equivalent of keras.Model but support condensation and vanilla exportation.

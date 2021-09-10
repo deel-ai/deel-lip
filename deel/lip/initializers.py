@@ -5,10 +5,10 @@
 from tensorflow.keras.initializers import Initializer, Orthogonal
 from tensorflow.keras import initializers
 from .normalizers import reshaped_kernel_orthogonalization
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralInitializer")
 class SpectralInitializer(Initializer):
     def __init__(
         self,
