@@ -39,10 +39,10 @@ class Test(TestCase):
         n = 500
         x1 = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
         x2 = tf.random.normal((n, 10), mean=1.0, stddev=0.1)
-        for l in [1.0, 0.5, 2.0]:
+        for lip_cst in [1.0, 0.5, 2.0]:
             for disjoint in [True, False]:
-                pr = ProvableRobustness(l, disjoint)
-                ar = AdjustedRobustness(l, disjoint)
+                pr = ProvableRobustness(lip_cst, disjoint)
+                ar = AdjustedRobustness(lip_cst, disjoint)
                 l1 = pr(x1, x1).numpy()
                 l2 = ar(x1, x1).numpy()
                 self.assertAlmostEqual(
@@ -65,9 +65,9 @@ class Test(TestCase):
 
         x1 = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
         x2 = tf.random.normal((n, 10), mean=1.0, stddev=0.1)
-        for l in [1.0, 0.5, 2.0]:
-            bar = BinaryAdjustedRobustness(l)
-            bpr = BinaryProvableRobustness(l)
+        for lip_cst in [1.0, 0.5, 2.0]:
+            bar = BinaryAdjustedRobustness(lip_cst)
+            bpr = BinaryProvableRobustness(lip_cst)
             l1 = bpr(x1, x1).numpy()
             l2 = bar(x1, x1).numpy()
             self.assertAlmostEqual(
