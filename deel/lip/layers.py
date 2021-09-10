@@ -24,6 +24,7 @@ be done by setting the param `niter_bjorck=0`.
 """
 
 import abc
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
@@ -35,15 +36,17 @@ from tensorflow.keras.layers import (
     AveragePooling2D,
     GlobalAveragePooling2D,
 )
-from .constraints import SpectralNormalizer, BjorckNormalizer
-from .initializers import BjorckInitializer, SpectralInitializer
+
+from .constraints import SpectralConstraint
+from .initializers import SpectralInitializer
 from .normalizers import (
     DEFAULT_NITER_BJORCK,
     DEFAULT_NITER_SPECTRAL,
     DEFAULT_NITER_SPECTRAL_INIT,
+    reshaped_kernel_orthogonalization,
+    DEFAULT_BETA_BJORCK,
 )
-from .normalizers import bjorck_normalization, spectral_normalization
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
 class LipschitzLayer(abc.ABC):
@@ -154,14 +157,14 @@ class Condensable(abc.ABC):
         pass
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralDense")
 class SpectralDense(Dense, LipschitzLayer, Condensable):
     def __init__(
         self,
         units,
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=DEFAULT_NITER_BJORCK,
         ),
@@ -174,15 +177,16 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         k_coef_lip=1.0,
         niter_spectral=DEFAULT_NITER_SPECTRAL,
         niter_bjorck=DEFAULT_NITER_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
         """
         This class is a Dense Layer constrained such that all singular of it's kernel
-        are 1. The computation based on BjorckNormalizer algorithm.
+        are 1. The computation based on Bjorck algorithm.
         The computation is done in two steps:
 
         1. reduce the larget singular value to 1, using iterated power method.
-        2. increase other singular values to 1, using BjorckNormalizer algorithm.
+        2. increase other singular values to 1, using Bjorck algorithm.
 
         Args:
             units: Positive integer, dimensionality of the output space.
@@ -202,7 +206,8 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with BjorckNormalizer algorithm.
+            niter_bjorck: number of iteration with Bjorck algorithm.
+            beta_bjorck: beta parameter in bjorck algorithm.
 
         Input shape:
             N-D tensor with shape: `(batch_size, ..., input_dim)`.
@@ -233,8 +238,12 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.niter_spectral = niter_spectral
         self.niter_bjorck = niter_bjorck
+        self.beta_bjorck = beta_bjorck
+        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.u = None
         self.sig = None
+        self.wbar = None
         self.built = False
         if self.niter_spectral < 1:
             raise RuntimeError("niter_spectral has to be > 0")
@@ -249,39 +258,41 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             trainable=False,
             dtype=self.dtype,
         )
-
         self.sig = self.add_weight(
             shape=tuple([1, 1]),  # maximum spectral  value
+            initializer=tf.keras.initializers.ones,
             name="sigma",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0  # this layer don't require a corrective factor
 
-    def call(self, x, training=None):
+    @tf.function
+    def call(self, x, training=True):
         if training:
-            W_bar, _u, sigma = spectral_normalization(
-                self.kernel, self.u, niter=self.niter_spectral
+            wbar, u, sigma = reshaped_kernel_orthogonalization(
+                self.kernel,
+                self.u,
+                self._get_coef(),
+                self.niter_spectral,
+                self.niter_bjorck,
+                self.beta_bjorck,
             )
+            self.wbar.assign(wbar)
+            self.u.assign(u)
             self.sig.assign(sigma)
-            self.u.assign(_u)
         else:
-            W_reshaped = K.reshape(self.kernel, [-1, self.kernel.shape[-1]])
-            W_bar = W_reshaped / self.sig
-
-        W_bar = bjorck_normalization(W_bar, niter=self.niter_bjorck)
-        W_bar = W_bar * self._get_coef()
-
-        # with tf.control_dependencies([self.u.assign(_u), self.sig.assign(sigma)]):
-        W_bar = K.reshape(W_bar, self.kernel.shape)
-        kernel = self.kernel
-        self.kernel = W_bar
-        outputs = Dense.call(self, x)
-        self.kernel = kernel
+            wbar = self.wbar
+        outputs = tf.matmul(x, wbar)
+        if self.use_bias:
+            outputs = tf.nn.bias_add(outputs, self.bias)
+        if self.activation is not None:
+            outputs = self.activation(outputs)
         return outputs
 
     def get_config(self):
@@ -289,23 +300,22 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             "k_coef_lip": self.k_coef_lip,
             "niter_spectral": self.niter_spectral,
             "niter_bjorck": self.niter_bjorck,
+            "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralDense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_shape = self.kernel.shape
-        W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-        new_w = W_reshaped / self.sig.numpy()
-        new_w = bjorck_normalization(new_w, niter=self.niter_bjorck)
-        # new_w = new_w * self._get_coef()
-        new_w = K.reshape(new_w, W_shape)
-        self.kernel.assign(new_w)
-        # update the u vector as it was computed for previous kernel
-        W_bar, _u, sigma = spectral_normalization(
-            self.kernel, self.u, niter=self.niter_spectral
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
+            self.kernel,
+            self.u,
+            self._get_coef(),
+            self.niter_spectral,
+            self.niter_bjorck,
+            self.beta_bjorck,
         )
-        self.u.assign(_u)
+        self.kernel.assign(wbar)
+        self.u.assign(u)
         self.sig.assign(sigma)
 
     def vanilla_export(self):
@@ -319,13 +329,13 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "SpectralConv2D")
 class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -337,7 +347,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
-        kernel_initializer=BjorckInitializer(
+        kernel_initializer=SpectralInitializer(
             niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
             niter_bjorck=DEFAULT_NITER_BJORCK,
         ),
@@ -350,17 +360,18 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         k_coef_lip=1.0,
         niter_spectral=DEFAULT_NITER_SPECTRAL,
         niter_bjorck=DEFAULT_NITER_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
         **kwargs
     ):
         """
         This class is a Conv2D Layer constrained such that all singular of it's kernel
-        are 1. The computation based on BjorckNormalizer algorithm. As this is not
+        are 1. The computation based on Bjorck algorithm. As this is not
         enough to ensure 1 Lipschitzity a coertive coefficient is applied on the
         output.
         The computation is done in three steps:
 
         1. reduce the largest singular value to 1, using iterated power method.
-        2. increase other singular values to 1, using BjorckNormalizer algorithm.
+        2. increase other singular values to 1, using Bjorck algorithm.
         3. divide the output by the Lipschitz bound to ensure k Lipschitzity.
 
         Args:
@@ -408,7 +419,8 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure
             niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with BjorckNormalizer algorithm.
+            niter_bjorck: number of iteration with Bjorck algorithm.
+            beta_bjorck: beta parameter in bjorck algorithm.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
@@ -442,7 +454,11 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.u = None
         self.sig = None
+        self.wbar = None
         self.niter_spectral = niter_spectral
+        self.beta_bjorck = beta_bjorck
+        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.niter_bjorck = niter_bjorck
         if self.niter_spectral < 1:
             raise RuntimeError("niter_spectral has to be > 0")
@@ -465,6 +481,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -510,24 +527,24 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
         return coefLip
 
-    def call(self, x, training=None):
-        W_shape = self.kernel.shape
+    def call(self, x, training=True):
         if training:
-            W_bar, _u, sigma = spectral_normalization(
-                self.kernel, self.u, niter=self.niter_spectral
+            wbar, u, sigma = reshaped_kernel_orthogonalization(
+                self.kernel,
+                self.u,
+                self._get_coef(),
+                self.niter_spectral,
+                self.niter_bjorck,
+                self.beta_bjorck,
             )
+            self.wbar.assign(wbar)
+            self.u.assign(u)
             self.sig.assign(sigma)
-            self.u.assign(_u)
         else:
-            W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-            W_bar = W_reshaped / self.sig
-        W_bar = bjorck_normalization(W_bar, niter=self.niter_bjorck)
-        W_bar = W_bar * self._get_coef()
-
-        W_bar = K.reshape(W_bar, W_shape)
+            wbar = self.wbar
         outputs = K.conv2d(
             x,
-            W_bar,
+            wbar,
             strides=self.strides,
             padding=self.padding,
             data_format=self.data_format,
@@ -544,23 +561,22 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             "k_coef_lip": self.k_coef_lip,
             "niter_spectral": self.niter_spectral,
             "niter_bjorck": self.niter_bjorck,
+            "beta_bjorck": self.beta_bjorck,
         }
         base_config = super(SpectralConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_shape = self.kernel.shape
-        W_reshaped = K.reshape(self.kernel, [-1, W_shape[-1]])
-        new_w = W_reshaped / self.sig.numpy()
-        new_w = bjorck_normalization(new_w, niter=self.niter_bjorck)
-        # new_w = new_w * self._get_coef()
-        new_w = K.reshape(new_w, W_shape)
-        self.kernel.assign(new_w)
-        # update the u vector as it was computed for previous kernel
-        W_bar, _u, sigma = spectral_normalization(
-            self.kernel, self.u, niter=self.niter_spectral
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
+            self.kernel,
+            self.u,
+            self._get_coef(),
+            self.niter_spectral,
+            self.niter_bjorck,
+            self.beta_bjorck,
         )
-        self.u.assign(_u)
+        self.kernel.assign(wbar)
+        self.u.assign(u)
         self.sig.assign(sigma)
 
     def vanilla_export(self):
@@ -579,13 +595,13 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FrobeniusDense")
 class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     """
     Identical and faster than a SpectralDense in the case of a single output. In the
@@ -604,7 +620,8 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT
+            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
+            niter_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -632,25 +649,35 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         self.disjoint_neurons = disjoint_neurons
         self.axis_norm = None
+        self.wbar = None
         if self.disjoint_neurons:
             self.axis_norm = 0
         self._kwargs = kwargs
 
     def build(self, input_shape):
+        super(FrobeniusDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        return super(FrobeniusDense, self).build(input_shape)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
+        self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    def call(self, x):
-        W_bar = (
-            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
-        )
-        kernel = self.kernel
-        self.kernel = W_bar
-        outputs = Dense.call(self, x)
-        self.kernel = kernel
+    def call(self, x, training=True):
+        if training:
+            wbar = (
+                self.kernel
+                / tf.norm(self.kernel, axis=self.axis_norm)
+                * self._get_coef()
+            )
+            self.wbar.assign(wbar)
+        else:
+            wbar = self.wbar
+        outputs = tf.matmul(x, wbar)
+        if self.use_bias:
+            outputs = tf.nn.bias_add(outputs, self.bias)
+        if self.activation is not None:
+            return self.activation(outputs)
         return outputs
 
     def get_config(self):
@@ -662,8 +689,10 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        W_bar = self.kernel / tf.norm(self.kernel, axis=self.axis_norm)
-        self.kernel.assign(W_bar)
+        wbar = (
+            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
+        )
+        self.kernel.assign(wbar)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -676,13 +705,13 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             **self._kwargs
         )
         layer.build(self.input_shape)
-        layer.kernel.assign(self.kernel.numpy() * self._get_coef())
+        layer.kernel.assign(self.wbar)
         if self.use_bias:
-            layer.bias.assign(self.bias.numpy())
+            layer.bias.assign(self.bias)
         return layer
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "FrobeniusConv2D")
 class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     """
     Same as SpectralConv2D but in the case of a single output.
@@ -699,7 +728,8 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(
-            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT
+            niter_spectral=DEFAULT_NITER_SPECTRAL_INIT,
+            niter_bjorck=0,
         ),
         bias_initializer="zeros",
         kernel_regularizer=None,
@@ -722,8 +752,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             raise RuntimeError("NormalizedConv only support padding='same'")
         if not (
             (kernel_constraint is None)
-            or isinstance(kernel_constraint, BjorckNormalizer)
-            or isinstance(kernel_constraint, SpectralNormalizer)
+            or isinstance(kernel_constraint, SpectralConstraint)
         ):
             raise RuntimeError(
                 "only deellip constraints are allowed as other constraints could break"
@@ -748,20 +777,27 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
+        self.wbar = None
         self._kwargs = kwargs
 
     def build(self, input_shape):
+        super(FrobeniusConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        return super(FrobeniusConv2D, self).build(input_shape)
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
+        self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return SpectralConv2D._compute_lip_coef(self, input_shape)
 
-    def call(self, x):
-        W_bar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
+    def call(self, x, training=True):
+        if training:
+            wbar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
+            self.wbar.assign(wbar)
+        else:
+            wbar = self.wbar
         outputs = K.conv2d(
             x,
-            W_bar,
+            wbar,
             strides=self.strides,
             padding=self.padding,
             data_format=self.data_format,
@@ -781,7 +817,10 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        self.kernel.assign(self.kernel / tf.norm(self.kernel))
+        wbar = (
+            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
+        )
+        self.kernel.assign(wbar)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
@@ -789,7 +828,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return SpectralConv2D.vanilla_export(self)
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledAveragePooling2D")
 class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -862,7 +901,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return super(AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -873,7 +912,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledL2NormPooling2D")
 class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
@@ -966,7 +1005,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
         return sqrt_op
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 super(ScaledL2NormPooling2D, self).call(tf.square(x))
@@ -982,7 +1021,94 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "ScaledGlobalL2NormPooling2D")
+class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
+    def __init__(self, data_format=None, k_coef_lip=1.0, eps_grad_sqrt=1e-6, **kwargs):
+        """
+        Average pooling operation for spatial data, with a lipschitz bound. This
+        pooling operation is norm preserving (aka gradient=1 almost everywhere).
+
+        [1]Y.-L.Boureau, J.Ponce, et Y.LeCun, « A Theoretical Analysis of Feature
+        Pooling in Visual Recognition »,p.8.
+
+        Arguments:
+            data_format: A string,
+                one of `channels_last` (default) or `channels_first`.
+                The ordering of the dimensions in the inputs.
+                `channels_last` corresponds to inputs with shape
+                `(batch, height, width, channels)` while `channels_first`
+                corresponds to inputs with shape
+                `(batch, channels, height, width)`.
+                It defaults to the `image_data_format` value found in your
+                Keras config file at `~/.keras/keras.json`.
+                If you never set it, then it will be "channels_last".
+            k_coef_lip: the lipschitz factor to ensure
+            eps_grad_sqrt: Epsilon value to avoid numerical instability
+                due to non-defined gradient at 0 in the sqrt function
+
+        Input shape:
+            - If `data_format='channels_last'`:
+                4D tensor with shape `(batch_size, rows, cols, channels)`.
+            - If `data_format='channels_first'`:
+                4D tensor with shape `(batch_size, channels, rows, cols)`.
+
+        Output shape:
+            - If `data_format='channels_last'`:
+                4D tensor with shape `(batch_size, channels)`.
+            - If `data_format='channels_first'`:
+                4D tensor with shape `(batch_size, pooled_cols)`.
+        """
+        if eps_grad_sqrt < 0.0:
+            raise RuntimeError("eps_grad_sqrt must be positive")
+        super(ScaledGlobalL2NormPooling2D, self).__init__(
+            data_format=data_format, **kwargs
+        )
+        self.set_klip_factor(k_coef_lip)
+        self.eps_grad_sqrt = eps_grad_sqrt
+        self._kwargs = kwargs
+        if self.data_format == "channels_last":
+            self.axes = [1, 2]
+        else:
+            self.axes = [2, 3]
+
+    def build(self, input_shape):
+        super(ScaledGlobalL2NormPooling2D, self).build(input_shape)
+        self._init_lip_coef(input_shape)
+        self.built = True
+
+    def _compute_lip_coef(self, input_shape=None):
+        return 1.0
+
+    @staticmethod
+    def _sqrt(eps_grad_sqrt):
+        @tf.custom_gradient
+        def sqrt_op(x):
+            sqrtx = tf.sqrt(x)
+
+            def grad(dy):
+                return dy / (2 * (sqrtx + eps_grad_sqrt))
+
+            return sqrtx, grad
+
+        return sqrt_op
+
+    def call(self, x, training=True):
+        return (
+            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
+                tf.reduce_sum(tf.square(x), axis=self.axes)
+            )
+            * self._get_coef()
+        )
+
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+        }
+        base_config = super(ScaledGlobalL2NormPooling2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "ScaledGlobalAveragePooling2D")
 class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.
@@ -1031,7 +1157,7 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
             raise RuntimeError("data format not understood: %s" % self.data_format)
         return lip_coef
 
-    def call(self, x, training=None):
+    def call(self, x, training=True):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -1042,7 +1168,7 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "InvertibleDownSampling")
 class InvertibleDownSampling(Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
@@ -1109,7 +1235,7 @@ class InvertibleDownSampling(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "InvertibleUpSampling")
 class InvertibleUpSampling(Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs

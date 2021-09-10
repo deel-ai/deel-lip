@@ -14,10 +14,10 @@ from tensorflow import Tensor
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
 from tensorflow.keras.layers import Input, InputLayer
 from .layers import LipschitzLayer, Condensable
-from .utils import _deel_export
+from tensorflow.keras.utils import register_keras_serializable
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "Sequential")
 class Sequential(KerasSequential, LipschitzLayer, Condensable):
     def __init__(
         self,
@@ -52,7 +52,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -63,7 +63,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._compute_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -74,7 +74,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer._init_lip_coef(input_shape)
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -86,7 +86,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 global_coef *= layer._get_coef()
             else:
                 warn(
-                    "Sequential model contains a layer wich is not a Lipschitsz layer: {}".format(  # noqa: E501
+                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
                         layer.name
                     )
                 )
@@ -102,7 +102,6 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         layers = list()
         for layer in self.layers:
             if isinstance(layer, Condensable):
-                layer.condense()
                 layers.append(layer.vanilla_export())
             else:
                 lay_cp = layer.__class__.from_config(layer.get_config())
@@ -118,7 +117,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@_deel_export
+@register_keras_serializable("deel-lip", "Model")
 class Model(KerasModel):
     """
     Equivalent of keras.Model but support condensation and vanilla exportation.
@@ -160,7 +159,6 @@ class Model(KerasModel):
             # Condense+Export the layer if it is a non-vanilla layer, otherwise
             # just copy the layer:
             if isinstance(lay, Condensable):
-                lay.condense()
                 lay_cp = lay.vanilla_export()
             else:
                 # Duplicate layer (weights are not duplicated):

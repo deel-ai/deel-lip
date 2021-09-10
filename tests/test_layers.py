@@ -5,10 +5,17 @@
 import os
 import pprint
 import unittest
+
 import numpy as np
 import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
 from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
+
+from deel.lip.constraints import (
+    AutoWeightClipConstraint,
+    SpectralConstraint,
+    FrobeniusConstraint,
+)
 
 if tf.__version__.startswith("2.0"):
     from tensorflow.python.framework.random_seed import set_seed
@@ -17,6 +24,7 @@ else:
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Layer
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import load_model
 from deel.lip.callbacks import CondenseCallback, MonitorCallback
 from deel.lip.layers import (
     LipschitzLayer,
@@ -29,9 +37,10 @@ from deel.lip.layers import (
     ScaledL2NormPooling2D,
     InvertibleDownSampling,
     InvertibleUpSampling,
+    ScaledGlobalL2NormPooling2D,
 )
 from deel.lip.model import Sequential
-from deel.lip.utils import load_model, evaluate_lip_const
+from deel.lip.utils import evaluate_lip_const
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
@@ -248,7 +257,7 @@ class LipschitzLayersTest(unittest.TestCase):
             mse,
             from_disk_mse,
             5,
-            "serialization must not change the " "performance of a layer",
+            "serialization must not change the performance of a layer",
         )
 
     def _check_emp_lip_const(self, emp_lip_const, from_disk_emp_lip_const, test_params):
@@ -256,14 +265,14 @@ class LipschitzLayersTest(unittest.TestCase):
             emp_lip_const,
             from_disk_emp_lip_const,
             5,
-            "serialization must not change the " "Lipschitz constant of a layer",
+            "serialization must not change the Lipschitz constant of a layer",
         )
-        if test_params["layer_type"] != Dense:
-            self.assertLess(
-                emp_lip_const,
-                test_params["k_lip_model"] * 1.02,
-                msg=" the lip const of the network must be lower than the specified boundary",  # noqa: E501
-            )
+        self.assertLess(
+            emp_lip_const,
+            test_params["k_lip_model"] * 1.02,
+            msg=" the lip const of the network must be lower"
+            + " than the specified boundary",
+        )
 
     def _apply_tests_bank(self, tests_bank):
         for test_params in tests_bank:
@@ -287,7 +296,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 emp_lip_const, from_disk_emp_lip_const, test_params
             )
 
-    def test_vanilla_dense(self):
+    def test_constraints_clipping(self):
         """
         Tests for a standard Dense layer, for result comparison.
         """
@@ -295,8 +304,11 @@ class LipschitzLayersTest(unittest.TestCase):
             [
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
-                    batch_size=1000,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(1.0),
+                    },
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -306,8 +318,11 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
-                    batch_size=1000,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(1.0),
+                    },
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -317,8 +332,11 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=Dense,
-                    layer_params={"units": 4},
-                    batch_size=1000,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": AutoWeightClipConstraint(5.0),
+                    },
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -329,13 +347,101 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+    def test_constraints_orthogonal(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": SpectralConstraint(1.0),
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": SpectralConstraint(1.0),
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": SpectralConstraint(5.0),
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_constraints_frobenius(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": FrobeniusConstraint(),
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_constraint": FrobeniusConstraint(),
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
     def test_spectral_dense(self):
         self._apply_tests_bank(
             [
                 dict(
                     layer_type=SpectralDense,
-                    layer_params={"units": 4, "use_bias": False, "niter_spectral": 5},
-                    batch_size=1000,
+                    layer_params={"units": 3, "use_bias": False, "niter_spectral": 5},
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -346,7 +452,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=SpectralDense,
                     layer_params={"units": 4, "niter_spectral": 5},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -357,7 +463,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=SpectralDense,
                     layer_params={"units": 4, "niter_spectral": 5},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -374,7 +480,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusDense,
                     layer_params={"units": 1},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -385,7 +491,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusDense,
                     layer_params={"units": 1},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -396,7 +502,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusDense,
                     layer_params={"units": 1},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(4,),
@@ -417,7 +523,7 @@ class LipschitzLayersTest(unittest.TestCase):
                         "kernel_size": (3, 3),
                         "use_bias": False,
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -428,7 +534,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -439,7 +545,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -457,7 +563,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -468,7 +574,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -479,7 +585,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -497,7 +603,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=ScaledAveragePooling2D,
                     layer_params={"pool_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(6, 6, 1),
@@ -508,7 +614,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=ScaledAveragePooling2D,
                     layer_params={"pool_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(6, 6, 1),
@@ -519,7 +625,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=ScaledAveragePooling2D,
                     layer_params={"pool_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(6, 6, 1),
@@ -542,7 +648,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledGlobalAveragePooling2D(data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -558,7 +664,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledGlobalAveragePooling2D(data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -574,7 +680,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledGlobalAveragePooling2D(data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -597,7 +703,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -613,7 +719,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -629,7 +735,62 @@ class LipschitzLayersTest(unittest.TestCase):
                             ScaledL2NormPooling2D((2, 3), data_format="channels_last"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_scaledgloball2normpooling2d(self):
+        self._apply_tests_bank(
+            [
+                # tests only checks that lip cons is enforced
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
+                    steps_per_epoch=1,
+                    epochs=1,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Sequential,
+                    layer_params={
+                        "layers": [
+                            Input((5, 5, 1)),
+                            ScaledGlobalL2NormPooling2D(data_format="channels_last"),
+                        ]
+                    },
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=1,
                     input_shape=(5, 5, 1),
@@ -652,7 +813,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             SpectralDense(4),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -669,7 +830,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             SpectralDense(4),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -686,7 +847,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             SpectralDense(4),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -710,7 +871,7 @@ class LipschitzLayersTest(unittest.TestCase):
                             SpectralDense(4),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -728,9 +889,9 @@ class LipschitzLayersTest(unittest.TestCase):
                             SpectralDense(4, name="dense1"),
                         ]
                     },
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=125,
-                    epochs=10,
+                    epochs=5,
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=1.0,
@@ -739,10 +900,19 @@ class LipschitzLayersTest(unittest.TestCase):
                         MonitorCallback(
                             monitored_layers=["conv1", "dense1"],
                             logdir=os.path.join("logs", "lip_layers", "Sequential"),
-                            what="max",
+                            target="kernel",
+                            what="all",
                             on_epoch=False,
                             on_batch=True,
-                        )
+                        ),
+                        MonitorCallback(
+                            monitored_layers=["conv1", "dense1"],
+                            logdir=os.path.join("logs", "lip_layers", "Sequential"),
+                            target="wbar",
+                            what="all",
+                            on_epoch=False,
+                            on_batch=True,
+                        ),
                     ],
                 ),
             ]
@@ -755,7 +925,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=InvertibleDownSampling,
                     layer_params={"pool_size": (2, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=5,
                     input_shape=(6, 6, 3),
@@ -773,7 +943,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 dict(
                     layer_type=InvertibleUpSampling,
                     layer_params={"pool_size": (2, 3)},
-                    batch_size=1000,
+                    batch_size=250,
                     steps_per_epoch=1,
                     epochs=5,
                     input_shape=(6, 6, 18),
