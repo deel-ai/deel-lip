@@ -47,7 +47,7 @@ def check_serialization(nb_class, loss):
 class Test(TestCase):
     def test_kr_loss(self):
         loss = KR
-        y_pred, y_true = get_gaussian_data(5000)
+        y_pred, y_true = get_gaussian_data(20000)
         loss_val = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
             loss_val, 2.0, 1, "test failed when y_true has shape (bs, )"
@@ -71,7 +71,7 @@ class Test(TestCase):
 
     def test_neg_kr_loss(self):
         loss = negative_KR
-        y_pred, y_true = get_gaussian_data(5000)
+        y_pred, y_true = get_gaussian_data(20000)
         loss_val = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
             loss_val, -2.0, 1, "test failed when y_true has shape (bs, )"
@@ -138,7 +138,7 @@ class Test(TestCase):
             "vector",
         )
         n_class = 10
-        n_items = 100
+        n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_kr(y_true, y_pred).numpy()
@@ -179,7 +179,7 @@ class Test(TestCase):
             "vector",
         )
         n_class = 10
-        n_items = 100
+        n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_hinge(y_true, y_pred).numpy()
@@ -210,7 +210,7 @@ class Test(TestCase):
             "vector",
         )
         n_class = 10
-        n_items = 100
+        n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_hkr(y_true, y_pred).numpy()
@@ -228,7 +228,7 @@ class Test(TestCase):
     def test_multi_margin_loss(self):
         multimargin_loss = MultiMargin(1.0)
         n_class = 10
-        n_items = 100
+        n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multimargin_loss(y_true, y_pred).numpy()
