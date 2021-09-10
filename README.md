@@ -3,6 +3,8 @@
 [![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![PyPI](https://img.shields.io/pypi/v/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://deel-lip.readthedocs.io)
+[![deel-lip tests](https://github.com/deel-ai/deel-lip/actions/workflows/python-tests.yml/badge.svg?branch=master)](https://github.com/deel-ai/deel-lip/actions/workflows/python-tests.yml)
+[![deel-lip linters](https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=master)](https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml)
 [![GitHub license](https://img.shields.io/github/license/deel-ai/deel-lip.svg)](https://github.com/deel-ai/deel-lip/blob/master/LICENSE)
 
 Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
