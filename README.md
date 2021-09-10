@@ -3,6 +3,8 @@
 [![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![PyPI](https://img.shields.io/pypi/v/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://deel-lip.readthedocs.io)
+[![deel-lip tests](https://github.com/deel-ai/deel-lip/actions/workflows/python-tests.yml/badge.svg?branch=master)](https://github.com/deel-ai/deel-lip/actions/workflows/python-tests.yml)
+[![deel-lip linters](https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=master)](https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml)
 [![GitHub license](https://img.shields.io/github/license/deel-ai/deel-lip.svg)](https://github.com/deel-ai/deel-lip/blob/master/LICENSE)
 
 Controlling the Lipschitz constant of a layer or a whole neural network has many applications ranging
@@ -37,7 +39,7 @@ from deel.lip.layers import (
 )
 from deel.lip.model import Sequential
 from deel.lip.activations import GroupSort
-from deel.lip.losses import HKR_multiclass_loss
+from deel.lip.losses import MulticlassHKR, MulticlassKR
 from tensorflow.keras.layers import Input, Flatten
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.datasets import mnist
@@ -46,7 +48,8 @@ import numpy as np
 
 # Sequential (resp Model) from deel.model has the same properties as any lipschitz model.
 # It act only as a container, with features specific to lipschitz
-# functions (condensation, vanilla_exportation...)
+# functions (condensation, vanilla_exportation...) but The layers are fully compatible
+# with the tf.keras.model.Sequential/Model
 model = Sequential(
     [
         Input(shape=(28, 28, 1)),
@@ -92,9 +95,9 @@ model = Sequential(
 model.compile(
     # decreasing alpha and increasing min_margin improve robustness (at the cost of accuracy)
     # note also in the case of lipschitz networks, more robustness require more parameters.
-    loss=HKR_multiclass_loss(alpha=25, min_margin=0.25),
-    optimizer=Adam(lr=0.005),
-    metrics=["accuracy"],
+    loss=MulticlassHKR(alpha=50, min_margin=0.05),
+    optimizer=Adam(1e-3),
+    metrics=["accuracy", MulticlassKR()],
 )
 
 model.summary()
@@ -116,8 +119,8 @@ y_test = to_categorical(y_test)
 model.fit(
     x_train,
     y_train,
-    batch_size=256,
-    epochs=15,
+    batch_size=2048,
+    epochs=30,
     validation_data=(x_test, y_test),
     shuffle=True,
 )
