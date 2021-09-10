@@ -80,6 +80,52 @@ class ProvableRobustness(tf.keras.losses.Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@register_keras_serializable("deel-lip", "BinaryProvableRobustness")
+class BinaryProvableRobustness(tf.keras.losses.Loss):
+    def __init__(
+        self,
+        lip_const=1.0,
+        reduction=Reduction.AUTO,
+        name="BinaryProvableRobustness",
+    ):
+        r"""
+        Compute the provable robustness in the binary case, defined by :
+
+        .. math::
+            cert(x) = \frac{abs(y)}{l}
+
+        Where l is the lipschitz constant of the network. ( see refences for
+        more information ).
+
+        Notes:
+            This loss doesn't need y_true label to be computed.
+
+        References:
+            Serrurier et al. https://arxiv.org/abs/2006.06520
+
+        Args:
+            lip_const: lipschitz constant of the network.
+            name: metrics name.
+            **kwargs: parameters passed to the tf.keras.Loss constructor
+        """
+        self.lip_const = lip_const
+        super(BinaryProvableRobustness, self).__init__(reduction, name)
+
+    def call(self, y_true, y_pred):
+
+        avg_robustness = tf.reduce_mean(
+            tf.reduce_mean(tf.abs(y_pred)) / self.lip_const
+        )
+        return avg_robustness
+
+    def get_config(self):
+        config = {
+            "lip_const": self.lip_const,
+        }
+        base_config = super(BinaryProvableRobustness, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 @register_keras_serializable("deel-lip", "AdjustedRobustness")
 class AdjustedRobustness(Loss):
     def __init__(
