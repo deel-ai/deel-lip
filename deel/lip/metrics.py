@@ -113,9 +113,7 @@ class BinaryProvableRobustness(tf.keras.losses.Loss):
 
     def call(self, y_true, y_pred):
 
-        avg_robustness = tf.reduce_mean(
-            tf.reduce_mean(tf.abs(y_pred)) / self.lip_const
-        )
+        avg_robustness = tf.reduce_mean(tf.reduce_mean(tf.abs(y_pred)) / self.lip_const)
         return avg_robustness
 
     def get_config(self):
@@ -194,4 +192,52 @@ class AdjustedRobustness(Loss):
             "disjoint_neurons": self.disjoint_neurons,
         }
         base_config = super(AdjustedRobustness, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "BinaryAdjustedRobustness")
+class BinaryAdjustedRobustness(tf.keras.losses.Loss):
+    def __init__(
+        self,
+        lip_const=1.0,
+        reduction=Reduction.AUTO,
+        name="BinaryAdjustedRobustness",
+    ):
+        r"""
+        Compute the adjusted robustness in the binary case, which is equivalent
+        to BinaryProvableRobustness but where a misclassified sample yield a
+        negative robustness.
+
+        .. math::
+            cert_{acc}(x) = \frac{y_{true}*y_{pred}}{2l}
+
+        Where l is the lipschitz constant of the network. In this equation, y_pred is
+        assumed to have values in {1,-1} for simplicity, however the metric works for
+        values in both {1,-1} and {1,0}.
+
+        Notes:
+            This loss differs from ProvableRobustness loss as a misclassification
+            from the model yield a negative certificate (this require the knowledge
+            of true labels)
+
+        Args:
+            lip_const: lipschitz constant of the network.
+            name: metrics name.
+            **kwargs: parameters passed to the tf.keras.Loss constructor
+        """
+        self.lip_const = lip_const
+        super(BinaryAdjustedRobustness, self).__init__(reduction, name)
+
+    def call(self, y_true, y_pred):
+        y_true = tf.sign(y_true - 1e-7)
+        avg_robustness = tf.reduce_mean(
+            tf.reduce_mean(y_pred * y_true) / self.lip_const
+        )
+        return avg_robustness
+
+    def get_config(self):
+        config = {
+            "lip_const": self.lip_const,
+        }
+        base_config = super(BinaryAdjustedRobustness, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
