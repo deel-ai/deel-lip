@@ -41,9 +41,7 @@ release = "1.2.0"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
-    "sphinx_markdown_builder",
     "sphinx_rtd_theme",
-    "recommonmark",
 ]
 
 autoclass_content = "both"
@@ -82,18 +80,6 @@ html_theme_options = {
     # Toc options
     "collapse_navigation": False,
     "titles_only": False,
-}
-
-html_sidebars = {
-    "**": ["globaltoc.html", "relations.html", "sourcelink.html", "searchbox.html"]
-}
-
-html_static_path = ["_static"]
-
-html_context = {
-    "css_files": [
-        "_static/theme_overrides.css",
-    ],  # override wide tables in RTD theme
 }
 
 autodoc_member_order = [
