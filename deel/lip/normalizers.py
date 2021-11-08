@@ -148,6 +148,6 @@ def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
     # we assume that in the worst case we converged to sigma + eps (as u and v are
     # normalized after each iteration)
     # in order to be sure that operator norm of W_bar is strictly less than one we
-    # multiply it by (1 - eps), this ensure stability of the bjorck even when beta=0.5
-    W_bar = (1 - eps) * W_reshaped / sigma
+    # use sigma + eps, which ensure stability of the bjorck even when beta=0.5
+    W_bar = W_reshaped / (sigma + eps)
     return W_bar, _u, sigma
