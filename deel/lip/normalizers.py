@@ -9,7 +9,7 @@ normalization. This is done for internal use only.
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
-DEFAULT_BETA_BJORCK = 0.25
+DEFAULT_BETA_BJORCK = 0.5
 DEFAULT_EPS_SPECTRAL = 1e-3
 DEFAULT_EPS_BJORCK = 1e-3
 
