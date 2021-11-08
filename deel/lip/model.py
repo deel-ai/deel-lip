@@ -100,6 +100,8 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
 
     def vanilla_export(self):
         layers = list()
+        if hasattr(self, "input"):
+            layers.append(Input(self.input.shape[1:], dtype=self.input.dtype))
         for layer in self.layers:
             if isinstance(layer, Condensable):
                 layers.append(layer.vanilla_export())
