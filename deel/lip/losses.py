@@ -417,8 +417,8 @@ class CategoricalHinge(Loss):
         y_pred = tf.convert_to_tensor(y_pred)
         y_true = tf.cast(y_true, y_pred.dtype)
         pos = tf.reduce_sum(y_true * y_pred, axis=-1)
-        neg = tf.reduce_max((1. - y_true) * y_pred, axis=-1)
-        zero = tf.cast(0., y_pred.dtype)
+        neg = tf.reduce_max((1.0 - y_true) * y_pred, axis=-1)
+        zero = tf.cast(0.0, y_pred.dtype)
         return tf.maximum(neg - pos + self.min_margin, zero)
 
     def get_config(self):
@@ -455,7 +455,7 @@ class TauCategoricalCrossentropy(Loss):
 
     def get_config(self):
         config = {
-            "tau": self.tau,
+            "tau": self.tau.numpy(),
         }
         base_config = super(TauCategoricalCrossentropy, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
