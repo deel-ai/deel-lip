@@ -13,6 +13,8 @@ from deel.lip.losses import (
     MulticlassHinge,
     MulticlassHKR,
     MultiMargin,
+    TauCategoricalCrossentropy,
+    CategoricalHinge,
 )
 from deel.lip.utils import process_labels_for_multi_gpu
 import os
@@ -490,3 +492,29 @@ class Test(TestCase):
                 rtol=2e-6,
                 err_msg=f"Loss {loss.name} failed",
             )
+
+    def test_tau_catcrossent(self):
+        taucatcrossent_loss = TauCategoricalCrossentropy(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = taucatcrossent_loss(y_true, y_pred).numpy()
+        loss_val_2 = taucatcrossent_loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, taucatcrossent_loss)
+
+    def test_categoricalhinge(self):
+        cathinge = CategoricalHinge(1)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = cathinge(y_true, y_pred).numpy()
+        loss_val_2 = cathinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, cathinge)
