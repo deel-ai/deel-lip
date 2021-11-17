@@ -146,7 +146,7 @@ class HKR(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
-        self.alpha = alpha
+        self.alpha = tf.Variable(alpha, dtype=tf.float32)
         self.min_margin = min_margin
         self.multi_gpu = multi_gpu
         self.KRloss = KR(multi_gpu=multi_gpu)
@@ -166,7 +166,7 @@ class HKR(Loss):
 
     def get_config(self):
         config = {
-            "alpha": self.alpha,
+            "alpha": self.alpha.numpy(),
             "min_margin": self.min_margin,
             "multi_gpu": self.multi_gpu,
         }
@@ -195,7 +195,7 @@ class HingeMargin(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
-        self.min_margin = min_margin
+        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(HingeMargin, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -209,7 +209,7 @@ class HingeMargin(Loss):
 
     def get_config(self):
         config = {
-            "min_margin": self.min_margin,
+            "min_margin": self.min_margin.numpy(),
         }
         base_config = super(HingeMargin, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -275,7 +275,7 @@ class MulticlassHinge(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
-        self.min_margin = min_margin
+        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(MulticlassHinge, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -294,7 +294,7 @@ class MulticlassHinge(Loss):
 
     def get_config(self):
         config = {
-            "min_margin": self.min_margin,
+            "min_margin": self.min_margin.numpy(),
         }
         base_config = super(MulticlassHinge, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -329,27 +329,29 @@ class MulticlassHKR(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
-        self.alpha = alpha
+        self.alpha = tf.Variable(alpha, dtype=tf.float32)
         self.min_margin = min_margin
         self.multi_gpu = multi_gpu
         self.hingeloss = MulticlassHinge(self.min_margin)
-        self.KRloss = MulticlassKR(multi_gpu=multi_gpu, name=name)
+        self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=reduction, name=name)
+        if alpha == np.inf:  # alpha = inf => hinge only
+            self.fct = self.hingeloss
+        else:
+            self.fct = self.hkr
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
+    def hkr(self, y_true, y_pred):
+        a = -self.KRloss.call(y_true, y_pred)
+        b = self.hingeloss.call(y_true, y_pred)
+        return a + self.alpha * b
+
     def call(self, y_true, y_pred):
-        if self.alpha == np.inf:  # alpha = inf => hinge only
-            return self.hingeloss.call(y_true, y_pred)
-        elif self.alpha == 0.0:  # alpha = 0 => KR only
-            return -self.KRloss.call(y_true, y_pred)
-        else:
-            kr = -self.KRloss.call(y_true, y_pred)
-            hinge = self.hingeloss.call(y_true, y_pred)
-            return kr + self.alpha * hinge
+        return self.fct(y_true, y_pred)
 
     def get_config(self):
         config = {
-            "alpha": self.alpha,
+            "alpha": self.alpha.numpy(),
             "min_margin": self.min_margin,
             "multi_gpu": self.multi_gpu,
         }
@@ -373,7 +375,7 @@ class MultiMargin(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
-        self.min_margin = min_margin
+        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(MultiMargin, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -391,12 +393,13 @@ class MultiMargin(Loss):
 
     def get_config(self):
         config = {
-            "min_margin": self.min_margin,
+            "min_margin": self.min_margin.numpy(),
         }
         base_config = super(MultiMargin, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@register_keras_serializable("deel-lip", "CategoricalHinge")
 class CategoricalHinge(Loss):
     def __init__(
         self, min_margin, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
@@ -410,7 +413,7 @@ class CategoricalHinge(Loss):
             reduction: reduction of the loss, passed to original loss.
             name: name of the loss
         """
-        self.min_margin = tf.Variable(min_margin)
+        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
 
     def call(self, y_true, y_pred):
@@ -423,12 +426,13 @@ class CategoricalHinge(Loss):
 
     def get_config(self):
         config = {
-            "min_margin": self.min_margin,
+            "min_margin": self.min_margin.numpy(),
         }
         base_config = super(CategoricalHinge, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@register_keras_serializable("deel-lip", "TauCategoricalCrossentropy")
 class TauCategoricalCrossentropy(Loss):
     def __init__(
         self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
@@ -442,7 +446,7 @@ class TauCategoricalCrossentropy(Loss):
             reduction: reduction of the loss, passed to original loss.
             name: name of the loss
         """
-        self.tau = tf.Variable(tau)
+        self.tau = tf.Variable(tau, dtype=tf.float32)
         super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)
 
     def call(self, y_true, y_pred, *args, **kwargs):
