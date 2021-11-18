@@ -80,6 +80,91 @@ class ProvableRobustness(tf.keras.losses.Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+def _delta(y_true, y_pred):
+    ynl_shape = (-1, tf.shape(y_pred)[-1] - 1)
+    yl = tf.boolean_mask(y_pred, y_true == 1)
+    ynl = tf.reshape(
+        tf.boolean_mask(y_pred, y_true == 0),
+        ynl_shape,
+    )
+    delta = yl - tf.reduce_max(ynl, axis=-1)
+    return delta
+
+
+@register_keras_serializable("deel-lip", "ProvableRobustAccuracy")
+class ProvableRobustAccuracy(tf.keras.losses.Loss):
+    def __init__(
+        self,
+        epsilon=36 / 255,
+        lip_const=1.0,
+        disjoint_neurons=True,
+        reduction=Reduction.AUTO,
+        name="ProvableRobustAccuracy",
+    ):
+        r"""
+        TODO: write doc
+        """
+        self.lip_const = lip_const
+        self.epsilon = epsilon
+        self.disjoint_neurons = disjoint_neurons
+        if disjoint_neurons:
+            self.certificate_factor = 2 * lip_const
+        else:
+            self.certificate_factor = math.sqrt(2) * lip_const
+        super(ProvableRobustAccuracy, self).__init__(reduction, name)
+
+    def call(self, y_true, y_pred):
+        return tf.reduce_mean(
+            tf.cast(
+                (_delta(y_true, y_pred) / self.certificate_factor) > self.epsilon,
+                tf.float32,
+            )
+        )
+
+    def get_config(self):
+        config = {
+            "lip_const": self.lip_const,
+            "espilon": self.epsilon,
+            "disjoint_neurons": self.disjoint_neurons,
+        }
+        base_config = super(ProvableRobustAccuracy, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "ProvableAvgRobustness")
+class ProvableAvgRobustness(tf.keras.losses.Loss):
+    def __init__(
+        self,
+        lip_const=1.0,
+        disjoint_neurons=True,
+        reduction=Reduction.AUTO,
+        name="ProvableAvgRobustness",
+    ):
+        r"""
+        TODO: write doc
+        """
+        self.lip_const = lip_const
+        self.disjoint_neurons = disjoint_neurons
+        if disjoint_neurons:
+            self.certificate_factor = 2 * lip_const
+        else:
+            self.certificate_factor = math.sqrt(2) * lip_const
+        super(ProvableAvgRobustness, self).__init__(reduction, name)
+
+    def call(self, y_true, y_pred):
+        return tf.reduce_mean(
+            tf.nn.relu(_delta(y_true, y_pred)) / self.certificate_factor
+        )
+
+    def get_config(self):
+        config = {
+            "lip_const": self.lip_const,
+            "disjoint_neurons": self.disjoint_neurons,
+        }
+        base_config = super(ProvableAvgRobustness, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 @register_keras_serializable("deel-lip", "BinaryProvableRobustness")
 class BinaryProvableRobustness(tf.keras.losses.Loss):
     def __init__(
