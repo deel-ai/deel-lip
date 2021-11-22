@@ -80,15 +80,65 @@ class ProvableRobustness(tf.keras.losses.Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-def _delta(y_true, y_pred):
+def _delta_multiclass(y_true, y_pred):
+    r"""
+    Compute the non-normalized provable robustness factor in multiclass setup (need
+    to be adjusted with
+    lipschitz constant.
+
+    .. math::
+            \Delta(x) = f_l(x) - \max_{i \neq l} f_i(x)
+
+    Args:
+        y_true: true labels must be in {1,0} or in {1,-1} (no label smoothing allowed)
+        y_pred: network predictions
+
+    Returns: non-normalized provable robustness factor
+
+    """
     ynl_shape = (-1, tf.shape(y_pred)[-1] - 1)
     yl = tf.boolean_mask(y_pred, y_true == 1)
     ynl = tf.reshape(
-        tf.boolean_mask(y_pred, y_true == 0),
+        tf.boolean_mask(y_pred, y_true != 1),
         ynl_shape,
     )
     delta = yl - tf.reduce_max(ynl, axis=-1)
     return delta
+
+
+def _delta_binary(y_true, y_pred):
+    r"""
+    Compute the non-normalized provable robustness factor in binary setup (need to be
+    adjusted with
+    lipschitz constant).
+
+    .. math::
+            \Delta(x) = f(x) \text{ if } l=1, -f(x) \text{ otherwise}
+
+    Args:
+        y_true: true labels must be in {1,0} or in {1,-1} (no label smoothing allowed)
+        y_pred: network predictions
+
+    Returns: non-normalized provable robustness factor
+
+    """
+    y_true = tf.sign(tf.cast(y_true, y_pred.dtype) - 1e-3)
+    return tf.multiply(y_true, y_pred)
+
+
+def _get_delta_fct(shape):
+    """
+    Args:
+        shape: the output shape
+
+    Returns: the function that compute delta depending whether we are in binary or
+    multiclass setup.
+
+    """
+    if len(shape) == 2 and (shape[-1] > 1):
+        return _delta_multiclass
+    else:
+        return _delta_binary
 
 
 @register_keras_serializable("deel-lip", "ProvableRobustAccuracy")
@@ -114,9 +164,10 @@ class ProvableRobustAccuracy(tf.keras.losses.Loss):
         super(ProvableRobustAccuracy, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
+        delta_fct = _get_delta_fct(y_true.shape)
         return tf.reduce_mean(
             tf.cast(
-                (_delta(y_true, y_pred) / self.certificate_factor) > self.epsilon,
+                (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
                 tf.float32,
             )
         )
@@ -137,6 +188,7 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         self,
         lip_const=1.0,
         disjoint_neurons=True,
+        negative_robustness=False,
         reduction=Reduction.AUTO,
         name="ProvableAvgRobustness",
     ):
@@ -145,15 +197,21 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         """
         self.lip_const = lip_const
         self.disjoint_neurons = disjoint_neurons
+        self.negative_robustness = negative_robustness
         if disjoint_neurons:
             self.certificate_factor = 2 * lip_const
         else:
             self.certificate_factor = math.sqrt(2) * lip_const
+        if self.negative_robustness:
+            self.delta_correction = lambda delta: delta
+        else:
+            self.delta_correction = tf.nn.relu
         super(ProvableAvgRobustness, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
+        delta_fct = _get_delta_fct(y_true.shape)
         return tf.reduce_mean(
-            tf.nn.relu(_delta(y_true, y_pred)) / self.certificate_factor
+            self.delta_correction(delta_fct(y_true, y_pred)) / self.certificate_factor
         )
 
     def get_config(self):
