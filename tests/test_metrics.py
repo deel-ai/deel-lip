@@ -1,4 +1,5 @@
 import unittest
+from collections import defaultdict
 from unittest import TestCase
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
@@ -6,11 +7,10 @@ from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
 from deel.lip.utils import load_model
 from deel.lip.metrics import (
-    ProvableRobustness,
-    AdjustedRobustness,
-    BinaryAdjustedRobustness,
-    BinaryProvableRobustness,
+    ProvableRobustAccuracy,
+    ProvableAvgRobustness,
 )
+import numpy as np
 import os
 
 
@@ -26,23 +26,21 @@ def check_serialization(nb_class, loss):
 
 class Test(TestCase):
     def test_serialization(self):
-        pr = ProvableRobustness(1.0, False)
-        check_serialization(1, pr)
-        ar = AdjustedRobustness(2.0, False)
-        check_serialization(1, ar)
-        bar = BinaryAdjustedRobustness(1.0)
-        check_serialization(1, bar)
-        bpr = BinaryProvableRobustness(1.0)
-        check_serialization(1, bpr)
+        pra = ProvableRobustAccuracy(1, 1.0, disjoint_neurons=False)
+        check_serialization(1, pra)
+        par = ProvableAvgRobustness(
+            2.0, disjoint_neurons=False, negative_robustness=True
+        )
+        check_serialization(1, par)
 
     def test_provable_vs_adjusted(self):
         n = 500
         x1 = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
         x2 = tf.random.normal((n, 10), mean=1.0, stddev=0.1)
-        for lip_cst in [1.0, 0.5, 2.0]:
+        for lip_cst in [1, 0.5, 2.0]:
             for disjoint in [True, False]:
-                pr = ProvableRobustness(lip_cst, disjoint)
-                ar = AdjustedRobustness(lip_cst, disjoint)
+                pr = ProvableAvgRobustness(lip_cst, disjoint, negative_robustness=False)
+                ar = ProvableAvgRobustness(lip_cst, disjoint, negative_robustness=True)
                 l1 = pr(x1, x1).numpy()
                 l2 = ar(x1, x1).numpy()
                 self.assertAlmostEqual(
@@ -66,8 +64,8 @@ class Test(TestCase):
         x1 = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
         x2 = tf.random.normal((n, 10), mean=1.0, stddev=0.1)
         for lip_cst in [1.0, 0.5, 2.0]:
-            bar = BinaryAdjustedRobustness(lip_cst)
-            bpr = BinaryProvableRobustness(lip_cst)
+            bpr = ProvableAvgRobustness(lip_cst, disjoint, negative_robustness=False)
+            bar = ProvableAvgRobustness(lip_cst, disjoint, negative_robustness=True)
             l1 = bpr(x1, x1).numpy()
             l2 = bar(x1, x1).numpy()
             self.assertAlmostEqual(
@@ -88,14 +86,13 @@ class Test(TestCase):
             )
 
     def test_data_format(self):
-        pr = ProvableRobustness(1.0, False)
-        ar = AdjustedRobustness(2.0, False)
-        bar = BinaryAdjustedRobustness(1.0)
-        bpr = BinaryProvableRobustness(1.0)
+        pr = ProvableAvgRobustness(1.0, True, negative_robustness=False)
+        ar = ProvableAvgRobustness(1.0, True, negative_robustness=True)
         n = 500
+        # check in multiclass
         for metric in [pr, ar]:
             y_pred = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
-            y_true = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
+            y_true = tf.one_hot(tf.convert_to_tensor(np.random.randint(10, size=n)), 10)
             metrics_values = []
             for neg_val in [0.0, -1.0]:
                 y_pred_case = y_pred
@@ -103,9 +100,10 @@ class Test(TestCase):
                 metrics_values.append(metric(y_true_case, y_pred_case).numpy())
             self.assertTrue(
                 all([m == metrics_values[0] for m in metrics_values]),
-                "changing the data format must not change the metric " "value",
+                "changing the data format must not change the metric value",
             )
-        for metric in [bar, bpr]:
+        # check in binary
+        for metric in [pr, ar]:
             y_pred = tf.random.normal((n,), mean=0.0, stddev=0.1)
             y_true = tf.random.normal((n,), mean=0.0, stddev=0.1)
             metrics_values = []
@@ -121,6 +119,77 @@ class Test(TestCase):
                 all([m == metrics_values[0] for m in metrics_values]),
                 "changing the data format must not change the metric " "value",
             )
+
+    def test_disjoint_neurons(self):
+        pr = ProvableAvgRobustness(1.0, False, negative_robustness=False)
+        ar = ProvableAvgRobustness(1.0, False, negative_robustness=True)
+        pdr = ProvableAvgRobustness(1.0, True, negative_robustness=False)
+        adr = ProvableAvgRobustness(1.0, True, negative_robustness=True)
+        n = 500
+        # check in multiclass
+        metrics_values = defaultdict(list)
+        y_pred = tf.random.normal((n, 10), mean=0.0, stddev=0.1)
+        y_true = tf.one_hot(tf.convert_to_tensor(np.random.randint(10, size=n)), 10)
+        for neg_val in [0.0, -1.0]:
+            y_pred_case = y_pred
+            y_true_case = tf.where(y_true > 0, 1.0, neg_val)
+            metrics_values["standard"].append(pdr(y_true_case, y_pred_case).numpy())
+            metrics_values["standard"].append(
+                pr(y_true_case, y_pred_case * (np.sqrt(2) / 2.0)).numpy()
+            )
+            metrics_values["negative_rob"].append(adr(y_true_case, y_pred_case).numpy())
+            metrics_values["negative_rob"].append(
+                ar(y_true_case, y_pred_case * (np.sqrt(2) / 2.0)).numpy()
+            )
+        self.assertTrue(
+            all(
+                [m == metrics_values["standard"][0] for m in metrics_values["standard"]]
+            ),
+            "the loss does not account disjoint_neuron properly in multiclass",
+        )
+        self.assertTrue(
+            all(
+                [
+                    m == metrics_values["negative_rob"][0]
+                    for m in metrics_values["negative_rob"]
+                ]
+            ),
+            "the loss does not account disjoint_neuron properly in multiclass",
+        )
+        # check in binary
+        metrics_values = defaultdict(list)
+        y_pred = tf.random.normal((n,), mean=0.0, stddev=0.1)
+        y_true = tf.random.normal((n,), mean=0.0, stddev=0.1)
+        for neg_val in [0.0, -1.0]:
+            y_pred_case = y_pred
+            y_true_case = tf.where(y_true > 0, 1.0, neg_val)
+            metrics_values["standard"].append(pdr(y_true_case, y_pred_case).numpy())
+            metrics_values["standard"].append(
+                pr(y_true_case, y_pred_case * (np.sqrt(2) / 2.0)).numpy()
+            )
+            metrics_values["negative_rob"].append(adr(y_true_case, y_pred_case).numpy())
+            metrics_values["negative_rob"].append(
+                ar(y_true_case, y_pred_case * (np.sqrt(2) / 2.0)).numpy()
+            )
+        self.assertTrue(
+            all(
+                [m == metrics_values["standard"][0] for m in metrics_values["standard"]]
+            ),
+            "the loss does not account disjoint_neuron properly in binary",
+        )
+        self.assertTrue(
+            all(
+                [
+                    m == metrics_values["negative_rob"][0]
+                    for m in metrics_values["negative_rob"]
+                ]
+            ),
+            "the loss does not account disjoint_neuron properly in binary",
+        )
+
+    def test_hardcoded_values(self):
+        pr = ProvableRobustAccuracy(1.0, False)
+        ar = ProvableAvgRobustness(2.0, False)
 
 
 if __name__ == "__main__":
