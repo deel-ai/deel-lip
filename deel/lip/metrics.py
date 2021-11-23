@@ -119,8 +119,8 @@ class ProvableRobustAccuracy(tf.keras.losses.Loss):
 
     def get_config(self):
         config = {
+            "epsilon": self.epsilon,
             "lip_const": self.lip_const,
-            "espilon": self.epsilon,
             "disjoint_neurons": self.disjoint_neurons,
         }
         base_config = super(ProvableRobustAccuracy, self).get_config()
@@ -200,6 +200,7 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         config = {
             "lip_const": self.lip_const,
             "disjoint_neurons": self.disjoint_neurons,
+            "negative_robustness": self.negative_robustness,
         }
         base_config = super(ProvableAvgRobustness, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
