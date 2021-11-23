@@ -132,7 +132,8 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         Compute the average provable robustness radius on the dataset.
 
         .. math::
-            \mathbb{E}_{x \in D}\left[ \frac{\mathcal{M}_f(x)}{L_f}\right]
+            \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{
+            L_f}\right]
 
         :math:`\mathcal{M}_f(x)` is a term that: is positive when x is correctly
         classified and negative otherwise. In both case the value give the robustness
@@ -154,8 +155,10 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         \text{lip_const}` otherwise).
 
         When `negative_robustness` is set to `True` misclassified elements count as
-        negative robustness, when set to `False`, misclassified elements yield a
-        robustness radius of 0 (the elements are not ignored in both cases).
+        negative robustness (:math:`\phi` act as identity function), when set to
+        `False`,
+        misclassified elements yield a robustness radius of 0 ( :math:`\phi(x)=relu(
+        x)` ). The elements are not ignored when computing the mean in both cases.
 
         This metric works for labels both in {1,0} and {1,-1}.
 
