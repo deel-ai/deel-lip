@@ -60,21 +60,6 @@ def _delta_binary(y_true, y_pred):
     return tf.multiply(y_true, y_pred)
 
 
-def _get_delta_fct(shape):
-    """
-    Args:
-        shape: the output shape
-
-    Returns: the function that compute delta depending whether we are in binary or
-    multiclass setup.
-
-    """
-    if len(shape) == 2 and (shape[-1] > 1):
-        return _delta_multiclass
-    else:
-        return _delta_binary
-
-
 @register_keras_serializable("deel-lip", "ProvableRobustAccuracy")
 class ProvableRobustAccuracy(tf.keras.losses.Loss):
     def __init__(
@@ -109,7 +94,12 @@ class ProvableRobustAccuracy(tf.keras.losses.Loss):
         super(ProvableRobustAccuracy, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
-        delta_fct = _get_delta_fct(y_true.shape)
+        shape = y_true.shape
+        if len(shape) == 2 and (shape[-1] > 1):
+            delta_fct = _delta_multiclass
+        else:
+            delta_fct = _delta_binary
+            self.certificate_factor = self.lip_const
         return tf.reduce_mean(
             tf.cast(
                 (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
@@ -191,7 +181,12 @@ class ProvableAvgRobustness(tf.keras.losses.Loss):
         super(ProvableAvgRobustness, self).__init__(reduction, name)
 
     def call(self, y_true, y_pred):
-        delta_fct = _get_delta_fct(y_true.shape)
+        shape = y_true.shape
+        if len(shape) == 2 and (shape[-1] > 1):
+            delta_fct = _delta_multiclass
+        else:
+            delta_fct = _delta_binary
+            self.certificate_factor = self.lip_const
         return tf.reduce_mean(
             self.delta_correction(delta_fct(y_true, y_pred)) / self.certificate_factor
         )
