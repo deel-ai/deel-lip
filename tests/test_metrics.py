@@ -2,10 +2,9 @@ import unittest
 from collections import defaultdict
 from unittest import TestCase
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
-from deel.lip.utils import load_model
 from deel.lip.metrics import (
     ProvableRobustAccuracy,
     ProvableAvgRobustness,
