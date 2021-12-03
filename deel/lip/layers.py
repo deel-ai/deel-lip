@@ -230,10 +230,14 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         self._kwargs = kwargs
         self.set_klip_factor(k_coef_lip)
         self.eps_spectral = eps_spectral
-        self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
-        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+        if (self.beta_bjorck is not None) and (
+            not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0))
+        ):
             raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
+        self.eps_bjorck = eps_bjorck
+        if (self.eps_bjorck is not None) and (not self.eps_bjorck > 0.0):
+            raise RuntimeError("eps_bjorck must be in > 0")
         self.u = None
         self.sig = None
         self.wbar = None
@@ -450,9 +454,13 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.wbar = None
         self.eps_spectral = eps_spectral
         self.beta_bjorck = beta_bjorck
-        if not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0)):
+        if (self.beta_bjorck is not None) and (
+            not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0))
+        ):
             raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.eps_bjorck = eps_bjorck
+        if (self.eps_bjorck is not None) and (not self.eps_bjorck > 0.0):
+            raise RuntimeError("eps_bjorck must be in > 0")
         if self.eps_spectral < 0:
             raise RuntimeError("eps_spectral has to be > 0")
 
