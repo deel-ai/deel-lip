@@ -197,8 +197,39 @@ class Test(TestCase):
         )
 
     def test_hardcoded_values(self):
-        pr = ProvableRobustAccuracy(1.0, False)
-        ar = ProvableAvgRobustness(2.0, False)
+        pr = ProvableRobustAccuracy(0.25, 1.0, False)
+        ar = ProvableAvgRobustness(1.0, False)
+        y_pred = tf.convert_to_tensor(
+            [
+                [1.0, 0.0, 0.0],  # good class & over 0.25
+                [0.1, 0.0, 0.0],  # good class & below 0.25
+                [0.0, 0.0, 1.0],  # wrong class & over 0.25
+                [0.0, 0.0, 0.1],  # wrong class & below 0.25
+            ]
+        )
+        y_true = tf.convert_to_tensor(
+            [
+                [1.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 1.0, 0.0],
+            ]
+        )
+        self.assertEqual(
+            pr(y_true, y_pred).numpy(),
+            0.25,
+            "ProvableRobustAccuracy did not "
+            "get the expected result with "
+            "hardcoded values ",
+        )
+        self.assertAlmostEqual(
+            ar(y_true, y_pred).numpy(),
+            0.25 * 1.1 / np.sqrt(2),
+            5,
+            "ProvableAvgRobustness did not "
+            "get the expected result with "
+            "hardcoded values ",
+        )
 
 
 if __name__ == "__main__":
