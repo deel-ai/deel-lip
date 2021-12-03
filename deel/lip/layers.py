@@ -29,13 +29,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.layers import (
-    Layer,
-    Dense,
-    Conv2D,
-    AveragePooling2D,
-    GlobalAveragePooling2D,
-)
+import tensorflow.keras.layers as keraslayers
 
 from .constraints import SpectralConstraint
 from .initializers import SpectralInitializer
@@ -158,7 +152,7 @@ class Condensable(abc.ABC):
 
 
 @register_keras_serializable("deel-lip", "SpectralDense")
-class SpectralDense(Dense, LipschitzLayer, Condensable):
+class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
     def __init__(
         self,
         units,
@@ -320,7 +314,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
-        layer = Dense(
+        layer = keraslayers.Dense(
             units=self.units,
             activation=self.activation,
             use_bias=self.use_bias,
@@ -336,7 +330,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
 
 
 @register_keras_serializable("deel-lip", "SpectralConv2D")
-class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
+class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
     def __init__(
         self,
         filters,
@@ -581,7 +575,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
-        layer = Conv2D(
+        layer = keraslayers.Conv2D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self.strides,
@@ -602,7 +596,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 
 
 @register_keras_serializable("deel-lip", "FrobeniusDense")
-class FrobeniusDense(Dense, LipschitzLayer, Condensable):
+class FrobeniusDense(keraslayers.Dense, LipschitzLayer, Condensable):
     """
     Identical and faster than a SpectralDense in the case of a single output. In the
     multi-neurons setting, this layer can be used:
@@ -696,7 +690,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name
-        layer = Dense(
+        layer = keraslayers.Dense(
             units=self.units,
             activation=self.activation,
             use_bias=self.use_bias,
@@ -712,7 +706,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
 
 
 @register_keras_serializable("deel-lip", "FrobeniusConv2D")
-class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
+class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
     """
     Same as SpectralConv2D but in the case of a single output.
     """
@@ -829,7 +823,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
 
 
 @register_keras_serializable("deel-lip", "ScaledAveragePooling2D")
-class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
+class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
         pool_size=(2, 2),
@@ -902,7 +896,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     def call(self, x, training=True):
-        return super(AveragePooling2D, self).call(x) * self._get_coef()
+        return super(keraslayers.AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
         config = {
@@ -913,7 +907,7 @@ class ScaledAveragePooling2D(AveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "ScaledL2NormPooling2D")
-class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
+class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
         pool_size=(2, 2),
@@ -1022,7 +1016,7 @@ class ScaledL2NormPooling2D(AveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "ScaledGlobalL2NormPooling2D")
-class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
+class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, eps_grad_sqrt=1e-6, **kwargs):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This
@@ -1109,7 +1103,7 @@ class ScaledGlobalL2NormPooling2D(GlobalAveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "ScaledGlobalAveragePooling2D")
-class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
+class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.
 
@@ -1169,7 +1163,7 @@ class ScaledGlobalAveragePooling2D(GlobalAveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "InvertibleDownSampling")
-class InvertibleDownSampling(Layer):
+class InvertibleDownSampling(keraslayers.Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
@@ -1236,7 +1230,7 @@ class InvertibleDownSampling(Layer):
 
 
 @register_keras_serializable("deel-lip", "InvertibleUpSampling")
-class InvertibleUpSampling(Layer):
+class InvertibleUpSampling(keraslayers.Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
