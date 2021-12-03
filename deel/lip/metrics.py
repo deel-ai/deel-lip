@@ -61,7 +61,7 @@ def _delta_binary(y_true, y_pred):
 
 
 @register_keras_serializable("deel-lip", "ProvableRobustAccuracy")
-class ProvableRobustAccuracy(tf.keras.losses.Loss):
+class ProvableRobustAccuracy(Loss):
     def __init__(
         self,
         epsilon=36 / 255,
@@ -118,7 +118,7 @@ class ProvableRobustAccuracy(tf.keras.losses.Loss):
 
 
 @register_keras_serializable("deel-lip", "ProvableAvgRobustness")
-class ProvableAvgRobustness(tf.keras.losses.Loss):
+class ProvableAvgRobustness(Loss):
     def __init__(
         self,
         lip_const=1.0,
