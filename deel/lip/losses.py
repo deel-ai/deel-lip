@@ -135,7 +135,7 @@ class HingeMargin(Loss):
         y_true = tf.where(y_true == 1, 1, -1)
         sign = tf.cast(y_true, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
-        return tf.reduce_mean(hinge)
+        return tf.reduce_mean(hinge, axis=-1)
 
     def get_config(self):
         config = {
@@ -231,7 +231,7 @@ class MulticlassHinge(Loss):
         else:
             factor = 1.0
         hinge = tf.where(sign > 0, hinge * factor, hinge)
-        return tf.reduce_mean(hinge)
+        return tf.reduce_mean(hinge, axis=-1)
 
     def get_config(self):
         config = {
@@ -322,7 +322,7 @@ class MultiMargin(Loss):
         margin = tf.nn.relu(self.min_margin - vYtrue + y_pred)
         # averaging on all outputs and batch
         final_loss = tf.reduce_mean(
-            tf.where(y_true == 1, 0.0, margin)
+            tf.where(y_true == 1, 0.0, margin), axis=-1
         )  # two steps is useless
         return final_loss
 
