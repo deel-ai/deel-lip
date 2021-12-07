@@ -36,11 +36,11 @@ def KR(y_true, y_pred):
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     # create two boolean masks each selecting one distribution
-    S0 = tf.equal(y_true, 1)
-    S1 = tf.not_equal(y_true, 1)
+    S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
+    S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
     # compute the KR dual representation
-    return tf.reduce_mean(tf.boolean_mask(y_pred, S0)) - tf.reduce_mean(
-        tf.boolean_mask(y_pred, S1)
+    return tf.reduce_mean(
+        y_pred * (S0 / tf.reduce_mean(S0) - S1 / tf.reduce_mean(S1)), axis=-1
     )
 
 
@@ -169,25 +169,12 @@ class MulticlassKR(Loss):
     @tf.function
     def call(self, y_true, y_pred):
         y_true = tf.cast(y_true, y_pred.dtype)
-        # use y_true to zero out y_pred where y_true != 1
-        # espYtrue is the avg value of y_pred when y_true==1
-        # (one average per output neuron)
-        espYtrue = tf.reduce_sum(y_pred * y_true, axis=0) / (
-            tf.reduce_sum(y_true, axis=0) + self.eps
-        )
-        # use(1- y_true) to zero out y_pred where y_true == 1
-        # espNotYtrue is the avg value of y_pred when y_true==0
-        # (one average per output neuron)
-        espNotYtrue = tf.reduce_sum(y_pred * (1 - y_true), axis=0) / (
-            (
-                tf.cast(tf.shape(y_true)[0], dtype="float32")
-                - tf.reduce_sum(y_true, axis=0)
-            )
-            + self.eps
-        )
-        # compute the differences to have the KR term for each output neuron,
-        # and compute the average over the classes
-        return tf.reduce_mean(-espNotYtrue + espYtrue)
+        batch_size = tf.cast(tf.shape(y_true)[0], dtype="float32")
+        num_elements_per_class = tf.reduce_sum(y_true, axis=0)
+
+        pos = y_true / (num_elements_per_class + self.eps)
+        neg = (1 - y_true) / (batch_size - num_elements_per_class + self.eps)
+        return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
 
     def get_config(self):
         return super(MulticlassKR, self).get_config()
