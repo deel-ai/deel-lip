@@ -97,7 +97,9 @@ class HKR(Loss):
         else:
             # true value: positive value should be the first to be coherent with the
             # hinge loss (positive y_pred)
-            return self.alpha * self.hinge(y_true, y_pred) - self.KR(y_true, y_pred)
+            return self.alpha * self.hinge.call(y_true, y_pred) - self.KR(
+                y_true, y_pred
+            )
 
     def get_config(self):
         config = {
@@ -253,19 +255,19 @@ class MulticlassHKR(Loss):
         self.alpha = alpha
         self.min_margin = min_margin
         self.hingeloss = MulticlassHinge(self.min_margin)
-        self.KRloss = MulticlassKR(reduction=reduction, name=name)
+        self.KRloss = MulticlassKR(name=name)
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
         if self.alpha == np.inf:  # alpha = inf => hinge only
-            return self.hingeloss(y_true, y_pred)
+            return self.hingeloss.call(y_true, y_pred)
         elif self.alpha == 0.0:  # alpha = 0 => KR only
-            return -self.KRloss(y_true, y_pred)
+            return -self.KRloss.call(y_true, y_pred)
         else:
-            a = -self.KRloss(y_true, y_pred)
-            b = self.hingeloss(y_true, y_pred)
-            return a + self.alpha * b
+            kr = -self.KRloss.call(y_true, y_pred)
+            hinge = self.hingeloss.call(y_true, y_pred)
+            return kr + self.alpha * hinge
 
     def get_config(self):
         config = {
