@@ -136,6 +136,7 @@ class GroupSort(Layer, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
+    @tf.function
     def call(self, x, **kwargs):
         fv = tf.reshape(x, self.flat_shape)
         if self.n == 2:
