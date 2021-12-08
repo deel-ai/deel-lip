@@ -29,7 +29,7 @@ def get_gaussian_data(n=500, mean1=1.0, mean2=-1.0):
     x1 = tf.random.normal((n, 1), mean=mean1, stddev=0.1)
     x2 = tf.random.normal((n, 1), mean=mean2, stddev=0.1)
     y_pred = tf.concat([x1, x2], axis=0)
-    y_true = tf.concat([tf.ones(n), tf.zeros(n)], axis=0)
+    y_true = tf.concat([tf.ones((n, 1)), tf.zeros((n, 1))], axis=0)
     return y_pred, y_true
 
 
@@ -45,7 +45,7 @@ def check_serialization(nb_class, loss):
 
 class Test(TestCase):
     def test_kr_loss(self):
-        loss = KR
+        loss = KR()
         y_pred, y_true = get_gaussian_data(20000)
         loss_val = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
@@ -100,7 +100,7 @@ class Test(TestCase):
 
     def test_kr_multiclass_loss(self):
         multiclass_kr = MulticlassKR()
-        kr = KR
+        kr = KR()
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = kr(y_true, y_pred).numpy()
@@ -173,8 +173,8 @@ class Test(TestCase):
         multiclass_hkr = MulticlassHKR(5, 1.0)
         hkr_binary = HKR(5.0, 1.0)
         # testing with an other value for eps ensure that eps has no influence
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = tf.reshape(tf.constant([1.0, 1.0, 1.0, 0.0, 0.0, 0.0]), (6, 1))
+        y_pred = tf.reshape(tf.constant([0.5, 1.5, -0.5, -0.5, -1.5, 0.5]), (6, 1))
         l_single = hkr_binary(y_true, y_pred).numpy()
         l_multi = multiclass_hkr(y_true, y_pred).numpy()
         self.assertEqual(
