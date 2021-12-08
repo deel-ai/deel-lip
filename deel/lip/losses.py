@@ -13,35 +13,42 @@ from tensorflow.keras.losses import Reduction
 from tensorflow.keras.utils import register_keras_serializable
 
 
-@tf.function
 @register_keras_serializable("deel-lip", "KR")
-def KR(y_true, y_pred):
-    r"""
-    Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
-    The Kantorovich-Rubinstein duality is formulated as following:
+class KR(Loss):
+    def __init__(self, reduction=Reduction.AUTO, name="KR"):
+        r"""
+        Loss to estimate wasserstein-1 distance using Kantorovich-Rubinstein duality.
+        The Kantorovich-Rubinstein duality is formulated as following:
 
-    .. math::
-        W_1(\mu, \nu) =
-        \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
-        \left[f(\textbf{x} )\right] -
-        \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
+        .. math::
+            W_1(\mu, \nu) =
+            \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
+            \left[f(\textbf{x} )\right] -
+            \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
 
 
-    Where mu and nu stands for the two distributions, the distribution where the
-    label is 1 and the rest.
+        Where mu and nu stands for the two distributions, the distribution where the
+        label is 1 and the rest.
 
-    Returns:
-        Callable, the function to compute Wasserstein loss
+        Returns:
+            Callable, the function to compute Wasserstein loss
 
-    """
-    y_true = tf.cast(y_true, y_pred.dtype)
-    # create two boolean masks each selecting one distribution
-    S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
-    S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
-    # compute the KR dual representation
-    return tf.reduce_mean(
-        y_pred * (S0 / tf.reduce_mean(S0) - S1 / tf.reduce_mean(S1)), axis=-1
-    )
+        """
+        super(KR, self).__init__(reduction=reduction, name=name)
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        y_true = tf.cast(y_true, y_pred.dtype)
+        # create two boolean masks each selecting one distribution
+        S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
+        S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
+        # compute the KR dual representation
+        return tf.reduce_mean(
+            y_pred * (S0 / tf.reduce_mean(S0) - S1 / tf.reduce_mean(S1)), axis=-1
+        )
+
+    def get_config(self):
+        return super(KR, self).get_config()
 
 
 @tf.function
@@ -55,7 +62,7 @@ def negative_KR(y_true, y_pred):
         Callable, the function to compute negative Wasserstein loss
 
     """
-    return -KR(y_true, y_pred)
+    return -KR()(y_true, y_pred)
 
 
 @register_keras_serializable("deel-lip", "HKR")
@@ -86,7 +93,7 @@ class HKR(Loss):
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.KR = KR
+        self.KR = KR()
         self.hinge = HingeMargin(min_margin)
         super(HKR, self).__init__(reduction=reduction, name=name)
 
@@ -97,7 +104,7 @@ class HKR(Loss):
         else:
             # true value: positive value should be the first to be coherent with the
             # hinge loss (positive y_pred)
-            return self.alpha * self.hinge.call(y_true, y_pred) - self.KR(
+            return self.alpha * self.hinge.call(y_true, y_pred) - self.KR.call(
                 y_true, y_pred
             )
 
