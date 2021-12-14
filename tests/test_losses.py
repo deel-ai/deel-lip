@@ -121,11 +121,6 @@ class Test(TestCase):
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
         )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
-        loss_val_3 = multiclass_kr(y_true2, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_3, loss_val, 1, "test failed when labels are in (1, -1)"
-        )
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
@@ -192,11 +187,6 @@ class Test(TestCase):
         loss_val_2 = multiclass_hkr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
-        )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
-        loss_val_3 = multiclass_hkr(y_true2, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_3, loss_val_2, 1, "test failed when labels are in (1, -1)"
         )
         check_serialization(1, multiclass_hkr)
 
