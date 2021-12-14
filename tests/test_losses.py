@@ -509,7 +509,9 @@ class Test(TestCase):
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = taucatcrossent_loss(y_true, y_pred).numpy()
-        loss_val_2 = taucatcrossent_loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = taucatcrossent_loss(
+            tf.cast(y_true, dtype=tf.int32), y_pred
+        ).numpy()
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
         )
