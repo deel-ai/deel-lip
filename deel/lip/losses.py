@@ -222,7 +222,6 @@ class MulticlassHinge(Loss):
     @tf.function
     def call(self, y_true, y_pred):
         sign = tf.where(y_true == 1, 1.0, -1.0)
-        y_true = tf.cast(y_true, y_pred.dtype)
         # compute the elementwise hinge term
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         # reweight positive elements
