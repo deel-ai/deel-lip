@@ -49,23 +49,16 @@ class Test(TestCase):
         y_pred, y_true = get_gaussian_data(20000)
         loss_val = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
-            loss_val, 2.0, 1, "test failed when y_true has shape (bs, )"
-        )
-        loss_val_2 = loss(
-            tf.expand_dims(y_true, axis=-1), tf.expand_dims(y_pred, axis=-1)
-        ).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_2, 2.0, 1, "test failed when y_true has shape (bs, 1)"
+            loss_val, 2.0, 1, "test failed when y_true has shape (bs, 1)"
         )
         loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_3, 2.0, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_3, loss_val, "test failed when y_true has dtype int32"
         )
         y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
         loss_val_4 = loss(y_true2, y_pred).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_4, 2.0, 1, "test failed when labels are in (1, -1)"
-        )
+        self.assertEqual(loss_val_4, loss_val, "test failed when labels are in (1, -1)")
+
         check_serialization(1, loss)
 
     def test_hkr_loss(self):
@@ -78,23 +71,15 @@ class Test(TestCase):
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val, 0.66, 1, "test failed when y_true has shape (bs, )"
-        )
-        loss_val_2 = loss(
-            tf.expand_dims(y_true, axis=-1), tf.expand_dims(y_pred, axis=-1)
-        ).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_2, 0.66, 1, "test failed when y_true has shape (bs, 1)"
-        )
+        self.assertEqual(loss_val, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_3, 0.66, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_3, np.float32(4 / 6), "Hinge loss must be equal to 4/6"
         )
         y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
         loss_val_4 = loss(y_true2, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_4, 0.66, 1, "test failed when labels are in (1, -1)"
+        self.assertEqual(
+            loss_val_4, np.float32(4 / 6), "Hinge loss must be equal to 4/6"
         )
         check_serialization(1, loss)
 
@@ -105,6 +90,7 @@ class Test(TestCase):
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = kr(y_true, y_pred).numpy()
         l_multi = multiclass_kr(y_true, y_pred).numpy()
+        self.assertEqual(l_single, np.float32(1), "KR loss must be equal to 1")
         self.assertEqual(
             l_single,
             l_multi,
@@ -118,8 +104,8 @@ class Test(TestCase):
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_kr(y_true, y_pred).numpy()
         loss_val_2 = multiclass_kr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
         check_serialization(1, multiclass_kr)
 
@@ -130,6 +116,7 @@ class Test(TestCase):
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()
         l_multi = multiclass_hinge(y_true, y_pred).numpy()
+        self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         self.assertEqual(
             l_single,
             l_multi,
@@ -154,13 +141,13 @@ class Test(TestCase):
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_hinge(y_true, y_pred).numpy()
         loss_val_2 = multiclass_hinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
         y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
         loss_val_3 = multiclass_hinge(y_true2, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_3, loss_val_2, 1, "test failed when labels are in (1, -1)"
+        self.assertEqual(
+            loss_val_3, loss_val_2, "test failed when labels are in (1, -1)"
         )
         check_serialization(1, multiclass_hinge)
 
@@ -172,6 +159,7 @@ class Test(TestCase):
         y_pred = tf.reshape(tf.constant([0.5, 1.5, -0.5, -0.5, -1.5, 0.5]), (6, 1))
         l_single = hkr_binary(y_true, y_pred).numpy()
         l_multi = multiclass_hkr(y_true, y_pred).numpy()
+        self.assertEqual(l_single, np.float32(14 / 6), "HKR loss must be equal to 14/6")
         self.assertEqual(
             l_single,
             l_multi,
@@ -185,8 +173,10 @@ class Test(TestCase):
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multiclass_hkr(y_true, y_pred).numpy()
         loss_val_2 = multiclass_hkr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_2,
+            loss_val,
+            "test failed when y_true has dtype int32",
         )
         check_serialization(1, multiclass_hkr)
 
@@ -198,12 +188,12 @@ class Test(TestCase):
         y_pred = tf.random.normal((n_items, n_class))
         loss_val = multimargin_loss(y_true, y_pred).numpy()
         loss_val_2 = multimargin_loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        self.assertEqual(
+            loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
         y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
         loss_val_3 = multimargin_loss(y_true2, y_pred).numpy()
-        np.testing.assert_almost_equal(
-            loss_val_3, loss_val_2, 1, "test failed when labels are in (1, -1)"
+        self.assertEqual(
+            loss_val_3, loss_val_2, "test failed when labels are in (1, -1)"
         )
         check_serialization(1, multimargin_loss)
