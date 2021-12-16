@@ -51,20 +51,6 @@ class KR(Loss):
         return super(KR, self).get_config()
 
 
-@tf.function
-@register_keras_serializable("deel-lip", "negative_KR")
-def negative_KR(y_true, y_pred):
-    r"""
-    Loss to compute the negative wasserstein-1 distance using Kantorovich-Rubinstein
-    duality. This allows the maximisation of the term using conventional optimizer.
-
-    Returns:
-        Callable, the function to compute negative Wasserstein loss
-
-    """
-    return -KR()(y_true, y_pred)
-
-
 @register_keras_serializable("deel-lip", "HKR")
 class HKR(Loss):
     def __init__(self, alpha, min_margin=1.0, reduction=Reduction.AUTO, name="HKR"):
@@ -93,20 +79,20 @@ class HKR(Loss):
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.KR = KR()
-        self.hinge = HingeMargin(min_margin)
+        self.KRloss = KR()
+        self.hingeloss = HingeMargin(min_margin)
         super(HKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
-        if self.alpha == np.inf:  # if alpha infinite, use hinge only
-            return self.hinge(y_true, y_pred)
+        if self.alpha == np.inf:  # alpha = inf => hinge only
+            return self.hingeloss.call(y_true, y_pred)
+        elif self.alpha == 0.0:  # alpha = 0 => KR only
+            return -self.KRloss.call(y_true, y_pred)
         else:
-            # true value: positive value should be the first to be coherent with the
-            # hinge loss (positive y_pred)
-            return self.alpha * self.hinge.call(y_true, y_pred) - self.KR.call(
-                y_true, y_pred
-            )
+            kr = -self.KRloss.call(y_true, y_pred)
+            hinge = self.hingeloss.call(y_true, y_pred)
+            return kr + self.alpha * hinge
 
     def get_config(self):
         config = {

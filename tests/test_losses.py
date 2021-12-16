@@ -7,7 +7,6 @@ from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.models import load_model
 from deel.lip.losses import (
     KR,
-    negative_KR,
     HingeMargin,
     HKR,
     MulticlassKR,
@@ -66,30 +65,6 @@ class Test(TestCase):
         loss_val_4 = loss(y_true2, y_pred).numpy()
         np.testing.assert_approx_equal(
             loss_val_4, 2.0, 1, "test failed when labels are in (1, -1)"
-        )
-        check_serialization(1, loss)
-
-    def test_neg_kr_loss(self):
-        loss = negative_KR
-        y_pred, y_true = get_gaussian_data(20000)
-        loss_val = loss(y_true, y_pred).numpy()
-        np.testing.assert_approx_equal(
-            loss_val, -2.0, 1, "test failed when y_true has shape (bs, )"
-        )
-        loss_val_2 = loss(
-            tf.expand_dims(y_true, axis=-1), tf.expand_dims(y_pred, axis=-1)
-        ).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_2, -2.0, 1, "test failed when y_true has shape (bs, 1)"
-        )
-        loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_3, -2.0, 1, "test failed when y_true has dtype int32"
-        )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
-        loss_val_4 = loss(y_true2, y_pred).numpy()
-        np.testing.assert_approx_equal(
-            loss_val_4, -2.0, 1, "test failed when labels are in (1, -1)"
         )
         check_serialization(1, loss)
 
