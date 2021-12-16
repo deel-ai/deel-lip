@@ -46,6 +46,12 @@ def check_serialization(nb_class, loss):
 class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
+
+        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        loss_val = loss(y_true, y_pred).numpy()
+        self.assertEqual(loss_val, np.float32(1), "KR loss must be equal to 1")
+
         y_pred, y_true = get_gaussian_data(20000)
         loss_val = loss(y_true, y_pred).numpy()
         np.testing.assert_approx_equal(
@@ -84,20 +90,21 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_kr_multiclass_loss(self):
-        multiclass_kr = MulticlassKR()
-        kr = KR()
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
-        l_single = kr(y_true, y_pred).numpy()
-        l_multi = multiclass_kr(y_true, y_pred).numpy()
-        self.assertEqual(l_single, np.float32(1), "KR loss must be equal to 1")
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "KR multiclass must yield the same "
-            "results when given a single class "
-            "vector",
+        multiclass_kr = MulticlassKR(reduction="auto")
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_pred = np.float32(
+            [
+                [2, 0.2, -0.5],
+                [-1, -1.2, 0.3],
+                [0.8, 2, 0],
+                [0, 1, -0.5],
+                [2.4, -0.4, -1.1],
+                [-0.1, -1.7, 0.6],
+            ]
         )
+        loss_val = multiclass_kr(y_true, y_pred).numpy()
+        np.testing.assert_allclose(loss_val, np.float32(761 / 1800))
+
         n_class = 10
         n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
@@ -152,21 +159,21 @@ class Test(TestCase):
         check_serialization(1, multiclass_hinge)
 
     def test_hkr_multiclass_loss(self):
-        multiclass_hkr = MulticlassHKR(5, 1.0)
-        hkr_binary = HKR(5.0, 1.0)
-        # testing with an other value for eps ensure that eps has no influence
-        y_true = tf.reshape(tf.constant([1.0, 1.0, 1.0, 0.0, 0.0, 0.0]), (6, 1))
-        y_pred = tf.reshape(tf.constant([0.5, 1.5, -0.5, -0.5, -1.5, 0.5]), (6, 1))
-        l_single = hkr_binary(y_true, y_pred).numpy()
-        l_multi = multiclass_hkr(y_true, y_pred).numpy()
-        self.assertEqual(l_single, np.float32(14 / 6), "HKR loss must be equal to 14/6")
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hkr multiclass must yield the same "
-            "results when given a single class "
-            "vector",
+        multiclass_hkr = MulticlassHKR(5.0, 1.0)
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_pred = np.float32(
+            [
+                [2, 0.2, -0.5],
+                [-1, -1.2, 0.3],
+                [0.8, 2, 0],
+                [0, 1, -0.5],
+                [2.4, -0.4, -1.1],
+                [-0.1, -1.7, 0.6],
+            ]
         )
+        loss_val = multiclass_hkr(y_true, y_pred).numpy()
+        np.testing.assert_allclose(loss_val, np.float32(1071 / 200))
+
         n_class = 10
         n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
