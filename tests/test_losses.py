@@ -197,3 +197,75 @@ class Test(TestCase):
             loss_val_3, loss_val_2, "test failed when labels are in (1, -1)"
         )
         check_serialization(1, multimargin_loss)
+
+    def test_no_reduction_binary_losses(self):
+        """
+        Assert binary losses without reduction. Three losses are tested on hardcoded
+        y_true/y_pred of shape [8 elements, 1]: KR, HingeMargin and HKR.
+        """
+        y_true = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]).reshape((8, 1))
+        y_pred = np.array([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9]).reshape((8, 1))
+
+        losses = (
+            KR(reduction="none"),
+            HingeMargin(0.7, reduction="none"),
+            HKR(alpha=2.5, reduction="none"),
+        )
+
+        expected_loss_values = (
+            np.array([1.0, 2.2, -0.2, 1.4, 2.6, 0.8, -0.4, 1.8]),
+            np.array([0.2, 0, 0.8, 0, 0, 0.3, 0.9, 0]),
+            np.array([0.25, -2.2, 2.95, -0.65, -2.6, 0.7, 3.4, -1.55]),
+        )
+
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = loss(y_true, y_pred)
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=2e-7,
+                err_msg=f"Loss {loss.name} failed",
+            )
+
+    def test_no_reduction_multiclass_losses(self):
+        """
+        Assert multi-class losses without reduction. Four losses are tested on hardcoded
+        y_true/y_pred of shape [8 elements, 3 classes]: MulticlassKR, MulticlassHinge,
+        MultiMargin and MulticlassHKR.
+        """
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
+        y_pred = np.array(
+            [
+                [1.5, 0.2, -0.5],
+                [1, -1.2, 0.3],
+                [0.8, 2, -2],
+                [0, 1, -0.5],
+                [-0.8, 2, 0],
+                [2.4, -0.4, -1.1],
+                [-0.1, -1.7, 0.6],
+                [1.2, 1.3, 2.5],
+            ],
+            dtype=np.float32,
+        )
+        losses = (
+            MulticlassKR(reduction="none"),
+            MulticlassHinge(reduction="none"),
+            MultiMargin(0.7, reduction="none"),
+            MulticlassHKR(alpha=2.5, min_margin=0.5, reduction="none"),
+        )
+
+        expected_loss_values = (
+            np.float64([326, 314, 120, 250, 496, -258, 396, 450]) / 225,
+            np.float64([17, 13, 34, 15, 12, 62, 17, 45]) / 30,
+            np.float64([0, 0, 19, 0, 0, 35, 0, 0]) / 30,
+            np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825]) / 900,
+        )
+
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = loss(y_true, y_pred)
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=5e-7,
+                err_msg=f"Loss {loss.name} failed",
+            )
