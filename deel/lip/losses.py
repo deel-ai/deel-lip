@@ -128,8 +128,8 @@ class HingeMargin(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        y_true = tf.where(y_true == 1, 1, -1)
-        sign = tf.cast(y_true, y_pred.dtype)
+        sign = tf.where(y_true > 0, 1, -1)
+        sign = tf.cast(sign, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         return tf.reduce_mean(hinge, axis=-1)
 
@@ -198,7 +198,8 @@ class MulticlassHinge(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        sign = tf.where(y_true == 1, 1.0, -1.0)
+        sign = tf.where(y_true > 0, 1, -1)
+        sign = tf.cast(sign, y_pred.dtype)
         # compute the elementwise hinge term
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
         # reweight positive elements
@@ -288,7 +289,7 @@ class MultiMargin(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        y_true = tf.where(y_true == 1, 1, 0)
+        y_true = tf.where(y_true > 0, 1, 0)
         y_true = tf.cast(y_true, y_pred.dtype)
         # get the y_pred[target_class]
         # (zeroing out all elements of y_pred where y_true=0)
