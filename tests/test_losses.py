@@ -14,6 +14,7 @@ from deel.lip.losses import (
     MulticlassHKR,
     MultiMargin,
 )
+from deel.lip.utils import process_labels_for_multi_gpu
 import os
 import numpy as np
 
@@ -41,6 +42,11 @@ def check_serialization(nb_class, loss):
     m.save(path)
     m2 = load_model(path, compile=True)
     m2(tf.random.uniform((255, 10)))
+
+
+def binary_tf_data(x):
+    """Return a TF float32 tensor of shape [N, 1] from a list/np.array of shape [N]"""
+    return tf.expand_dims(tf.constant(x, dtype=tf.float32), axis=-1)
 
 
 class Test(TestCase):
@@ -275,4 +281,169 @@ class Test(TestCase):
                 expected_loss_val,
                 rtol=5e-7,
                 err_msg=f"Loss {loss.name} failed",
+            )
+
+    def test_minibatches_binary_losses(self):
+        """
+        Assert binary losses with mini-batches, to simulate multi-GPU/TPU. Three losses
+        are tested using "sum" reduction: KR, HingeMargin and HKR.
+        Assertions are tested with:
+        - losses on hardcoded small data of size [8, 1] with full batch and mini-batches
+        - losses on large random data with full batch and mini-batches.
+        """
+        # Small hardcoded data of size [8, 1]
+        y_true = binary_tf_data([1, 1, 1, 1, 0, 0, 0, 0])
+        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
+        y_true = process_labels_for_multi_gpu(y_true)
+
+        reduction = "sum"
+        losses = (
+            KR(multi_gpu=True, reduction=reduction),
+            HingeMargin(0.7, reduction=reduction),
+            HKR(alpha=2.5, multi_gpu=True, reduction=reduction),
+        )
+
+        expected_loss_values = (9.2, 2.2, 0.3)
+
+        # Losses are tested on full batch
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = loss(y_true, y_pred)
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=3e-6,
+                err_msg=f"Loss {loss.name} failed for hardcoded full batch",
+            )
+
+        # Losses are tested on 3 mini-batches of size [3, 4, 1]
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = 0
+            loss_val += loss(y_true[:3], y_pred[:3])
+            loss_val += loss(y_true[3:7], y_pred[3:7])
+            loss_val += loss(y_true[7:], y_pred[7:])
+
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=2e-6,
+                err_msg=f"Loss {loss.name} failed for hardcoded mini-batches",
+            )
+
+        # Large random data of size [10000, 1]
+        num_items = 10000
+        y_true = binary_tf_data(np.random.randint(2, size=num_items))
+        y_pred = tf.random.normal((num_items, 1))
+        y_true = process_labels_for_multi_gpu(y_true)
+
+        # Compare full batch loss and mini-batches loss
+        for loss in losses:
+            loss_val_full_batch = loss(y_true, y_pred)
+
+            i1 = num_items // 2
+            i2 = i1 + num_items // 4
+            i3 = i2 + num_items // 6
+            loss_val_minibatches = 0
+            loss_val_minibatches += loss(y_true[:i1], y_pred[:i1])
+            loss_val_minibatches += loss(y_true[i1:i2], y_pred[i1:i2])
+            loss_val_minibatches += loss(y_true[i2:i3], y_pred[i2:i3])
+            loss_val_minibatches += loss(y_true[i3:], y_pred[i3:])
+            np.testing.assert_allclose(
+                loss_val_full_batch,
+                loss_val_minibatches,
+                rtol=1e-5,
+                err_msg=f"Loss {loss.name} failed for random mini-batches",
+            )
+
+    def test_minibatches_multiclass_losses(self):
+        """
+        Assert multiclass losses with mini-batches, to simulate multi-GPU/TPU. Four
+        losses are tested using "sum" reduction: MulticlassKR, MulticlassHinge,
+        MultiMargin and MulticlassHKR.
+        Assertions are tested with:
+        - losses on hardcoded small data of size [8, 3] with full batch and mini-batches
+        - losses on large random data with full batch and mini-batches.
+        """
+        # Small hardcoded data of size [8, 3]
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
+        y_true = process_labels_for_multi_gpu(y_true)
+        y_pred = tf.constant(
+            [
+                [1.5, 0.2, -0.5],
+                [1, -1.2, 0.3],
+                [0.8, 2, -2],
+                [0, 1, -0.5],
+                [-0.8, 2, 0],
+                [2.4, -0.4, -1.1],
+                [-0.1, -1.7, 0.6],
+                [1.2, 1.3, 2.5],
+            ],
+            dtype=tf.float32,
+        )
+
+        # Losses are tested on full batch
+        reduction = "sum"
+        losses = (
+            MulticlassKR(multi_gpu=True, reduction=reduction),
+            MulticlassHinge(reduction=reduction),
+            MultiMargin(0.7, reduction=reduction),
+            MulticlassHKR(
+                alpha=2.5, min_margin=0.5, multi_gpu=True, reduction=reduction
+            ),
+        )
+
+        expected_loss_values = (
+            np.float32(698 / 75),
+            np.float32(43 / 6),
+            np.float32(9 / 5),
+            np.float32(152 / 75),
+        )
+
+        # Losses are tested on 3 mini-batches of size [3, 4, 1]
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = loss(y_true, y_pred)
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=5e-7,
+                err_msg=f"Loss {loss.name} failed for hardcoded full batch",
+            )
+
+        # The dataset is now split into 3 mini-batches of size [3, 4, 1]
+        for loss, expected_loss_val in zip(losses, expected_loss_values):
+            loss_val = 0
+            loss_val += loss(y_true[:3], y_pred[:3])
+            loss_val += loss(y_true[3:7], y_pred[3:7])
+            loss_val += loss(y_true[7:], y_pred[7:])
+
+            np.testing.assert_allclose(
+                loss_val,
+                expected_loss_val,
+                rtol=4e-7,
+                err_msg=f"Loss {loss.name} failed for hardcoded mini-batches",
+            )
+
+        # Large random data of size [10000, 1]
+        num_classes = 10
+        num_items = 10000
+        y_true = tf.one_hot(np.random.randint(num_classes, size=num_items), num_classes)
+        y_true = process_labels_for_multi_gpu(y_true)
+        y_pred = tf.random.normal((num_items, num_classes))
+
+        # Compare full batch loss and mini-batches loss
+        for loss in losses:
+            loss_val_full_batch = loss(y_true, y_pred)
+
+            i1 = num_items // 2
+            i2 = i1 + num_items // 4
+            i3 = i2 + num_items // 6
+            loss_val_minibatches = 0
+            loss_val_minibatches += loss(y_true[:i1], y_pred[:i1])
+            loss_val_minibatches += loss(y_true[i1:i2], y_pred[i1:i2])
+            loss_val_minibatches += loss(y_true[i2:i3], y_pred[i2:i3])
+            loss_val_minibatches += loss(y_true[i3:], y_pred[i3:])
+            np.testing.assert_allclose(
+                loss_val_full_batch,
+                loss_val_minibatches,
+                rtol=1e-5,
+                err_msg=f"Loss {loss.name} failed for random mini-batches",
             )
