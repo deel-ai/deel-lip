@@ -6,6 +6,7 @@
 This module contains losses used in wasserstein distance estimation. See
 https://arxiv.org/abs/2006.06520 for more information.
 """
+from functools import partial
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
@@ -30,9 +31,25 @@ def _kr(y_true, y_pred):
     )
 
 
+@register_keras_serializable("deel-lip", "_kr_multi_gpu")
+def _kr_multi_gpu(y_true, y_pred):
+    """Returns the element-wise KR loss when computing with a multi-GPU/TPU strategy.
+
+    `y_true` and `y_pred` can be either of shape (batch_size, 1) or
+    (batch_size, # classes).
+
+    When using this loss function, the labels `y_true` must be pre-processed with the
+    :func:`process_labels_for_multi_gpu()` function.
+    """
+    y_true = tf.cast(y_true, y_pred.dtype)
+    # Since the information of batch size was included in `y_true` by
+    # `process_labels_for_multi_gpu()`, there is no need here to multiply by batch size.
+    return tf.reduce_mean(y_pred * y_true, axis=-1)
+
+
 @register_keras_serializable("deel-lip", "KR")
 class KR(Loss):
-    def __init__(self, reduction=Reduction.AUTO, name="KR"):
+    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="KR"):
         r"""
         Loss to estimate Wasserstein-1 distance using Kantorovich-Rubinstein duality.
         The Kantorovich-Rubinstein duality is formulated as following:
@@ -49,25 +66,43 @@ class KR(Loss):
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
 
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
         Args:
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
         """
+        self.multi_gpu = multi_gpu
         super(KR, self).__init__(reduction=reduction, name=name)
-        self.kr_function = _kr
+        if multi_gpu:
+            self.kr_function = _kr_multi_gpu
+        else:
+            self.kr_function = _kr
 
     @tf.function
     def call(self, y_true, y_pred):
         return self.kr_function(y_true, y_pred)
 
     def get_config(self):
-        return super(KR, self).get_config()
+        config = {"multi_gpu": self.multi_gpu}
+        base_config = super(KR, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @register_keras_serializable("deel-lip", "HKR")
 class HKR(Loss):
-    def __init__(self, alpha, min_margin=1.0, reduction=Reduction.AUTO, name="HKR"):
+    def __init__(
+        self,
+        alpha,
+        min_margin=1.0,
+        multi_gpu=False,
+        reduction=Reduction.AUTO,
+        name="HKR",
+    ):
         r"""
         Wasserstein loss with a regularization parameter based on the hinge margin loss.
 
@@ -80,19 +115,25 @@ class HKR(Loss):
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
 
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
         Args:
             alpha: regularization factor
             min_margin: minimal margin ( see hinge_margin_loss )
                 Kantorovich-Rubinstein term of the loss. In order to be consistent
                 between hinge and KR, the first label must yield the positive class
                 while the second yields negative class.
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
         """
         self.alpha = alpha
         self.min_margin = min_margin
-        self.KRloss = KR()
+        self.multi_gpu = multi_gpu
+        self.KRloss = KR(multi_gpu=multi_gpu)
         self.hingeloss = HingeMargin(min_margin)
         super(HKR, self).__init__(reduction=reduction, name=name)
 
@@ -111,6 +152,7 @@ class HKR(Loss):
         config = {
             "alpha": self.alpha,
             "min_margin": self.min_margin,
+            "multi_gpu": self.multi_gpu,
         }
         base_config = super(HKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -169,7 +211,7 @@ def _multiclass_kr(y_true, y_pred, epsilon):
 
 @register_keras_serializable("deel-lip", "MulticlassKR")
 class MulticlassKR(Loss):
-    def __init__(self, reduction=Reduction.AUTO, name="MulticlassKR"):
+    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="MulticlassKR"):
         r"""
         Loss to estimate average of Wasserstein-1 distance using Kantorovich-Rubinstein
         duality over outputs. In this multiclass setup, the KR term is computed for each
@@ -177,21 +219,32 @@ class MulticlassKR(Loss):
 
         Note that `y_true` and `y_pred` should be one-hot encoded.
 
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
         Args:
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
         """
         self.eps = 1e-7
+        self.multi_gpu = multi_gpu
         super(MulticlassKR, self).__init__(reduction=reduction, name=name)
-        self.kr_function = _multiclass_kr
+        if multi_gpu:
+            self.kr_function = _kr_multi_gpu
+        else:
+            self.kr_function = partial(_multiclass_kr, epsilon=self.eps)
 
     @tf.function
     def call(self, y_true, y_pred):
-        return self.kr_function(y_true, y_pred, self.eps)
+        return self.kr_function(y_true, y_pred)
 
     def get_config(self):
-        return super(MulticlassKR, self).get_config()
+        config = {"multi_gpu": self.multi_gpu}
+        base_config = super(MulticlassKR, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 
 @register_keras_serializable("deel-lip", "MulticlassHinge")
@@ -245,6 +298,7 @@ class MulticlassHKR(Loss):
         self,
         alpha=10.0,
         min_margin=1.0,
+        multi_gpu=False,
         reduction=Reduction.AUTO,
         name="MulticlassHKR",
     ):
@@ -254,17 +308,23 @@ class MulticlassHKR(Loss):
 
         Note that `y_true` and `y_pred` should be one-hot encoded.
 
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
         Args:
             alpha: regularization factor
             min_margin: positive float, margin to enforce.
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
 
         """
         self.alpha = alpha
         self.min_margin = min_margin
+        self.multi_gpu = multi_gpu
         self.hingeloss = MulticlassHinge(self.min_margin)
-        self.KRloss = MulticlassKR(name=name)
+        self.KRloss = MulticlassKR(multi_gpu=multi_gpu, name=name)
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -282,6 +342,7 @@ class MulticlassHKR(Loss):
         config = {
             "alpha": self.alpha,
             "min_margin": self.min_margin,
+            "multi_gpu": self.multi_gpu,
         }
         base_config = super(MulticlassHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
