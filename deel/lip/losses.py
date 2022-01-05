@@ -15,20 +15,21 @@ from tensorflow.keras.utils import register_keras_serializable
 
 
 @register_keras_serializable("deel-lip", "_kr")
-def _kr(y_true, y_pred):
+def _kr(y_true, y_pred, epsilon):
     """Returns the element-wise binary KR loss.
 
     `y_true` and `y_pred` must be of rank 2: (batch_size, 1). `y_true` labels for the
     two classes should be either 1 and 0, or 1 and -1.
     """
     y_true = tf.cast(y_true, y_pred.dtype)
+    batch_size = tf.cast(tf.shape(y_true)[0], dtype=y_pred.dtype)
     # create two boolean masks each selecting one distribution
     S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
     S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
     # compute the KR dual representation
-    return tf.reduce_mean(
-        y_pred * (S0 / tf.reduce_mean(S0) - S1 / tf.reduce_mean(S1)), axis=-1
-    )
+    pos = S0 / (tf.reduce_sum(S0) + epsilon)
+    neg = S1 / (tf.reduce_sum(S1) + epsilon)
+    return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
 
 
 @register_keras_serializable("deel-lip", "_kr_multi_gpu")
@@ -76,12 +77,13 @@ class KR(Loss):
             name: passed to tf.keras.Loss constructor
 
         """
+        self.eps = 1e-7
         self.multi_gpu = multi_gpu
         super(KR, self).__init__(reduction=reduction, name=name)
         if multi_gpu:
             self.kr_function = _kr_multi_gpu
         else:
-            self.kr_function = _kr
+            self.kr_function = partial(_kr, epsilon=self.eps)
 
     @tf.function
     def call(self, y_true, y_pred):
