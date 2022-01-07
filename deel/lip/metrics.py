@@ -101,11 +101,9 @@ class ProvableRobustAccuracy(Loss):
         else:
             delta_fct = _delta_binary
             self.certificate_factor = self.lip_const
-        return tf.reduce_mean(
-            tf.cast(
-                (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
-                y_pred.dtype,
-            )
+        return tf.cast(
+            (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
+            y_pred.dtype,
         )
 
     def get_config(self):
@@ -192,7 +190,7 @@ class ProvableAvgRobustness(Loss):
         else:
             delta_fct = _delta_binary
             self.certificate_factor = self.lip_const
-        return tf.reduce_mean(
+        return (
             self.delta_correction(delta_fct(y_true, y_pred)) / self.certificate_factor
         )
 
