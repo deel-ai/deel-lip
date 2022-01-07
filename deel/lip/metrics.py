@@ -60,15 +60,15 @@ def _delta_binary(y_true, y_pred):
     return tf.multiply(y_true, y_pred)
 
 
-@register_keras_serializable("deel-lip", "ProvableRobustAccuracy")
-class ProvableRobustAccuracy(Loss):
+@register_keras_serializable("deel-lip", "CategoricalProvableRobustAccuracy")
+class CategoricalProvableRobustAccuracy(Loss):
     def __init__(
         self,
         epsilon=36 / 255,
         lip_const=1.0,
         disjoint_neurons=True,
         reduction=Reduction.AUTO,
-        name="ProvableRobustAccuracy",
+        name="CategoricalProvableRobustAccuracy",
     ):
         r"""
 
@@ -91,18 +91,13 @@ class ProvableRobustAccuracy(Loss):
             self.certificate_factor = 2 * lip_const
         else:
             self.certificate_factor = math.sqrt(2) * lip_const
-        super(ProvableRobustAccuracy, self).__init__(reduction, name)
+        super(CategoricalProvableRobustAccuracy, self).__init__(reduction, name)
 
     @tf.function
     def call(self, y_true, y_pred):
-        shape = y_true.shape
-        if len(shape) == 2 and (shape[-1] > 1):
-            delta_fct = _delta_multiclass
-        else:
-            delta_fct = _delta_binary
-            self.certificate_factor = self.lip_const
         return tf.cast(
-            (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
+            (_delta_multiclass(y_true, y_pred) / self.certificate_factor)
+            > self.epsilon,
             y_pred.dtype,
         )
 
@@ -112,19 +107,59 @@ class ProvableRobustAccuracy(Loss):
             "lip_const": self.lip_const,
             "disjoint_neurons": self.disjoint_neurons,
         }
-        base_config = super(ProvableRobustAccuracy, self).get_config()
+        base_config = super(CategoricalProvableRobustAccuracy, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@register_keras_serializable("deel-lip", "ProvableAvgRobustness")
-class ProvableAvgRobustness(Loss):
+@register_keras_serializable("deel-lip", "BinaryProvableRobustAccuracy")
+class BinaryProvableRobustAccuracy(Loss):
+    def __init__(
+        self,
+        epsilon=36 / 255,
+        lip_const=1.0,
+        reduction=Reduction.AUTO,
+        name="BinaryProvableRobustAccuracy",
+    ):
+        r"""
+
+        The accuracy that can be proved at a given epsilon.
+
+        Args:
+            epsilon: the metric will return the guaranteed accuracy for the radius
+                epsilon
+            lip_const: lipschitz constant of the network
+            reduction: the recution method when training in a multi-gpu / TPU system
+            name: metrics name.
+        """
+        self.lip_const = lip_const
+        self.epsilon = epsilon
+        super(BinaryProvableRobustAccuracy, self).__init__(reduction, name)
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        return tf.cast(
+            (_delta_binary(y_true, y_pred) / self.lip_const) > self.epsilon,
+            y_pred.dtype,
+        )
+
+    def get_config(self):
+        config = {
+            "epsilon": self.epsilon,
+            "lip_const": self.lip_const,
+        }
+        base_config = super(BinaryProvableRobustAccuracy, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "CategoricalProvableAvgRobustness")
+class CategoricalProvableAvgRobustness(Loss):
     def __init__(
         self,
         lip_const=1.0,
         disjoint_neurons=True,
         negative_robustness=False,
         reduction=Reduction.AUTO,
-        name="ProvableAvgRobustness",
+        name="CategoricalProvableAvgRobustness",
     ):
         r"""
 
@@ -142,11 +177,6 @@ class ProvableAvgRobustness(Loss):
 
         .. math::
             \mathcal{M}_f(x) =f_l(x) - \max_{i \neq l} f_i(x)
-
-        In the binary classification setup we have:
-
-        .. math::
-            \mathcal{M}_f(x) = f(x) \text{ if } l=1, -f(x) \text{otherwise}
 
         Where :math:`D` is the dataset, :math:`l` is the correct label for x and
         :math:`L_f` is the lipschitz constant of the network (:math:`L = 2 \times
@@ -180,18 +210,13 @@ class ProvableAvgRobustness(Loss):
             self.delta_correction = lambda delta: delta
         else:
             self.delta_correction = tf.nn.relu
-        super(ProvableAvgRobustness, self).__init__(reduction, name)
+        super(CategoricalProvableAvgRobustness, self).__init__(reduction, name)
 
     @tf.function
     def call(self, y_true, y_pred):
-        shape = y_true.shape
-        if len(shape) == 2 and (shape[-1] > 1):
-            delta_fct = _delta_multiclass
-        else:
-            delta_fct = _delta_binary
-            self.certificate_factor = self.lip_const
         return (
-            self.delta_correction(delta_fct(y_true, y_pred)) / self.certificate_factor
+            self.delta_correction(_delta_multiclass(y_true, y_pred))
+            / self.certificate_factor
         )
 
     def get_config(self):
@@ -200,5 +225,68 @@ class ProvableAvgRobustness(Loss):
             "disjoint_neurons": self.disjoint_neurons,
             "negative_robustness": self.negative_robustness,
         }
-        base_config = super(ProvableAvgRobustness, self).get_config()
+        base_config = super(CategoricalProvableAvgRobustness, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "BinaryProvableAvgRobustness")
+class BinaryProvableAvgRobustness(Loss):
+    def __init__(
+        self,
+        lip_const=1.0,
+        negative_robustness=False,
+        reduction=Reduction.AUTO,
+        name="BinaryProvableAvgRobustness",
+    ):
+        r"""
+
+        Compute the average provable robustness radius on the dataset.
+
+        .. math::
+            \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{
+            L_f}\right]
+
+        :math:`\mathcal{M}_f(x)` is a term that: is positive when x is correctly
+        classified and negative otherwise. In both case the value give the robustness
+        radius around x.
+
+        In the binary classification setup we have:
+
+        .. math::
+            \mathcal{M}_f(x) = f(x) \text{ if } l=1, -f(x) \text{otherwise}
+
+        Where :math:`D` is the dataset, :math:`l` is the correct label for x and
+        :math:`L_f` is the lipschitz constant of the network..
+
+        When `negative_robustness` is set to `True` misclassified elements count as
+        negative robustness (:math:`\phi` act as identity function), when set to
+        `False`,
+        misclassified elements yield a robustness radius of 0 ( :math:`\phi(x)=relu(
+        x)` ). The elements are not ignored when computing the mean in both cases.
+
+        This metric works for labels both in {1,0} and {1,-1}.
+
+        Args:
+            lip_const: lipschitz constant of the network
+            reduction: the recution method when training in a multi-gpu / TPU system
+            name: metrics name.
+        """
+        self.lip_const = lip_const
+        self.negative_robustness = negative_robustness
+        if self.negative_robustness:
+            self.delta_correction = lambda delta: delta
+        else:
+            self.delta_correction = tf.nn.relu
+        super(BinaryProvableAvgRobustness, self).__init__(reduction, name)
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        return self.delta_correction(_delta_binary(y_true, y_pred)) / self.lip_const
+
+    def get_config(self):
+        config = {
+            "lip_const": self.lip_const,
+            "negative_robustness": self.negative_robustness,
+        }
+        base_config = super(BinaryProvableAvgRobustness, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
