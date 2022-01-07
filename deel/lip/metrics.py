@@ -104,7 +104,7 @@ class ProvableRobustAccuracy(Loss):
         return tf.reduce_mean(
             tf.cast(
                 (delta_fct(y_true, y_pred) / self.certificate_factor) > self.epsilon,
-                tf.float32,
+                y_pred.dtype,
             )
         )
 
