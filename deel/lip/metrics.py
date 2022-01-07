@@ -93,6 +93,7 @@ class ProvableRobustAccuracy(Loss):
             self.certificate_factor = math.sqrt(2) * lip_const
         super(ProvableRobustAccuracy, self).__init__(reduction, name)
 
+    @tf.function
     def call(self, y_true, y_pred):
         shape = y_true.shape
         if len(shape) == 2 and (shape[-1] > 1):
@@ -183,6 +184,7 @@ class ProvableAvgRobustness(Loss):
             self.delta_correction = tf.nn.relu
         super(ProvableAvgRobustness, self).__init__(reduction, name)
 
+    @tf.function
     def call(self, y_true, y_pred):
         shape = y_true.shape
         if len(shape) == 2 and (shape[-1] > 1):
