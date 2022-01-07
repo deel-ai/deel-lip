@@ -31,9 +31,9 @@ def _delta_multiclass(y_true, y_pred):
 
     """
     ynl_shape = (-1, tf.shape(y_pred)[-1] - 1)
-    yl = tf.boolean_mask(y_pred, y_true == 1)
+    yl = tf.boolean_mask(y_pred, y_true > 0)
     ynl = tf.reshape(
-        tf.boolean_mask(y_pred, y_true != 1),
+        tf.boolean_mask(y_pred, y_true <= 0),
         ynl_shape,
     )
     delta = yl - tf.reduce_max(ynl, axis=-1)
