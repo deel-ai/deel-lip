@@ -129,7 +129,7 @@ class Test(TestCase):
                     metrics_values.append(metric(y_true_case, y_pred_case).numpy())
             self.assertTrue(
                 all([m == metrics_values[0] for m in metrics_values]),
-                "changing the data format must not change the metric " "value",
+                "changing the data format must not change the metric value",
             )
 
     def test_disjoint_neurons(self):

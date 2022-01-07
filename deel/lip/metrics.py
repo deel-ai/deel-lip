@@ -78,7 +78,7 @@ class ProvableRobustAccuracy(Loss):
             epsilon: the metric will return the guaranteed accuracy for the radius
                 epsilon
             lip_const: lipschitz constant of the network
-            disjoint_neurons: must be set to True is your model ends with a
+            disjoint_neurons: must be set to True if your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             reduction: the recution method when training in a multi-gpu / TPU system
