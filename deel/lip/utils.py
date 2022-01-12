@@ -97,4 +97,6 @@ def process_labels_for_multi_gpu(labels):
 
     pos = labels / (counts + eps)
     neg = (1 - labels) / (batch_size - counts + eps)
+    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
+    # to multiply by batch_size here.
     return batch_size * (pos - neg)

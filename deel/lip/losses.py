@@ -29,6 +29,8 @@ def _kr(y_true, y_pred, epsilon):
     # compute the KR dual representation
     pos = S0 / (tf.reduce_sum(S0) + epsilon)
     neg = S1 / (tf.reduce_sum(S1) + epsilon)
+    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
+    # to multiply by batch_size here.
     return tf.squeeze(batch_size * y_pred * (pos - neg))
 
 
@@ -214,6 +216,8 @@ def _multiclass_kr(y_true, y_pred, epsilon):
 
     pos = y_true / (num_elements_per_class + epsilon)
     neg = (1 - y_true) / (batch_size - num_elements_per_class + epsilon)
+    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
+    # to multiply by batch_size here.
     return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
 
 
