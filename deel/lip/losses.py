@@ -66,6 +66,8 @@ class KR(Loss):
         label is 1 and the rest.
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
@@ -116,6 +118,8 @@ class HKR(Loss):
             -Yf(\textbf{x})\right)_+
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
@@ -171,6 +175,8 @@ class HingeMargin(Loss):
             -Yf(\textbf{x})\right)_+
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
@@ -200,7 +206,7 @@ class HingeMargin(Loss):
 def _multiclass_kr(y_true, y_pred, epsilon):
     """Returns the element-wise multiclass KR loss.
 
-    `y_true` and `y_pred` should be one-hot encoded of size (batch_size, # classes).
+    Note that `y_true` should be one-hot encoded of size (batch_size, # classes).
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     batch_size = tf.cast(tf.shape(y_true)[0], y_pred.dtype)
@@ -219,7 +225,8 @@ class MulticlassKR(Loss):
         duality over outputs. In this multiclass setup, the KR term is computed for each
         class and then averaged.
 
-        Note that `y_true` and `y_pred` should be one-hot encoded.
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
@@ -261,7 +268,8 @@ class MulticlassHinge(Loss):
         the two largest logits). This formulation is consistent with the binary
         classification loss used in a multiclass fashion.
 
-        Note that `y_true` and `y_pred` should be one-hot encoded.
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
@@ -308,7 +316,8 @@ class MulticlassHKR(Loss):
         The multiclass version of HKR. This is done by computing the HKR term over each
         class and averaging the results.
 
-        Note that `y_true` and `y_pred` should be one-hot encoded.
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
@@ -357,15 +366,13 @@ class MultiMargin(Loss):
         Compute the hinge margin loss for multiclass (equivalent to Pytorch
         multi_margin_loss)
 
-        Note that `y_true` and `y_pred` should be one-hot encoded.
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
-
-        Notes:
-            y_true has to be to_categorical
 
         """
         self.min_margin = min_margin
