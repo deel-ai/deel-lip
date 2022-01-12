@@ -373,17 +373,15 @@ class MultiMargin(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        y_true = tf.where(y_true > 0, 1, 0)
-        y_true = tf.cast(y_true, y_pred.dtype)
+        mask = tf.where(y_true > 0, 1, 0)
+        mask = tf.cast(mask, y_pred.dtype)
         # get the y_pred[target_class]
         # (zeroing out all elements of y_pred where y_true=0)
-        vYtrue = tf.reduce_sum(y_pred * y_true, axis=-1, keepdims=True)
+        vYtrue = tf.reduce_sum(y_pred * mask, axis=-1, keepdims=True)
         # computing elementwise margin term : margin + y_pred[i]-y_pred[target_class]
         margin = tf.nn.relu(self.min_margin - vYtrue + y_pred)
         # averaging on all outputs and batch
-        final_loss = tf.reduce_mean(
-            tf.where(y_true == 1, 0.0, margin), axis=-1
-        )  # two steps is useless
+        final_loss = tf.reduce_mean((1.0 - mask) * margin, axis=-1)
         return final_loss
 
     def get_config(self):
