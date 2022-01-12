@@ -29,7 +29,7 @@ def _kr(y_true, y_pred, epsilon):
     # compute the KR dual representation
     pos = S0 / (tf.reduce_sum(S0) + epsilon)
     neg = S1 / (tf.reduce_sum(S1) + epsilon)
-    return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
+    return tf.squeeze(batch_size * y_pred * (pos - neg))
 
 
 @register_keras_serializable("deel-lip", "_kr_multi_gpu")
@@ -186,7 +186,7 @@ class HingeMargin(Loss):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
-        return tf.reduce_mean(hinge, axis=-1)
+        return tf.squeeze(hinge)
 
     def get_config(self):
         config = {
