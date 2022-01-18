@@ -8,6 +8,7 @@ from . import constraints
 from . import initializers
 from . import layers
 from . import losses
+from . import metrics
 from .model import Sequential, Model, vanillaModel
 from . import normalizers
 from . import utils
