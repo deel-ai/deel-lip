@@ -18,8 +18,9 @@ from tensorflow.keras.utils import register_keras_serializable
 def _kr(y_true, y_pred, epsilon):
     """Returns the element-wise binary KR loss.
 
-    `y_true` and `y_pred` must be of rank 2: (batch_size, 1). `y_true` labels for the
-    two classes should be either 1 and 0, or 1 and -1.
+    `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or (batch_size, C) for
+    multilabel classification (with C categories).
+    `y_true` labels should be either 1 and 0, or 1 and -1.
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     batch_size = tf.cast(tf.shape(y_true)[0], dtype=y_pred.dtype)
@@ -27,11 +28,11 @@ def _kr(y_true, y_pred, epsilon):
     S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
     S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
     # compute the KR dual representation
-    pos = S0 / (tf.reduce_sum(S0) + epsilon)
-    neg = S1 / (tf.reduce_sum(S1) + epsilon)
+    pos = S0 / (tf.reduce_sum(S0, axis=0) + epsilon)
+    neg = S1 / (tf.reduce_sum(S1, axis=0) + epsilon)
     # Since element-wise KR terms are averaged by loss reduction later on, it is needed
     # to multiply by batch_size here.
-    return tf.squeeze(batch_size * y_pred * (pos - neg))
+    return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
 
 
 @register_keras_serializable("deel-lip", "_kr_multi_gpu")
@@ -67,7 +68,8 @@ class KR(Loss):
         Where mu and nu stands for the two distributions, the distribution where the
         label is 1 and the rest.
 
-        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
         :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
@@ -119,7 +121,8 @@ class HKR(Loss):
             \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
             -Yf(\textbf{x})\right)_+
 
-        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
         :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
@@ -176,7 +179,8 @@ class HingeMargin(Loss):
             \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
             -Yf(\textbf{x})\right)_+
 
-        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1).
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
         :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
@@ -194,7 +198,7 @@ class HingeMargin(Loss):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
-        return tf.squeeze(hinge)
+        return tf.reduce_mean(hinge, axis=-1)
 
     def get_config(self):
         config = {
