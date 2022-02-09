@@ -32,6 +32,8 @@ def _kr(y_true, y_pred, epsilon):
     neg = S1 / (tf.reduce_sum(S1, axis=0) + epsilon)
     # Since element-wise KR terms are averaged by loss reduction later on, it is needed
     # to multiply by batch_size here.
+    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
+    # behaves like `tf.squeeze()` to return element-wise loss of shape (batch_size, ).
     return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
 
 
@@ -48,6 +50,8 @@ def _kr_multi_gpu(y_true, y_pred):
     y_true = tf.cast(y_true, y_pred.dtype)
     # Since the information of batch size was included in `y_true` by
     # `process_labels_for_multi_gpu()`, there is no need here to multiply by batch size.
+    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
+    # behaves like `tf.squeeze()` to return element-wise loss of shape (batch_size, ).
     return tf.reduce_mean(y_pred * y_true, axis=-1)
 
 
@@ -198,6 +202,8 @@ class HingeMargin(Loss):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
         hinge = tf.nn.relu(self.min_margin - sign * y_pred)
+        # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
+        # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
         return tf.reduce_mean(hinge, axis=-1)
 
     def get_config(self):
