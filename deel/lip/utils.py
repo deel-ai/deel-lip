@@ -7,6 +7,7 @@ Contains utility functions.
 """
 from typing import Generator, Tuple, Any
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras import backend as K
 
@@ -70,3 +71,32 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     lip_cst = K.max(ndfx / ndx)
     print("lip cst: %.3f" % lip_cst)
     return lip_cst
+
+
+@tf.function
+def process_labels_for_multi_gpu(labels):
+    """Process labels to be fed to any loss based on KR estimation with a multi-GPU/TPU
+    strategy.
+
+    When using a multi-GPU/TPU strategy, the flag `multi_gpu` in KR-based losses must be
+    set to True and the labels have to be pre-processed with this function.
+
+    For binary classification, the labels should be of shape [batch_size, 1].
+    For multiclass problems, the labels must be one-hot encoded (1 or 0) with shape
+    [batch_size, number of classes].
+
+    Args:
+        labels: tf.Tensor containing the labels
+    Returns:
+        labels processed for KR-based losses with multi-GPU/TPU strategy.
+    """
+    eps = 1e-7
+    labels = tf.cast(tf.where(labels > 0, 1, 0), labels.dtype)
+    batch_size = tf.cast(tf.shape(labels)[0], labels.dtype)
+    counts = tf.reduce_sum(labels, axis=0)
+
+    pos = labels / (counts + eps)
+    neg = (1 - labels) / (batch_size - counts + eps)
+    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
+    # to multiply by batch_size here.
+    return batch_size * (pos - neg)
