@@ -5,8 +5,7 @@
 import unittest
 import sys
 import os
-sys.path.append(os.getcwd())
-print(sys.path)
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Sequential

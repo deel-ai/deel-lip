@@ -17,11 +17,13 @@ from deel.lip.constraints import (
     FrobeniusConstraint,
 )
 
+from deel.lip.utils import padding_circular
+
 if tf.__version__.startswith("2.0"):
     from tensorflow.python.framework.random_seed import set_seed
 else:
     set_seed = tf.random.set_seed
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Conv2D
 from tensorflow.keras.layers import Layer
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
@@ -29,6 +31,7 @@ from deel.lip.callbacks import CondenseCallback, MonitorCallback
 from deel.lip.layers import (
     LipschitzLayer,
     SpectralDense,
+    PadConv2D,
     SpectralConv2D,
     FrobeniusDense,
     FrobeniusConv2D,
@@ -39,7 +42,7 @@ from deel.lip.layers import (
     InvertibleUpSampling,
     ScaledGlobalL2NormPooling2D,
 )
-from deel.lip.model import Sequential
+from deel.lip.model import Sequential, vanillaModel
 from deel.lip.utils import evaluate_lip_const
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
@@ -954,6 +957,146 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+class TestPadConv2D(unittest.TestCase):
+    def test_PadConv2D(self):
+        layer_params={
+            "filters": 2,
+            "kernel_size": (3, 3),
+            "use_bias": False,
+            "padding": "valid"
+        }
+        padding_tested = "circular"
+        batch_size=250
+        input_shapes=[(5, 5, 1),(3,3,5),(7,7,2),(3,3,128)]
+        for input_shape in input_shapes:
+            for pad in ["circular","constant", "symmetric", "reflect","same", "valid"]:
+                self._test_predict(layer_params,pad,input_shape,batch_size)
+            for pad in ["circular","constant", "symmetric", "reflect"]:
+                self._test_padding(pad,input_shape,batch_size,layer_params["kernel_size"])
+            for pad in ["circular","constant", "symmetric", "reflect","same", "valid"]:
+                self._test_vanilla(layer_params,pad,input_shape,batch_size)
+
+    def pad_input(self,x,padding,kernel_size):
+        if padding.lower() in ["same", "valid"]:
+            pad = lambda x: x
+        if padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            paddings = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
+            pad = lambda t: tf.pad(t, paddings, padding)
+        if padding.lower() in ["circular"]:
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            pad = lambda t: padding_circular(t, (p_vert, p_hor))
+        x = pad(x)
+        return x
+
+    def compare(self,x,x_ref,index_x=[],index_x_ref=[]):
+        print("\tcheck "+index_x[-1])
+        #print(index_x_ref)
+        x_cropped =  x[:,index_x[0]:index_x[1],index_x[3]:index_x[4],:][:,::index_x[2],::index_x[5],:] 
+        if index_x_ref[0]==None: #compare with 0
+            np.testing.assert_allclose(
+                x_cropped, np.zeros(x_cropped.shape), 1e-2, 0
+            )
+        else:
+            np.testing.assert_allclose(
+                x_cropped, x_ref[:,index_x_ref[0]:index_x_ref[1],index_x_ref[3]:index_x_ref[4],:][:,::index_x[2],::index_x[5],:], 1e-2, 0
+            )
+
+    def _test_padding(self, padding_tested, input_shape, batch_size, kernel_size):
+        print(padding_tested)
+        x = np.random.normal(size=(batch_size,)+input_shape).astype('float32')
+        x_pad = self.pad_input(x,padding_tested,kernel_size)
+        p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+        
+        center_x_pad = [p_vert,-p_vert,1,p_hor,-p_hor,1,"center"]
+        upper_x_pad = [0,p_vert,1,p_hor,-p_hor,1,"upper"]
+        lower_x_pad = [-p_vert,x_pad.shape[1],1,p_hor,-p_hor,1,"lower"]
+        left_x_pad = [p_vert,-p_vert,1,0,p_hor,1,"left"]
+        right_x_pad = [p_vert,-p_vert,1,-p_hor,x_pad.shape[2],1,"right"]
+        all_x = [0,x.shape[1],1,0,x.shape[2],1]
+        upper_x = [0,p_vert,1,0,x.shape[2],1]
+        upper_x_rev = [0,p_vert,-1,0,x.shape[2],1]
+        upper_x_refl = [1,p_vert+1,-1,0,x.shape[2],1]
+        lower_x = [-p_vert,x.shape[1],1,0,x.shape[2],1]
+        lower_x_rev = [-p_vert,x.shape[1],-1,0,x.shape[2],1]
+        lower_x_refl = [-p_vert-1,x.shape[1]-1,-1,0,x.shape[2],1]
+        left_x = [0,x.shape[1],0,1,p_hor,1]
+        left_x_rev = [0,x.shape[1],1,0,p_hor,-1]
+        left_x_refl = [0,x.shape[1],1,1,p_hor+1,-1]
+        right_x = [0,x.shape[1],1,-p_hor,x.shape[2],1]
+        right_x_rev = [0,x.shape[1],1,-p_hor,x.shape[2],-1]
+        right_x_refl = [0,x.shape[1],1,-p_hor-1,x.shape[2]-1,-1]
+        zero_pad = [None,None,None,None]
+        pad_tests = [
+            {"circular":[center_x_pad,all_x],"constant":[center_x_pad,all_x], "symmetric":[center_x_pad,all_x], "reflect":[center_x_pad,all_x]},
+            {"circular":[upper_x_pad,lower_x_rev],"constant":[upper_x_pad,zero_pad], "symmetric":[upper_x_pad,upper_x_rev], "reflect":[upper_x_pad,upper_x_refl]},
+            {"circular":[lower_x_pad,upper_x_rev],"constant":[lower_x_pad,zero_pad], "symmetric":[lower_x_pad,lower_x_rev], "reflect":[lower_x_pad,lower_x_refl]},
+            {"circular":[left_x_pad,right_x_rev],"constant":[left_x_pad,zero_pad], "symmetric":[left_x_pad,left_x_rev], "reflect":[left_x_pad,left_x_refl]},
+            {"circular":[right_x_pad,left_x_rev],"constant":[right_x_pad,zero_pad], "symmetric":[right_x_pad,right_x_rev], "reflect":[right_x_pad,right_x_refl]},
+        ]
+
+        for test_pad in pad_tests:
+            self.compare(x_pad,x,
+                index_x=test_pad[padding_tested][0],
+                index_x_ref=test_pad[padding_tested][1])
+            
+        return
+
+    def _test_predict(self, layer_params, padding_tested, input_shape, batch_size):
+        print(layer_params)
+        x = np.random.normal(size=(batch_size,)+input_shape).astype('float32')
+        print(x.shape)
+        x_pad = self.pad_input(x,padding_tested,layer_params["kernel_size"])
+        print(x_pad.shape)
+        layer_params_ref = layer_params.copy()
+        if padding_tested.lower() == "same":
+           layer_params_ref["padding"]= padding_tested
+        model_ref = generate_k_lip_model(layer_type=Conv2D, layer_params=layer_params_ref, input_shape=x_pad.shape[1:], k=1.0)
+        optimizer_ref = Adam(lr=0.001)
+        model_ref.compile(optimizer=optimizer_ref, loss="mean_squared_error", metrics=[metrics.mse])
+        y_ref = model_ref.predict(x_pad)
+        layer_params_pad = layer_params.copy()
+        layer_params_pad["padding"] = padding_tested
+        print(layer_params_pad)
+        model = generate_k_lip_model(layer_type=PadConv2D, layer_params=layer_params_pad, input_shape=input_shape, k=1.0)
+        optimizer = Adam(lr=0.001)
+        model.compile(optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse])
+        
+        model.layers[1].kernel.assign(model_ref.layers[1].kernel)
+        if model.layers[1].use_bias:
+            model.layers[1].bias.assign(model_ref.layers[1].bias)
+        
+        y = model.predict(x)
+        np.testing.assert_allclose(
+            y_ref, y, 1e-2, 0
+        )
+
+    def _test_vanilla(self, layer_params, padding_tested, input_shape, batch_size):
+        print(padding_tested)
+        #print(layer_params)
+        x = np.random.normal(size=(batch_size,)+input_shape).astype('float32')
+        print(x.shape)
+        layer_params_pad = layer_params.copy()
+        layer_params_pad["padding"] = padding_tested
+        print(layer_params_pad)
+        model = generate_k_lip_model(layer_type=PadConv2D, layer_params=layer_params_pad, input_shape=input_shape, k=1.0)
+        optimizer = Adam(lr=0.001)
+        model.compile(optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse])
+        
+        #model.layers[1].kernel.assign(model_ref.layers[1].kernel)
+        #if model.layers[1].use_bias:
+        #    model.layers[1].bias.assign(model_ref.layers[1].bias)
+        
+        y = model.predict(x)
+        model_v = vanillaModel(model)
+        optimizer_v = Adam(lr=0.001)
+        model_v.compile(optimizer=optimizer_v, loss="mean_squared_error", metrics=[metrics.mse])
+        
+        y_v = model_v.predict(x)
+
+        np.testing.assert_allclose(
+            y_v, y, 1e-2, 0
+        )
 
 if __name__ == "__main__":
     unittest.main()

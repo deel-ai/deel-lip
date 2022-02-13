@@ -24,6 +24,7 @@ be done by setting the param `eps_bjorck=None`.
 """
 
 import abc
+import warnings
 
 import numpy as np
 import tensorflow as tf
@@ -40,6 +41,11 @@ from .normalizers import (
     DEFAULT_BETA_BJORCK,
 )
 from tensorflow.keras.utils import register_keras_serializable
+from .normalizers import (
+    spectral_normalization_conv,
+)
+from .regularizers import LorthRegularizer
+from .utils import padding_circular
 
 
 class LipschitzLayer(abc.ABC):
@@ -324,6 +330,112 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         )
         layer.build(self.input_shape)
         layer.kernel.assign(self.wbar)
+        if self.use_bias:
+            layer.bias.assign(self.bias)
+        return layer
+
+@register_keras_serializable("deel-lip", "PadConv2D")
+class PadConv2D(keraslayers.Conv2D, Condensable):
+    def __init__(
+        self,
+        filters,
+        kernel_size,
+        strides=(1, 1),
+        padding="same",
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        kernel_initializer='glorot_uniform',
+        bias_initializer="zeros",
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+        **kwargs
+    ):
+        """
+        This class is a Conv2D Layer with paramtrized padding
+        Since Conv2D layer ony support `"same"` and `"valid"` padding, 
+        this layer will enable other type of padding, such as 
+        `"constant"`, `"symmetric"`, `"reflect"` or `"circular"`
+        
+        Args:
+            Same args as the body of the original keras.layers.Conv2D, except for 
+            paddiing accepts 
+            padding: one of `"same"`, `"valid"` `"constant"`, `"symmetric"`, 
+            `"reflect"` or `"circular"` (case-insensitive).
+
+        """
+        self.pad = lambda x: x
+        self.old_padding = padding
+        if padding.lower() in ["same", "valid"]:
+            self.pad = lambda x: x
+        if padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
+            padding = "valid"
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            paddings = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
+            self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
+        if padding.lower() in ["circular"]:
+            padding = "valid"
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            self.pad = lambda t: padding_circular(t, (p_vert, p_hor))
+        super(PadConv2D, self).__init__(
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=kernel_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
+            **kwargs
+        )
+        self._kwargs = kwargs
+
+    def build(self, input_shape):
+        super(PadConv2D, self).build(input_shape)
+    
+    def call(self, x, training=True):
+        x = self.pad(x)
+        return super(PadConv2D, self).call(x)
+
+    def get_config(self):
+        base_config = super(PadConv2D, self).get_config()
+        base_config["padding"] = self.old_padding
+        return base_config
+
+    def condense(self):
+        return
+    def vanilla_export(self):
+        self._kwargs["name"] = self.name
+        if self.old_padding.lower() in ["same", "valid"]:
+            layer_type = keraslayers.Conv2D
+        else:
+            layer_type = PadConv2D
+        layer = layer_type(
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.old_padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            kernel_initializer="glorot_uniform",
+            bias_initializer="zeros",
+            **self._kwargs
+        )
+        layer.build(self.input_shape)
+        layer.kernel.assign(self.kernel)
         if self.use_bias:
             layer.bias.assign(self.bias)
         return layer
