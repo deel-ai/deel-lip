@@ -370,17 +370,8 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         """
         self.pad = lambda x: x
         self.old_padding = padding
-        if padding.lower() in ["same", "valid"]:
-            self.pad = lambda x: x
-        if padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
+        if not padding.lower() in ["same"]:  ## same is directly processed in Conv2D
             padding = "valid"
-            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
-            paddings = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
-            self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
-        if padding.lower() in ["circular"]:
-            padding = "valid"
-            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
-            self.pad = lambda t: padding_circular(t, (p_vert, p_hor))
         super(PadConv2D, self).__init__(
             filters=filters,
             kernel_size=kernel_size,
@@ -400,10 +391,40 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
             **kwargs
         )
         self._kwargs = kwargs
+        if self.old_padding.lower() in ["same", "valid"]:
+            self.pad = lambda x: x
+            self.padding_size = [0,0]
+        if self.old_padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
+            self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2] ##require kernel_size as a list -> done in Conv2D::_init_
+            paddings = [[0, 0], [self.padding_size[0], self.padding_size[0]], [self.padding_size[1], self.padding_size[1]], [0, 0]]
+            self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
+        if self.old_padding.lower() in ["circular"]:
+            self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2]
+            self.pad = lambda t: padding_circular(t, self.padding_size)
+    def compute_padded_shape(self, input_shape, padding_size):
+        if isinstance(input_shape, tf.TensorShape):
+            internal_input_shape = input_shape.as_list()
+        else:
+            internal_input_shape = list(input_shape)
+
+        if self.data_format == "channels_last":
+            first_layer = 1
+        else:
+            first_layer = 2
+        for index, pad in enumerate(padding_size):
+            internal_input_shape[index + first_layer] += 2 * pad
+        internal_input_shape = tf.TensorShape(internal_input_shape)
+        return internal_input_shape
 
     def build(self, input_shape):
-        super(PadConv2D, self).build(input_shape)
+        internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
+        print("build internal_input_shape ",internal_input_shape)
+        super(PadConv2D, self).build(internal_input_shape)
     
+    def compute_output_shape(self, input_shape):
+        internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
+        return super(PadConv2D, self).compute_output_shape(internal_input_shape)
+
     def call(self, x, training=True):
         x = self.pad(x)
         return super(PadConv2D, self).call(x)
@@ -707,7 +728,7 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             layer.bias.assign(self.bias)
         return layer
 
-
+    
 @register_keras_serializable("deel-lip", "FrobeniusDense")
 class FrobeniusDense(keraslayers.Dense, LipschitzLayer, Condensable):
     """
