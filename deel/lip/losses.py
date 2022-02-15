@@ -16,20 +16,20 @@ from tensorflow.keras.utils import register_keras_serializable
 
 @register_keras_serializable("deel-lip", "_kr")
 def _kr(y_true, y_pred, epsilon):
-    """Returns the element-wise binary KR loss.
+    """Returns the element-wise KR loss.
 
-    `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or (batch_size, C) for
-    multilabel classification (with C categories).
+    `y_true` and `y_pred` must be of rank 2: (batch_size, 1) for binary classification
+    or (batch_size, C) for multilabel/multiclass classification (with C categories).
     `y_true` labels should be either 1 and 0, or 1 and -1.
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     batch_size = tf.cast(tf.shape(y_true)[0], dtype=y_pred.dtype)
-    # create two boolean masks each selecting one distribution
-    S0 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
-    S1 = tf.cast(tf.not_equal(y_true, 1), y_pred.dtype)
-    # compute the KR dual representation
-    pos = S0 / (tf.reduce_sum(S0, axis=0) + epsilon)
-    neg = S1 / (tf.reduce_sum(S1, axis=0) + epsilon)
+    # Transform y_true into {1, 0} values
+    S1 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
+    num_elements_per_class = tf.reduce_sum(S1, axis=0)
+
+    pos = S1 / (num_elements_per_class + epsilon)
+    neg = (1 - S1) / (batch_size - num_elements_per_class + epsilon)
     # Since element-wise KR terms are averaged by loss reduction later on, it is needed
     # to multiply by batch_size here.
     # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
@@ -214,23 +214,6 @@ class HingeMargin(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-@register_keras_serializable("deel-lip", "_multiclass_kr")
-def _multiclass_kr(y_true, y_pred, epsilon):
-    """Returns the element-wise multiclass KR loss.
-
-    Note that `y_true` should be one-hot encoded of size (batch_size, # classes).
-    """
-    y_true = tf.cast(y_true, y_pred.dtype)
-    batch_size = tf.cast(tf.shape(y_true)[0], y_pred.dtype)
-    num_elements_per_class = tf.reduce_sum(y_true, axis=0)
-
-    pos = y_true / (num_elements_per_class + epsilon)
-    neg = (1 - y_true) / (batch_size - num_elements_per_class + epsilon)
-    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
-    # to multiply by batch_size here.
-    return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
-
-
 @register_keras_serializable("deel-lip", "MulticlassKR")
 class MulticlassKR(Loss):
     def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="MulticlassKR"):
@@ -258,7 +241,7 @@ class MulticlassKR(Loss):
         if multi_gpu:
             self.kr_function = _kr_multi_gpu
         else:
-            self.kr_function = partial(_multiclass_kr, epsilon=self.eps)
+            self.kr_function = partial(_kr, epsilon=self.eps)
 
     @tf.function
     def call(self, y_true, y_pred):
