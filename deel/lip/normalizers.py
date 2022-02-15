@@ -100,7 +100,10 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
     """
     # build _u and _v
     _u = u
-    _v = None #To be tested tf.math.l2_normalize(_u @ tf.transpose(w))
+    _v = tf.zeros(u.shape[:-1]+(w.shape[0],))  
+    # size of _u@tf.transpose(w) 
+    ## will be set on the first body iteration
+ 
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
@@ -210,8 +213,7 @@ def _power_iteration_conv(
 
     # build _u and _v
     _u = u
-    _v = None ## will be set on the first body iteration
-
+    _v = tf.zeros(u.shape[:-1]+(w.shape[-1],))  ## will be set on the first body iteration
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
