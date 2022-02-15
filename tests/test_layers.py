@@ -1127,14 +1127,14 @@ class TestPadConv2D(unittest.TestCase):
         if isinstance(kernel_size, (int, float)):
             kernel_size = [kernel_size, kernel_size]
         if padding.lower() in ["same", "valid"]:
-            pad = lambda x: x
+            pad = lambda x: x  # noqa: E731
         if padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
             p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
             paddings = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
-            pad = lambda t: tf.pad(t, paddings, padding)
+            pad = lambda t: tf.pad(t, paddings, padding)  # noqa: E731
         if padding.lower() in ["circular"]:
             p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
-            pad = lambda t: padding_circular(t, (p_vert, p_hor))
+            pad = lambda t: padding_circular(t, (p_vert, p_hor))  # noqa: E731
         x = pad(x)
         return x
 

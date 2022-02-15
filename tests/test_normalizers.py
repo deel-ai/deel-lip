@@ -6,10 +6,6 @@ import unittest
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras import backend as K, metrics
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
 from deel.lip.normalizers import (
     spectral_normalization,
     spectral_normalization_conv,
@@ -223,8 +219,5 @@ class TestRKO(unittest.TestCase):
 
 
 if __name__ == "__main__":
-
-    physical_devices = tf.config.experimental.list_physical_devices("GPU")
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
     unittest.main()
