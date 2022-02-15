@@ -100,10 +100,10 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
     """
     # build _u and _v
     _u = u
-    _v = tf.zeros(u.shape[:-1]+(w.shape[0],))  
-    # size of _u@tf.transpose(w) 
-    ## will be set on the first body iteration
- 
+    _v = tf.zeros(u.shape[:-1] + (w.shape[0],))
+    # size of _u@tf.transpose(w)
+    # will be set on the first body iteration
+
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
@@ -157,6 +157,7 @@ def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
     W_bar = W_reshaped / (sigma + eps)
     return W_bar, _u, sigma
 
+
 def _power_iteration_conv(
     w,
     u,
@@ -164,7 +165,8 @@ def _power_iteration_conv(
     conv_first=True,
     cPad=None,
     eps=DEFAULT_EPS_SPECTRAL,
-    bigConstant=-1):
+    bigConstant=-1,
+):
     """
     Internal function that performs the power iteration algorithm for convolution.
 
@@ -180,6 +182,7 @@ def _power_iteration_conv(
          u and v corresponding to the maximum eigenvalue
 
     """
+
     def body(_u, _v, _old_u):
         _old_u = _u
         u = _u / tf.norm(_u)
@@ -205,15 +208,17 @@ def _power_iteration_conv(
         if bigConstant > 0:
             unew = bigConstant * u - unew
         return unew, v, _old_u
+
     # define the loop condition
 
     def cond(_u, _v, old_u):
         return tf.linalg.norm(_u - old_u) >= eps
 
-
     # build _u and _v
     _u = u
-    _v = tf.zeros(u.shape[:-1]+(w.shape[-1],))  ## will be set on the first body iteration
+    _v = tf.zeros(
+        u.shape[:-1] + (w.shape[-1],)
+    )  # will be set on the first body iteration
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
@@ -276,6 +281,7 @@ def _power_iteration_conv(
         _u, _v = iter_f(_u)
     return _u, _v
 '''
+
 
 def spectral_normalization_conv(
     kernel, u=None, stride=1.0, conv_first=True, cPad=None, eps=DEFAULT_EPS_SPECTRAL

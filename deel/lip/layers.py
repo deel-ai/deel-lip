@@ -334,6 +334,7 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
             layer.bias.assign(self.bias)
         return layer
 
+
 @register_keras_serializable("deel-lip", "PadConv2D")
 class PadConv2D(keraslayers.Conv2D, Condensable):
     def __init__(
@@ -346,7 +347,7 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         dilation_rate=(1, 1),
         activation=None,
         use_bias=True,
-        kernel_initializer='glorot_uniform',
+        kernel_initializer="glorot_uniform",
         bias_initializer="zeros",
         kernel_regularizer=None,
         bias_regularizer=None,
@@ -357,20 +358,20 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
     ):
         """
         This class is a Conv2D Layer with paramtrized padding
-        Since Conv2D layer ony support `"same"` and `"valid"` padding, 
-        this layer will enable other type of padding, such as 
+        Since Conv2D layer ony support `"same"` and `"valid"` padding,
+        this layer will enable other type of padding, such as
         `"constant"`, `"symmetric"`, `"reflect"` or `"circular"`
-        
+
         Args:
-            Same args as the body of the original keras.layers.Conv2D, except for 
-            paddiing accepts 
-            padding: one of `"same"`, `"valid"` `"constant"`, `"symmetric"`, 
+            Same args as the body of the original keras.layers.Conv2D, except for
+            paddiing accepts
+            padding: one of `"same"`, `"valid"` `"constant"`, `"symmetric"`,
             `"reflect"` or `"circular"` (case-insensitive).
 
         """
         self.pad = lambda x: x
         self.old_padding = padding
-        if not padding.lower() in ["same"]:  ## same is directly processed in Conv2D
+        if not padding.lower() in ["same"]:  # same is directly processed in Conv2D
             padding = "valid"
         super(PadConv2D, self).__init__(
             filters=filters,
@@ -393,14 +394,23 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         self._kwargs = kwargs
         if self.old_padding.lower() in ["same", "valid"]:
             self.pad = lambda x: x
-            self.padding_size = [0,0]
+            self.padding_size = [0, 0]
         if self.old_padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
-            self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2] ##require kernel_size as a list -> done in Conv2D::_init_
-            paddings = [[0, 0], [self.padding_size[0], self.padding_size[0]], [self.padding_size[1], self.padding_size[1]], [0, 0]]
+            self.padding_size = [
+                self.kernel_size[0] // 2,
+                self.kernel_size[1] // 2,
+            ]  # require kernel_size as a list -> done in Conv2D::_init_
+            paddings = [
+                [0, 0],
+                [self.padding_size[0], self.padding_size[0]],
+                [self.padding_size[1], self.padding_size[1]],
+                [0, 0],
+            ]
             self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
         if self.old_padding.lower() in ["circular"]:
             self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2]
             self.pad = lambda t: padding_circular(t, self.padding_size)
+
     def compute_padded_shape(self, input_shape, padding_size):
         if isinstance(input_shape, tf.TensorShape):
             internal_input_shape = input_shape.as_list()
@@ -418,9 +428,9 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
 
     def build(self, input_shape):
         internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
-        print("build internal_input_shape ",internal_input_shape)
+        print("build internal_input_shape ", internal_input_shape)
         super(PadConv2D, self).build(internal_input_shape)
-    
+
     def compute_output_shape(self, input_shape):
         internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
         return super(PadConv2D, self).compute_output_shape(internal_input_shape)
@@ -436,6 +446,7 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
 
     def condense(self):
         return
+
     def vanilla_export(self):
         self._kwargs["name"] = self.name
         if self.old_padding.lower() in ["same", "valid"]:
@@ -728,6 +739,7 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             layer.bias.assign(self.bias)
         return layer
 
+
 @register_keras_serializable("deel-lip", "OrthoConv2D")
 class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
     def __init__(
@@ -749,10 +761,10 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         bias_constraint=None,
         k_coef_lip=1.0,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
-        #eps_bjorck=DEFAULT_EPS_BJORCK,
-        #beta_bjorck=DEFAULT_BETA_BJORCK,
+        # eps_bjorck=DEFAULT_EPS_BJORCK,
+        # beta_bjorck=DEFAULT_BETA_BJORCK,
         regulLorth=10.0,
-        #niter_spectral=123456789,#DEFAULT_NITER_SPECTRAL,
+        # niter_spectral=123456789,#DEFAULT_NITER_SPECTRAL,
         **kwargs
     ):
         """
@@ -849,13 +861,12 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         self.u = None
         self.spectral_input_shape = None
         self.RO_case = True
-    
-    def initRegulLorth(self,regulLorth, stride):
+
+    def initRegulLorth(self, regulLorth, stride):
         self.regulLorth = regulLorth
         if regulLorth < 0:
             raise RuntimeError(
-                "OrthoConv2D requires a  positive regularization factor "
-                "regulLorth"
+                "OrthoConv2D requires a  positive regularization factor " "regulLorth"
             )
         if regulLorth == 0:
             if self.eps_spectral > 0:
@@ -887,7 +898,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
             if stride > 1:
                 N = int(0.5 + N / stride)
 
-        if C * stride ** 2 > M:
+        if C * stride**2 > M:
             self.spectral_input_shape = (N, N, M)
             self.RO_case = True
         else:
@@ -943,6 +954,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         outputs = super(OrthoConv2D, self).call(x)
         self.kernel = kernel
         return outputs
+
     def get_config(self):
         config = {
             "k_coef_lip": self.k_coef_lip,
@@ -959,12 +971,12 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
             self.kernel.assign(new_w)
             self.sig.assign([[1.0]])
         return
+
     def vanilla_export(self):
         layer = super(OrthoConv2D, self).vanilla_export()
         kernel = self.kernel
         if self.sig is not None:
             kernel = kernel / self.sig.numpy()
-
 
         layer.kernel.assign(kernel.numpy() * self._get_coef())
         if self.use_bias:
@@ -972,7 +984,6 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         return layer
 
 
-    
 @register_keras_serializable("deel-lip", "FrobeniusDense")
 class FrobeniusDense(keraslayers.Dense, LipschitzLayer, Condensable):
     """
