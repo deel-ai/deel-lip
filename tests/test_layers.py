@@ -5,6 +5,8 @@
 import os
 import pprint
 import unittest
+import sys
+sys.path.append(os.getcwd())
 
 import numpy as np
 import tensorflow as tf
@@ -40,6 +42,7 @@ from deel.lip.layers import (
     ScaledL2NormPooling2D,
     InvertibleDownSampling,
     InvertibleUpSampling,
+    OrthoConv2D,
     ScaledGlobalL2NormPooling2D,
 )
 from deel.lip.model import Sequential, vanillaModel
@@ -297,7 +300,7 @@ class LipschitzLayersTest(unittest.TestCase):
             self._check_emp_lip_const(
                 emp_lip_const, from_disk_emp_lip_const, test_params
             )
-
+    
     def test_constraints_clipping(self):
         """
         Tests for a standard Dense layer, for result comparison.
@@ -515,6 +518,57 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+    def test_orthRegul_dense(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 6,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 2,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+    
     def test_spectralconv2d(self):
         self._apply_tests_bank(
             [
@@ -557,7 +611,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
             ]
         )
-
+    
     def test_frobeniusconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -598,6 +652,77 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+    def test_Orthoconv2d(self):
+        # tests only checks that lip cons is enforced
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regulLorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regulLorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regulLorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),                
+                dict(     ### No Regul only spectral norm
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regulLorth": 0.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+            ]
+        )
+    
     def test_scaledaveragepooling2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -955,6 +1080,7 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
             ]
         )
+    
 
 class TestPadConv2D(unittest.TestCase):
     def test_PadConv2D(self):
@@ -1117,6 +1243,7 @@ class TestPadConv2D(unittest.TestCase):
         np.testing.assert_allclose(
             y_v, y, 1e-2, 0
         )
-
+    
 if __name__ == "__main__":
+   
     unittest.main()

@@ -728,6 +728,250 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             layer.bias.assign(self.bias)
         return layer
 
+@register_keras_serializable("deel-lip", "OrthoConv2D")
+class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
+    def __init__(
+        self,
+        filters,
+        kernel_size,
+        strides=(1, 1),
+        padding="circular",
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        kernel_initializer="glorot_uniform",
+        bias_initializer="zeros",
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+        k_coef_lip=1.0,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        #eps_bjorck=DEFAULT_EPS_BJORCK,
+        #beta_bjorck=DEFAULT_BETA_BJORCK,
+        regulLorth=10.0,
+        #niter_spectral=123456789,#DEFAULT_NITER_SPECTRAL,
+        **kwargs
+    ):
+        """
+        This class is a Conv2D Layer regularized such that all singular of it's kernel
+        are 1. The computation is based on LorthRegularizer and requires a circular
+        padding (added in the layer).
+        The computation is done in three steps:
+
+        1. apply a circular padding for ensuring 'same' configuration.
+        2. apply conv2D.
+        3. regularize kernel with Lorth Regul.
+
+        Args:
+            filters: Integer, the dimensionality of the output space
+                (i.e. the number of output filters in the convolution).
+            kernel_size: An integer or tuple/list of 2 integers, specifying the
+                height and width of the 2D convolution window.
+                Can be a single integer to specify the same value for
+                all spatial dimensions.
+            strides: An integer or tuple/list of 2 integers,
+                specifying the strides of the convolution along the height and width.
+                Can be a single integer to specify the same value for
+                all spatial dimensions.
+                Specifying any stride value != 1 is incompatible with specifying
+                any `dilation_rate` value != 1.
+            padding: `"circular"` ONLY (case-insensitive).
+            data_format: A string,
+                one of `channels_last` (default) or `channels_first`.
+                The ordering of the dimensions in the inputs.
+                `channels_last` corresponds to inputs with shape
+                `(batch, height, width, channels)` while `channels_first`
+                corresponds to inputs with shape
+                `(batch, channels, height, width)`.
+                It defaults to the `image_data_format` value found in your
+                Keras config file at `~/.keras/keras.json`.
+                If you never set it, then it will be "channels_last".
+            dilation_rate: an integer or tuple/list of 2 integers, specifying
+                the dilation rate to use for dilated convolution.
+                Can be a single integer to specify the same value for
+                all spatial dimensions.
+                Currently, specifying any `dilation_rate` value != 1 is
+                incompatible with specifying any stride value != 1.
+            activation: Activation function to use.
+                If you don't specify anything, no activation is applied
+                (ie. "linear" activation: `a(x) = x`).
+            use_bias: Boolean, whether the layer uses a bias vector.
+            kernel_initializer: Initializer for the `kernel` weights matrix.
+            bias_initializer: Initializer for the bias vector.
+            kernel_regularizer: Regularizer function applied to
+                the `kernel` weights matrix (should be None and will be set).
+            bias_regularizer: Regularizer function applied to the bias vector.
+            activity_regularizer: Regularizer function applied to
+                the output of the layer (its "activation")..
+            kernel_constraint: Constraint function applied to the kernel matrix.
+            bias_constraint: Constraint function applied to the bias vector.
+            k_coef_lip: lipschitz constant to ensure.
+
+        This documentation reuse the body of the original keras.layers.Conv2D doc.
+        """
+        if padding != "circular":
+            raise RuntimeError(
+                "OrthoConv2D only support padding='circular' implemented in the "
+                "layer "
+            )
+        if kernel_regularizer is not None:
+            raise RuntimeError(
+                "OrthoConv2D define the kernel_regularizer (should be None)"
+            )
+
+        self.eps_spectral = eps_spectral
+        regulLipConv = self.initRegulLorth(regulLorth, strides[0])
+
+        super(OrthoConv2D, self).__init__(
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,  # padding taken into account in PadConv2D
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            activation=activation,
+            use_bias=use_bias,
+            kernel_initializer=kernel_initializer,
+            bias_initializer=bias_initializer,
+            kernel_regularizer=regulLipConv,  # internal value
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            kernel_constraint=kernel_constraint,
+            bias_constraint=bias_constraint,
+            **kwargs
+        )
+        self._kwargs = kwargs
+        self.set_klip_factor(k_coef_lip)
+        self.sig = None
+        self.u = None
+        self.spectral_input_shape = None
+        self.RO_case = True
+    
+    def initRegulLorth(self,regulLorth, stride):
+        self.regulLorth = regulLorth
+        if regulLorth < 0:
+            raise RuntimeError(
+                "OrthoConv2D requires a  positive regularization factor "
+                "regulLorth"
+            )
+        if regulLorth == 0:
+            if self.eps_spectral > 0:
+                warnings.warn("No Lorth Regularization, spectral normalization only")
+            else:
+                warnings.warn("No constraint regulLorth==0 and eps_spectral==0")
+
+        regulLipConv = None
+        if regulLorth > 0:
+            regulLipConv = LorthRegularizer(
+                kernel_shape=None,
+                stride=stride,
+                lambdaLorth=regulLorth,
+                flag_deconv=False,
+            )
+        return regulLipConv
+
+    def initSpectralNorm(self):
+        if self.eps_spectral <= 0:
+            return
+        (R0, R, C, M) = self.kernel.shape
+        stride = self.strides[0]
+        # Compute minimal N
+        r = R // 2
+        if r < 1:
+            N = 5
+        else:
+            N = 4 * r + 1
+            if stride > 1:
+                N = int(0.5 + N / stride)
+
+        if C * stride ** 2 > M:
+            self.spectral_input_shape = (N, N, M)
+            self.RO_case = True
+        else:
+            self.spectral_input_shape = (stride * N, stride * N, C)
+            self.RO_case = False
+        self.u = self.add_weight(
+            shape=(1,) + self.spectral_input_shape,
+            initializer=RandomNormal(-1, 1),
+            name="sn",
+            trainable=False,
+            dtype=self.dtype,
+        )
+
+        self.sig = self.add_weight(
+            shape=tuple([1, 1]),  # maximum spectral  value
+            name="sigma",
+            trainable=False,
+            dtype=self.dtype,
+        )
+        self.sig.assign([[1.0]])
+
+    def build(self, input_shape):
+        super(OrthoConv2D, self).build(input_shape)
+        self._init_lip_coef(input_shape)
+        if self.kernel_regularizer is not None:
+            self.kernel_regularizer.set_kernel_shape(self.kernel.shape)
+        self.initSpectralNorm()
+        self.built = True
+
+    def _compute_lip_coef(self, input_shape=None):
+        return 1.0  # this layer don't require a corrective factor
+
+    def call(self, x, training=None):
+        if training and self.eps_spectral > 0:
+            W_bar, _u, sigma = spectral_normalization_conv(
+                self.kernel,
+                self.u,
+                stride=self.strides[0],
+                conv_first=not self.RO_case,
+                cPad=self.padding_size,
+                eps=self.eps_spectral,
+            )
+            self.sig.assign([[sigma]])
+            self.u.assign(_u)
+        else:
+            if self.sig is not None:
+                W_bar = self.kernel / self.sig
+            else:
+                W_bar = self.kernel
+        W_bar = self.kernel  # / self.sig
+        kernel = self.kernel
+        self.kernel = W_bar
+        outputs = super(OrthoConv2D, self).call(x)
+        self.kernel = kernel
+        return outputs
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+            "eps_spectral": self.eps_spectral,
+            "regulLorth": self.regulLorth,
+            "kernel_regularizer": None,  # overwrite the kernel regul to None
+        }
+        base_config = super(OrthoConv2D, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def condense(self):
+        if self.sig is not None:
+            new_w = self.kernel / self.sig.numpy()
+            self.kernel.assign(new_w)
+            self.sig.assign([[1.0]])
+        return
+    def vanilla_export(self):
+        layer = super(OrthoConv2D, self).vanilla_export()
+        kernel = self.kernel
+        if self.sig is not None:
+            kernel = kernel / self.sig.numpy()
+
+
+        layer.kernel.assign(kernel.numpy() * self._get_coef())
+        if self.use_bias:
+            layer.bias.assign(self.bias.numpy())
+        return layer
+
+
     
 @register_keras_serializable("deel-lip", "FrobeniusDense")
 class FrobeniusDense(keraslayers.Dense, LipschitzLayer, Condensable):
