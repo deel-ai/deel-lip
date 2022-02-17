@@ -371,6 +371,7 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         """
         self.pad = lambda x: x
         self.old_padding = padding
+        self.internal_input_shape = None
         if not padding.lower() in ["same"]:  # same is directly processed in Conv2D
             padding = "valid"
         super(PadConv2D, self).__init__(
@@ -427,9 +428,14 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         return internal_input_shape
 
     def build(self, input_shape):
-        internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
-        print("build internal_input_shape ", internal_input_shape)
-        super(PadConv2D, self).build(internal_input_shape)
+        self.internal_input_shape = self.compute_padded_shape(
+            input_shape, self.padding_size
+        )
+        print("build internal_input_shape ", self.internal_input_shape)
+        super(PadConv2D, self).build(self.internal_input_shape)
+
+    def compute_output_shape(self, input_shape):
+        return super(PadConv2D, self).compute_output_shape(self.internal_input_shape)
 
     def call(self, x, training=True):
         x = self.pad(x)

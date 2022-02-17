@@ -6,7 +6,7 @@ from .layers import (
     Condensable,
     SpectralConv2D,
     FrobeniusConv2D,
-    LorthRegulConv2D,
+    OrthoConv2D,
     SpectralDense,
     FrobeniusDense,
 )
@@ -193,7 +193,7 @@ def compute_layer_sv(
         tf.keras.layers.Conv2DTranspose: computeConvSV,
         SpectralConv2D: computeConvSV,
         FrobeniusConv2D: computeConvSV,
-        LorthRegulConv2D: computeConvSV,
+        OrthoConv2D: computeConvSV,
         tf.keras.layers.Dense: computeDenseSV,
         SpectralDense: computeDenseSV,
         FrobeniusDense: computeDenseSV,
