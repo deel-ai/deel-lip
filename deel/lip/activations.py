@@ -11,8 +11,9 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import MinMaxNorm
 from tensorflow.keras.layers import Layer, PReLU
-from .layers import LipschitzLayer
 from tensorflow.keras.utils import register_keras_serializable
+
+from .layers import LipschitzLayer
 
 
 @register_keras_serializable("deel-lip", "MaxMin")

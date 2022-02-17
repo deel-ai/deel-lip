@@ -45,6 +45,7 @@ from deel.lip.layers import (
 )
 from deel.lip.model import Sequential, vanillaModel
 from deel.lip.utils import evaluate_lip_const
+from deel.lip.regularizers import OrthDenseRegularizer
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
@@ -271,12 +272,16 @@ class LipschitzLayersTest(unittest.TestCase):
             5,
             "serialization must not change the Lipschitz constant of a layer",
         )
-        self.assertLess(
-            emp_lip_const,
-            test_params["k_lip_model"] * 1.02,
-            msg=" the lip const of the network must be lower"
-            + " than the specified boundary",
-        )
+        if test_params["layer_type"] != Dense:
+            if "k_lip_tolerance_factor" not in test_params.keys():
+                test_params["k_lip_tolerance_factor"] = 1.02
+            self.assertLess(
+                emp_lip_const,
+                test_params["k_lip_model"] * test_params["k_lip_tolerance_factor"],
+                msg=" the lip const of the network must be lower"
+                + " than the specified boundary",
+            )
+
 
     def _apply_tests_bank(self, tests_bank):
         for test_params in tests_bank:
