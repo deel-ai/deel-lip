@@ -185,7 +185,7 @@ def bnSV(layer, input_sizes=[], numIter=100, log_out=None):
     return (lower, upper)
 
 
-def computeLayerSV(
+def compute_layer_sv(
     layer, input_sizes=[], numIter=100, log_out=None, supplementaryType2SV={}
 ):
     defaultType2SV = {
@@ -249,7 +249,7 @@ def computeModelSVs(
             list_SV.append(
                 (
                     layer.name,
-                    computeLayerSV(
+                    compute_layer_sv(
                         layer,
                         input_sizes=input_sizes,
                         numIter=numIter,
