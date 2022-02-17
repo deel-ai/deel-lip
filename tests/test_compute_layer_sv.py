@@ -24,7 +24,7 @@ from deel.lip.layers import (
     SpectralConv2D,
     FrobeniusDense,
     FrobeniusConv2D,
-    LorthRegulConv2D,
+    OrthoConv2D,
 )
 from deel.lip.model import Sequential
 from deel.lip.regularizers import OrthDenseRegularizer
@@ -400,16 +400,16 @@ class LipschitzLayersSVTest(unittest.TestCase):
             ]
         )
 
-    def test_lorthregulconv2d(self):
+    def test_orthoconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
             [
                 dict(
-                    layer_type=LorthRegulConv2D,
+                    layer_type=OrthoConv2D,
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "lambdaLorth": 1000.0,
+                        "regulLorth": 1000.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -421,11 +421,11 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     callbacks=[],
                 ),
                 dict(
-                    layer_type=LorthRegulConv2D,
+                    layer_type=OrthoConv2D,
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "lambdaLorth": 1000.0,
+                        "regulLorth": 1000.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
