@@ -431,10 +431,6 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
         print("build internal_input_shape ", internal_input_shape)
         super(PadConv2D, self).build(internal_input_shape)
 
-    def compute_output_shape(self, input_shape):
-        internal_input_shape = self.compute_padded_shape(input_shape, self.padding_size)
-        return super(PadConv2D, self).compute_output_shape(internal_input_shape)
-
     def call(self, x, training=True):
         x = self.pad(x)
         return super(PadConv2D, self).call(x)
