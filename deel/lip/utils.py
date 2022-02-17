@@ -72,6 +72,45 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     print("lip cst: %.3f" % lip_cst)
     return lip_cst
 
+def padding_circular(x, cPad):
+    if cPad is None:
+        return x
+    w_pad, h_pad = cPad
+    if w_pad > 0:
+        x = tf.concat((x[:, -w_pad:, :, :], x, x[:, :w_pad, :, :]), axis=1)
+    if h_pad > 0:
+        x = tf.concat((x[:, :, -h_pad:, :], x, x[:, :, :h_pad, :]), axis=2)
+    return x
+
+
+def zero_upscale2D(x, strides):
+    stride_v = strides[0] * strides[1]
+    if stride_v == 1:
+        return x
+    output_shape = x.get_shape().as_list()[1:]
+    if strides[1] > 1:
+        output_shape[1] *= strides[1]
+        x = tf.expand_dims(x, 3)
+        fillz = tf.zeros_like(x)
+        fillz = tf.tile(fillz, [1, 1, 1, strides[1] - 1, 1])
+        x = tf.concat((x, fillz), axis=3)
+        x = tf.reshape(x, (-1,) + tuple(output_shape))
+    if strides[0] > 1:
+        output_shape[0] *= strides[0]
+        x = tf.expand_dims(x, 2)
+        fillz = tf.zeros_like(x)
+        fillz = tf.tile(fillz, [1, 1, strides[0] - 1, 1, 1])
+        x = tf.concat((x, fillz), axis=2)
+        x = tf.reshape(x, (-1,) + tuple(output_shape))
+    return x
+
+
+def transposeKernel(w, transpose=False):
+    if not transpose:
+        return w
+    wAdj = tf.transpose(w, perm=[0, 1, 3, 2])
+    wAdj = wAdj[::-1, ::-1, :]
+    return wAdj
 
 @tf.function
 def process_labels_for_multi_gpu(labels):
