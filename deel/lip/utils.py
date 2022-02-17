@@ -72,6 +72,7 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     print("lip cst: %.3f" % lip_cst)
     return lip_cst
 
+
 def padding_circular(x, cPad):
     if cPad is None:
         return x
@@ -111,6 +112,7 @@ def transposeKernel(w, transpose=False):
     wAdj = tf.transpose(w, perm=[0, 1, 3, 2])
     wAdj = wAdj[::-1, ::-1, :]
     return wAdj
+
 
 @tf.function
 def process_labels_for_multi_gpu(labels):

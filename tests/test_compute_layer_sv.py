@@ -333,7 +333,6 @@ class LipschitzLayersSVTest(unittest.TestCase):
             ]
         )
 
- 
     def test_spectralconv2d(self):
         self._apply_tests_bank(
             [
@@ -439,7 +438,6 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 ),
             ]
         )
-
 
 
 if __name__ == "__main__":

@@ -282,7 +282,6 @@ class LipschitzLayersTest(unittest.TestCase):
                 + " than the specified boundary",
             )
 
-
     def _apply_tests_bank(self, tests_bank):
         for test_params in tests_bank:
             pp.pprint(test_params)
