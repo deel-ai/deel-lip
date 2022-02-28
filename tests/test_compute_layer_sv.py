@@ -382,6 +382,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
                     dont_test_SVmin=False,
                     callbacks=[],
                 ),
@@ -394,6 +395,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=5.0,
+                    k_lip_tolerance_factor=1.1,
                     dont_test_SVmin=False,
                     callbacks=[],
                 ),
