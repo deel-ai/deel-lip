@@ -447,3 +447,46 @@ class Test(TestCase):
                 rtol=1e-5,
                 err_msg=f"Loss {loss.name} failed for random mini-batches",
             )
+
+    def test_multilabel_losses(self):
+        """
+        Assert binary losses with multilabels.
+        Three losses are tested (KR, HingeMargin and HKR). We compare losses with three
+        separate binary classification and the corresponding multilabel problem.
+        """
+        # Create predictions and labels for 3 binary problems and the concatenated
+        # multilabel one.
+        y_pred1, y_true1 = get_gaussian_data(1000)
+        y_pred2, y_true2 = get_gaussian_data(1000)
+        y_pred3, y_true3 = get_gaussian_data(1000)
+        y_pred = tf.concat([y_pred1, y_pred2, y_pred3], axis=-1)
+        y_true = tf.concat([y_true1, y_true2, y_true3], axis=-1)
+
+        # Tested losses (different reductions, multi_gpu)
+        losses = (
+            KR(reduction="none", name="KR none"),
+            HingeMargin(0.4, reduction="none", name="hinge none"),
+            HKR(alpha=5.2, reduction="none", name="HKR none"),
+            KR(reduction="auto", name="KR auto"),
+            HingeMargin(0.6, reduction="auto", name="hinge auto"),
+            HKR(alpha=10, reduction="auto", name="HKR auto"),
+            KR(multi_gpu=True, reduction="sum", name="KR multi_gpu"),
+            HKR(alpha=3.2, multi_gpu=True, reduction="sum", name="HKR multi_gpu"),
+        )
+
+        # Compute loss values and assert that the multilabel value is equal to the mean
+        # of the three separate binary problems.
+        for loss in losses:
+            loss_val1 = loss(y_true1, y_pred1).numpy()
+            loss_val2 = loss(y_true2, y_pred2).numpy()
+            loss_val3 = loss(y_true3, y_pred3).numpy()
+            mean_loss_vals = (loss_val1 + loss_val2 + loss_val3) / 3
+
+            loss_val_multilabel = loss(y_true, y_pred).numpy()
+
+            np.testing.assert_allclose(
+                loss_val_multilabel,
+                mean_loss_vals,
+                rtol=2e-6,
+                err_msg=f"Loss {loss.name} failed",
+            )
