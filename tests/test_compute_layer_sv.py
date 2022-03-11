@@ -175,6 +175,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
         # clear session to avoid side effects from previous train
         K.clear_session()
         np.random.seed(42)
+        tf.random.set_seed(1234)
         # create the keras model, defin opt, and compile it
         model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
         print(model.summary())
@@ -246,7 +247,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
         for test_params in tests_bank:
             pp.pprint(test_params)
             self.train_compute_and_verifySV(**test_params)
-
+    
     def test_spectral_dense(self):
         self._apply_tests_bank(
             [
@@ -332,43 +333,98 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 ),
             ]
         )
-
+    
+    
     def test_spectralconv2d(self):
         self._apply_tests_bank(
             [
-                dict(
+            dict(
                     layer_type=SpectralConv2D,
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
                         "use_bias": False,
                     },
-                    batch_size=1000,
+                    batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.1,
+                    k_lip_tolerance_factor=1.02,
                     dont_test_SVmin=False,
                     callbacks=[],
                 ),
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=5.0,
-                    k_lip_tolerance_factor=1.1,
+                    k_lip_tolerance_factor=1.02,
+                    dont_test_SVmin=False,
+                    callbacks=[],
+                ),                
+                dict(
+                    layer_type=SpectralConv2D,
+                    layer_params={
+                        "filters": 2, 
+                        "kernel_size": (3, 3),
+                        "use_bias": False,
+                    },
+                    batch_size=100,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 3), #case conv_first=False
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.02,
+                    dont_test_SVmin=False,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralConv2D,
+                    layer_params={
+                        "filters": 5,
+                        "kernel_size": (3, 3),
+                        "use_bias": False,
+                        "strides":2,
+                    },
+                    batch_size=100,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(10, 10, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.02,
+                    dont_test_SVmin=False,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralConv2D,
+                    layer_params={
+                        "filters": 3,  #case conv_first=False
+                        "kernel_size": (3, 3),
+                        "use_bias": False,
+                        "strides":2,
+                    },
+                    batch_size=100,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(10, 10, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.02,
                     dont_test_SVmin=False,
                     callbacks=[],
                 ),
             ]
         )
-
+    
+    
     def test_frobeniusconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -376,7 +432,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -389,7 +445,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=1000,
+                    batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
@@ -398,10 +454,24 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     k_lip_tolerance_factor=1.1,
                     dont_test_SVmin=False,
                     callbacks=[],
-                ),
+                ),                
+                dict(
+                    layer_type=FrobeniusConv2D,
+                    layer_params={"filters": 2, "kernel_size": (3, 3)},
+                    batch_size=100,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 3),  #case conv_first=False
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
+                    dont_test_SVmin=False,
+                    callbacks=[],
+                ),                
             ]
         )
 
+    
     def test_orthoconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -438,9 +508,27 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     k_lip_tolerance_factor=1.1,
                     callbacks=[],
                 ),
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 6,
+                        "kernel_size": (3, 3),
+                        "regulLorth": 1000.0,
+                        "strides": 2
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(10, 10, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.1,
+                    callbacks=[],
+                ),
             ]
         )
-
+    
+      
 
 if __name__ == "__main__":
 
