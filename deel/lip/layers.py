@@ -651,21 +651,7 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         else:
             sn1 = self.strides[0]
             sn2 = self.strides[1]
-            ho = np.floor(h / sn1)
-            wo = np.floor(w / sn2)
-            alphabar1 = np.floor(k1_div2 / sn1)
-            alphabar2 = np.floor(k2_div2 / sn2)
-            betabar1 = k1_div2 - alphabar1 * sn1
-            betabar2 = k2_div2 - alphabar2 * sn2
-            zl1 = (alphabar1 * sn1 + 2 * betabar1) * (alphabar1 + 1) / 2
-            zl2 = (alphabar2 * sn2 + 2 * betabar2) * (alphabar2 + 1) / 2
-            gamma1 = h - 1 - sn1 * np.ceil((h - 1 - k1_div2) / sn1)
-            gamma2 = w - 1 - sn2 * np.ceil((w - 1 - k2_div2) / sn2)
-            alphah1 = np.floor(gamma1 / sn1)
-            alphaw2 = np.floor(gamma2 / sn2)
-            zr1 = (alphah1 + 1) * (k1_div2 - gamma1 + sn1 * alphah1 / 2.0)
-            zr2 = (alphaw2 + 1) * (k2_div2 - gamma2 + sn2 * alphaw2 / 2.0)
-            coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
+            coefLip = np.sqrt(1.0/(np.ceil(k1/sn1)*np.ceil(k2/sn2)))
         return coefLip
 
     def call(self, x, training=True):
@@ -763,10 +749,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         bias_constraint=None,
         k_coef_lip=1.0,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
-        # eps_bjorck=DEFAULT_EPS_BJORCK,
-        # beta_bjorck=DEFAULT_BETA_BJORCK,
         regulLorth=10.0,
-        # niter_spectral=123456789,#DEFAULT_NITER_SPECTRAL,
         **kwargs
     ):
         """
@@ -836,13 +819,19 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 "OrthoConv2D define the kernel_regularizer (should be None)"
             )
 
+        
+        if isinstance(strides, int):
+            self.strides = (strides,) * 2
+        else:
+            self.strides = tuple(strides)
+
         self.eps_spectral = eps_spectral
-        regulLipConv = self.initRegulLorth(regulLorth, strides[0])
+        regulLipConv = self.initRegulLorth(regulLorth, self.strides[0])
 
         super(OrthoConv2D, self).__init__(
             filters=filters,
             kernel_size=kernel_size,
-            strides=strides,
+            strides=self.strides,
             padding=padding,  # padding taken into account in PadConv2D
             data_format=data_format,
             dilation_rate=dilation_rate,
@@ -934,7 +923,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         return 1.0  # this layer don't require a corrective factor
 
     def call(self, x, training=None):
-        if training and self.eps_spectral > 0:
+        if training and self.eps_spectral > 0: 
             W_bar, _u, sigma = spectral_normalization_conv(
                 self.kernel,
                 self.u,
@@ -950,7 +939,6 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 W_bar = self.kernel / self.sig
             else:
                 W_bar = self.kernel
-        W_bar = self.kernel  # / self.sig
         kernel = self.kernel
         self.kernel = W_bar
         outputs = super(OrthoConv2D, self).call(x)
