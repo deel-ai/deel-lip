@@ -194,16 +194,23 @@ def _power_iteration_conv(
         if conv_first:
             u_pad = padding_circular(u, cPad)
             v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
-            v1 = zero_upscale2D(v, (stride, stride))
-            v1 = padding_circular(v1, cPad)
-            wAdj = transposeKernel(w, True)
-            unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
+            if cPad is None:
+                unew = tf.nn.conv2d_transpose(v, w,output_shape=u.shape, padding=padType, strides=(1, stride, stride, 1))
+            else:
+                v1 = zero_upscale2D(v, (stride, stride))
+                v1 = padding_circular(v1, cPad)
+                wAdj = transposeKernel(w, True)
+                unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
         else:
-            u1 = zero_upscale2D(u, (stride, stride))
-            u_pad = padding_circular(u1, cPad)
-            wAdj = transposeKernel(w, True)
-            v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
-            v1 = padding_circular(v, cPad)
+            if cPad is None:
+                v = tf.nn.conv2d_transpose(u, w,output_shape=_v.shape, padding=padType, strides=(1, stride, stride, 1))
+                v1 = v
+            else:
+                u1 = zero_upscale2D(u, (stride, stride))
+                u_pad = padding_circular(u1, cPad)
+                wAdj = transposeKernel(w, True)
+                v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
+                v1 = padding_circular(v, cPad)
             unew = tf.nn.conv2d(v1, w, padding=padType, strides=(1, stride, stride, 1))
         if bigConstant > 0:
             unew = bigConstant * u - unew
@@ -214,11 +221,16 @@ def _power_iteration_conv(
     def cond(_u, _v, old_u):
         return tf.linalg.norm(_u - old_u) >= eps
 
+    # v shape
+    if conv_first:
+        v_shape = (u.shape[0],)+(u.shape[1]//stride,u.shape[2]//stride) + (w.shape[-1],)
+    else:
+        v_shape = (u.shape[0],)+(u.shape[1]*stride,u.shape[2]*stride) + (w.shape[-2],)
+    _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
+
     # build _u and _v
     _u = u
-    _v = tf.zeros(
-        u.shape[:-1] + (w.shape[-1],)
-    )  # will be set on the first body iteration
+
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
@@ -226,61 +238,10 @@ def _power_iteration_conv(
     _u, _v, _old_u = tf.while_loop(
         cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=30
     )
+    
     return _u, _v
 
 
-'''def _power_iteration_conv(
-    w,
-    u,
-    stride=1.0,
-    conv_first=True,
-    cPad=None,
-    niter=DEFAULT_NITER_SPECTRAL,
-    bigConstant=-1,
-):
-    """
-    Internal function that performs the power iteration algorithm.
-
-    Args:
-        w: weights matrix that we want to find eigen vector
-        u: initialization of the eigen vector
-        niter: number of iteration, must be greater than 0
-
-    Returns:
-         u and v corresponding to the maximum eigenvalue
-
-    """
-
-    def iter_f(u):
-        u = u / tf.norm(u)
-        if cPad is None:
-            padType = "SAME"
-        else:
-            padType = "VALID"
-
-        if conv_first:
-            u_pad = padding_circular(u, cPad)
-            v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
-            v1 = zero_upscale2D(v, (stride, stride))
-            v1 = padding_circular(v1, cPad)
-            wAdj = transposeKernel(w, True)
-            unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
-        else:
-            u1 = zero_upscale2D(u, (stride, stride))
-            u_pad = padding_circular(u1, cPad)
-            wAdj = transposeKernel(w, True)
-            v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
-            v1 = padding_circular(v, cPad)
-            unew = tf.nn.conv2d(v1, w, padding=padType, strides=(1, stride, stride, 1))
-        if bigConstant > 0:
-            unew = bigConstant * u - unew
-        return unew, v
-
-    _u = u
-    for i in range(niter):
-        _u, _v = iter_f(_u)
-    return _u, _v
-'''
 
 
 def spectral_normalization_conv(
