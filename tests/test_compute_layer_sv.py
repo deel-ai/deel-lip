@@ -247,7 +247,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
         for test_params in tests_bank:
             pp.pprint(test_params)
             self.train_compute_and_verifySV(**test_params)
-    
+
     def test_spectral_dense(self):
         self._apply_tests_bank(
             [
@@ -333,12 +333,11 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 ),
             ]
         )
-    
-    
+
     def test_spectralconv2d(self):
         self._apply_tests_bank(
             [
-            dict(
+                dict(
                     layer_type=SpectralConv2D,
                     layer_params={
                         "filters": 2,
@@ -367,18 +366,18 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     k_lip_tolerance_factor=1.02,
                     dont_test_SVmin=False,
                     callbacks=[],
-                ),                
+                ),
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={
-                        "filters": 2, 
+                        "filters": 2,
                         "kernel_size": (3, 3),
                         "use_bias": False,
                     },
                     batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
-                    input_shape=(5, 5, 3), #case conv_first=False
+                    input_shape=(5, 5, 3),  # case conv_first=False
                     k_lip_data=1.0,
                     k_lip_model=1.0,
                     k_lip_tolerance_factor=1.02,
@@ -391,7 +390,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                         "filters": 5,
                         "kernel_size": (3, 3),
                         "use_bias": False,
-                        "strides":2,
+                        "strides": 2,
                     },
                     batch_size=100,
                     steps_per_epoch=125,
@@ -406,10 +405,10 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={
-                        "filters": 3,  #case conv_first=False
+                        "filters": 3,  # case conv_first=False
                         "kernel_size": (3, 3),
                         "use_bias": False,
-                        "strides":2,
+                        "strides": 2,
                     },
                     batch_size=100,
                     steps_per_epoch=125,
@@ -423,8 +422,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 ),
             ]
         )
-    
-    
+
     def test_frobeniusconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -454,24 +452,23 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     k_lip_tolerance_factor=1.1,
                     dont_test_SVmin=False,
                     callbacks=[],
-                ),                
+                ),
                 dict(
                     layer_type=FrobeniusConv2D,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
                     batch_size=100,
                     steps_per_epoch=125,
                     epochs=5,
-                    input_shape=(5, 5, 3),  #case conv_first=False
+                    input_shape=(5, 5, 3),  # case conv_first=False
                     k_lip_data=1.0,
                     k_lip_model=1.0,
                     k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
                     dont_test_SVmin=False,
                     callbacks=[],
-                ),                
+                ),
             ]
         )
 
-    
     def test_orthoconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -514,7 +511,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                         "filters": 6,
                         "kernel_size": (3, 3),
                         "regulLorth": 1000.0,
-                        "strides": 2
+                        "strides": 2,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -527,8 +524,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
                 ),
             ]
         )
-    
-      
+
 
 if __name__ == "__main__":
 

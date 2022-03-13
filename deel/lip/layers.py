@@ -651,7 +651,7 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         else:
             sn1 = self.strides[0]
             sn2 = self.strides[1]
-            coefLip = np.sqrt(1.0/(np.ceil(k1/sn1)*np.ceil(k2/sn2)))
+            coefLip = np.sqrt(1.0 / (np.ceil(k1 / sn1) * np.ceil(k2 / sn2)))
         return coefLip
 
     def call(self, x, training=True):
@@ -819,7 +819,6 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 "OrthoConv2D define the kernel_regularizer (should be None)"
             )
 
-        
         if isinstance(strides, int):
             self.strides = (strides,) * 2
         else:
@@ -923,7 +922,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         return 1.0  # this layer don't require a corrective factor
 
     def call(self, x, training=None):
-        if training and self.eps_spectral > 0: 
+        if training and self.eps_spectral > 0:
             W_bar, _u, sigma = spectral_normalization_conv(
                 self.kernel,
                 self.u,

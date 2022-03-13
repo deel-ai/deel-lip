@@ -195,7 +195,13 @@ def _power_iteration_conv(
             u_pad = padding_circular(u, cPad)
             v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
             if cPad is None:
-                unew = tf.nn.conv2d_transpose(v, w,output_shape=u.shape, padding=padType, strides=(1, stride, stride, 1))
+                unew = tf.nn.conv2d_transpose(
+                    v,
+                    w,
+                    output_shape=u.shape,
+                    padding=padType,
+                    strides=(1, stride, stride, 1),
+                )
             else:
                 v1 = zero_upscale2D(v, (stride, stride))
                 v1 = padding_circular(v1, cPad)
@@ -203,7 +209,13 @@ def _power_iteration_conv(
                 unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
         else:
             if cPad is None:
-                v = tf.nn.conv2d_transpose(u, w,output_shape=_v.shape, padding=padType, strides=(1, stride, stride, 1))
+                v = tf.nn.conv2d_transpose(
+                    u,
+                    w,
+                    output_shape=_v.shape,
+                    padding=padType,
+                    strides=(1, stride, stride, 1),
+                )
                 v1 = v
             else:
                 u1 = zero_upscale2D(u, (stride, stride))
@@ -223,9 +235,15 @@ def _power_iteration_conv(
 
     # v shape
     if conv_first:
-        v_shape = (u.shape[0],)+(u.shape[1]//stride,u.shape[2]//stride) + (w.shape[-1],)
+        v_shape = (
+            (u.shape[0],)
+            + (u.shape[1] // stride, u.shape[2] // stride)
+            + (w.shape[-1],)
+        )
     else:
-        v_shape = (u.shape[0],)+(u.shape[1]*stride,u.shape[2]*stride) + (w.shape[-2],)
+        v_shape = (
+            (u.shape[0],) + (u.shape[1] * stride, u.shape[2] * stride) + (w.shape[-2],)
+        )
     _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
 
     # build _u and _v
@@ -238,10 +256,8 @@ def _power_iteration_conv(
     _u, _v, _old_u = tf.while_loop(
         cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=30
     )
-    
+
     return _u, _v
-
-
 
 
 def spectral_normalization_conv(

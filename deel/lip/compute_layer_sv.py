@@ -15,7 +15,7 @@ from .normalizers import _power_iteration_conv
 
 
 # Not the best place and no the best code => may replace by wandb
-def _print_and_log(txt, log_out=None, verbose = False):
+def _print_and_log(txt, log_out=None, verbose=False):
     if verbose:
         print(txt)
     if log_out is not None:
@@ -71,9 +71,7 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
 
     u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
 
-    u, v = _power_iteration_conv(
-        w, u, stride=Ks, conv_first=conv_first, cPad=cPad
-    )
+    u, v = _power_iteration_conv(w, u, stride=Ks, conv_first=conv_first, cPad=cPad)
 
     sigma_max = tf.norm(v)  # norm_u(v)
     # print(tf.norm(v))
@@ -104,25 +102,33 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
     return (float(sigma_min), float(sigma_max))
 
 
-def _compute_sv_dense(layer, input_sizes, log_out=None, verbose = False):
+def _compute_sv_dense(layer, input_sizes, log_out=None, verbose=False):
     weights = np.copy(layer.get_weights()[0])
-    _print_and_log("----------------------------------------------------------", log_out, verbose = verbose)
+    _print_and_log(
+        "----------------------------------------------------------",
+        log_out,
+        verbose=verbose,
+    )
     _print_and_log(
         "Layer type " + str(type(layer)) + " weight shape " + str(weights.shape),
-        log_out, verbose = verbose 
+        log_out,
+        verbose=verbose,
     )
     new_w = weights  # np.reshape(weights, [weights.shape[0], -1])
     svdtmp = np.linalg.svd(new_w, compute_uv=False)
     SVmin = np.min(svdtmp)
     SVmax = np.max(svdtmp)
     _print_and_log(
-        "kernel(W) SV (min, max, mean) " + str((SVmin, SVmax, np.mean(svdtmp))), log_out,
-        verbose = verbose 
+        "kernel(W) SV (min, max, mean) " + str((SVmin, SVmax, np.mean(svdtmp))),
+        log_out,
+        verbose=verbose,
     )
     return (SVmin, SVmax)
 
 
-def _compute_sv_padconv2d(layer, input_sizes, padding="circular", log_out=None, verbose = False):
+def _compute_sv_padconv2d(
+    layer, input_sizes, padding="circular", log_out=None, verbose=False
+):
     Ks = layer.strides[0]
     assert isinstance(input_sizes, tuple)
     input_size = input_sizes[1]
@@ -132,10 +138,11 @@ def _compute_sv_padconv2d(layer, input_sizes, padding="circular", log_out=None, 
     kernel_n = weights.astype(dtype="float32")
     if (Ks > 1) or (padding not in ["circular"]):
         # print("Warning np.linalg.svd incompatible with strides")
-        SVmin, SVmax = _compute_sv_conv2d(weights, Ks, input_size, padding = padding)
+        SVmin, SVmax = _compute_sv_conv2d(weights, Ks, input_size, padding=padding)
         _print_and_log(
-            "Conv(K) SV min et max [conv iter]: " + str((SVmin, SVmax)), log_out, 
-            verbose = verbose 
+            "Conv(K) SV min et max [conv iter]: " + str((SVmin, SVmax)),
+            log_out,
+            verbose=verbose,
         )
     else:
         # only for circular padding and without stride
@@ -145,20 +152,23 @@ def _compute_sv_padconv2d(layer, input_sizes, padding="circular", log_out=None, 
         SVmin = np.min(svd)
         SVmax = np.max(svd)
         _print_and_log(
-            "Conv(K) SV min et max [np.linalg.svd]: " + str((SVmin, SVmax)), log_out, 
-            verbose = verbose 
+            "Conv(K) SV min et max [np.linalg.svd]: " + str((SVmin, SVmax)),
+            log_out,
+            verbose=verbose,
         )
         _print_and_log(
             "Conv(K) SV mean et std [np.linalg.svd]: "
             + str((np.mean(svd), np.std(svd))),
-            log_out, 
-            verbose = verbose 
+            log_out,
+            verbose=verbose,
         )
         # print("SV ",np.sort(np.reshape(svd,(-1,))))
     return (SVmin, SVmax)
 
+
 def _compute_sv_padsame_conv2d(layer, input_sizes, log_out=None):
     return _compute_sv_padconv2d(layer, input_sizes, padding="same", log_out=None)
+
 
 # Warning this is not SV for non linear functions but grad min and grad max
 def _compute_sv_activation(layer, input_sizes=[], log_out=None):
@@ -193,19 +203,17 @@ def _compute_sv_bn(layer, input_sizes=[], log_out=None):
     return (lower, upper)
 
 
-def compute_layer_sv(
-    layer, supplementary_type2sv={} , log_out=None, verbose = False
-):
+def compute_layer_sv(layer, supplementary_type2sv={}, log_out=None, verbose=False):
     """
      Compute the largest and lowest singular values (or upper and lower bounds)
      of a given layer
-     If case of Condensable layers applies a vanilla_export to the layer 
+     If case of Condensable layers applies a vanilla_export to the layer
      to get the weights.
-     Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization, 
+     Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization,
      ReLU, Activation, and deel-lip layers)
     Args:
         layer: a single tf.keras.layer
-        supplementary_type2sv: a dictionary linking new layer type with user defined 
+        supplementary_type2sv: a dictionary linking new layer type with user defined
          function to compute the singular values [optional]
          log_out: file descriptor for dumping verbose information
          verbose: flag to prompt information
@@ -231,12 +239,15 @@ def compute_layer_sv(
     }
     src_layer = layer
     if isinstance(layer, Condensable):
-        _print_and_log("vanilla_export", log_out, verbose = verbose )
-        _print_and_log(str(type(layer)), log_out, verbose = verbose )
+        _print_and_log("vanilla_export", log_out, verbose=verbose)
+        _print_and_log(str(type(layer)), log_out, verbose=verbose)
         layer.condense()
         layer = layer.vanilla_export()
-    _print_and_log("----------------------------------------------------------", log_out, 
-                verbose = verbose )
+    _print_and_log(
+        "----------------------------------------------------------",
+        log_out,
+        verbose=verbose,
+    )
     if type(layer) in default_type2sv.keys():
         lower_upper = default_type2sv[type(layer)](
             layer, src_layer.input_shape, log_out=log_out
@@ -246,29 +257,27 @@ def compute_layer_sv(
             layer, src_layer.input_shape, log_out=log_out
         )
     else:
-        _print_and_log("No SV for layer " + str(type(layer)), log_out, verbose = verbose)
+        _print_and_log("No SV for layer " + str(type(layer)), log_out, verbose=verbose)
         lower_upper = (None, None)
     _print_and_log(
         "Layer type " + str(type(layer)) + " (upper,lower) = " + str(lower_upper),
-        log_out, 
-        verbose = verbose
+        log_out,
+        verbose=verbose,
     )
     return lower_upper
 
 
-def compute_model_sv(
-    model, supplementary_type2sv={}, log_out=None, verbose = False
-):
+def compute_model_sv(model, supplementary_type2sv={}, log_out=None, verbose=False):
     """
      Compute the largest and lowest singular values of all layers in a model
      Args:
         model: a  tf.keras Model or Sequential
-        supplementary_type2sv (dict): a dictionary linking new layer type with user defined 
-         function to compute the singular values [optional]
+        supplementary_type2sv (dict): a dictionary linking new layer type
+         with user defined function to compute the singular values [optional]
         log_out: file descriptor for dumping verbose information
         verbose (bool): flag to prompt information
     Returns:
-        list_sv (dict): A dictionary indicating for each layer name 
+        list_sv (dict): A dictionary indicating for each layer name
         a tuple (lowest sv, highest sv)
     """
     list_sv = []
@@ -281,7 +290,7 @@ def compute_model_sv(
                 layer,
                 supplementary_type2sv=supplementary_type2sv,
                 log_out=log_out,
-                verbose=verbose
+                verbose=verbose,
             )
         else:
             list_sv.append(
@@ -291,7 +300,7 @@ def compute_model_sv(
                         layer,
                         supplementary_type2sv=supplementary_type2sv,
                         log_out=log_out,
-                        verbose=verbose
+                        verbose=verbose,
                     ),
                 )
             )
@@ -345,22 +354,23 @@ def _generate_graph_layers(model, layer_name, node_n=0, output_n=-1, str_name=No
 
 
 def compute_model_upper_lip(
-    model, supplementary_type2sv={}, log_out=None, verbose = False):   
+    model, supplementary_type2sv={}, log_out=None, verbose=False
+):
     """
-        Compute the largest and lowest singular values of all layers in a model, 
-        and cumulated lower and upper values
-        Args:
-            model: a  tf.keras Model or Sequential 
-            supplementary_type2sv (dict): a dictionary linking new layer type with user defined 
-            function to compute the singular values [optional]
-            log_out: file descriptor for dumping verbose information
-            verbose (bool): flag to prompt information
-        Returns:
-            list_sv (dict): A dictionary indicating for each layer name 
-            a tuple (lowest sv, highest sv)
-            cumulated_sv (dict): A dictionary indicating for each layer name 
-            the cumulated, according to teh model graph, lower and upper values 
-            
+    Compute the largest and lowest singular values of all layers in a model,
+    and cumulated lower and upper values
+    Args:
+        model: a  tf.keras Model or Sequential
+        supplementary_type2sv (dict): a dictionary linking new layer type
+         with user defined function to compute the singular values [optional]
+        log_out: file descriptor for dumping verbose information
+        verbose (bool): flag to prompt information
+    Returns:
+        list_sv (dict): A dictionary indicating for each layer name
+        a tuple (lowest sv, highest sv)
+        cumulated_sv (dict): A dictionary indicating for each layer name
+        the cumulated, according to teh model graph, lower and upper values
+
     """
     list_sv = compute_model_sv(
         model, input_sizes=[], log_out=None, supplementary_type2sv=supplementary_type2sv
@@ -396,7 +406,7 @@ def compute_model_upper_lip(
         + str(lower_lip)
         + ", "
         + str(upper_lip),
-        log_out, 
-        verbose = verbose
+        log_out,
+        verbose=verbose,
     )
     return list_sv, cumulated_sv
