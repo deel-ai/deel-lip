@@ -45,7 +45,7 @@ from .normalizers import (
     spectral_normalization_conv,
 )
 from .regularizers import LorthRegularizer
-from .utils import padding_circular
+from .utils import _padding_circular
 
 
 class LipschitzLayer(abc.ABC):
@@ -410,7 +410,7 @@ class PadConv2D(keraslayers.Conv2D, Condensable):
             self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
         if self.old_padding.lower() in ["circular"]:
             self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2]
-            self.pad = lambda t: padding_circular(t, self.padding_size)
+            self.pad = lambda t: _padding_circular(t, self.padding_size)
 
     def compute_padded_shape(self, input_shape, padding_size):
         if isinstance(input_shape, tf.TensorShape):
@@ -928,7 +928,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 self.u,
                 stride=self.strides[0],
                 conv_first=not self.RO_case,
-                cPad=self.padding_size,
+                circular_paddings=self.padding_size,
                 eps=self.eps_spectral,
             )
             self.sig.assign([[sigma]])

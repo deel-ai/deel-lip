@@ -17,7 +17,7 @@ from deel.lip.constraints import (
     FrobeniusConstraint,
 )
 
-from deel.lip.utils import padding_circular
+from deel.lip.utils import _padding_circular
 
 if tf.__version__.startswith("2.0"):
     from tensorflow.python.framework.random_seed import set_seed
@@ -1138,7 +1138,7 @@ class TestPadConv2D(unittest.TestCase):
             pad = lambda t: tf.pad(t, paddings, padding)  # noqa: E731
         if padding.lower() in ["circular"]:
             p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
-            pad = lambda t: padding_circular(t, (p_vert, p_hor))  # noqa: E731
+            pad = lambda t: _padding_circular(t, (p_vert, p_hor))  # noqa: E731
         x = pad(x)
         return x
 

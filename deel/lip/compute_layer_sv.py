@@ -22,36 +22,6 @@ def _print_and_log(txt, log_out=None, verbose=False):
         print(txt, file=log_out)
 
 
-def _zero_upscale2d(x, strides):
-    stride_v = strides[0] * strides[1]
-    if stride_v == 1:
-        return x
-    output_shape = x.get_shape().as_list()[1:]
-    if strides[1] > 1:
-        output_shape[1] *= strides[1]
-        x = tf.expand_dims(x, 3)
-        fillz = tf.zeros_like(x)
-        fillz = tf.tile(fillz, [1, 1, 1, strides[1] - 1, 1])
-        x = tf.concat((x, fillz), axis=3)
-        x = tf.reshape(x, (-1,) + tuple(output_shape))
-    if strides[0] > 1:
-        output_shape[0] *= strides[0]
-        x = tf.expand_dims(x, 2)
-        fillz = tf.zeros_like(x)
-        fillz = tf.tile(fillz, [1, 1, strides[0] - 1, 1, 1])
-        x = tf.concat((x, fillz), axis=2)
-        x = tf.reshape(x, (-1,) + tuple(output_shape))
-    return x
-
-
-def _transpose_kernel(w, transpose=False):
-    if not transpose:
-        return w
-    wAdj = tf.transpose(w, perm=[0, 1, 3, 2])
-    wAdj = wAdj[::-1, ::-1, :]
-    return wAdj
-
-
 def _compute_sv_conv2d(w, Ks, N, padding="circular"):
     (R0, R, d, D) = w.shape
     KN = int(Ks * N)
@@ -71,10 +41,11 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
 
     u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
 
-    u, v = _power_iteration_conv(w, u, stride=Ks, conv_first=conv_first, cPad=cPad)
+    u, v = _power_iteration_conv(
+        w, u, stride=Ks, conv_first=conv_first, circular_paddings=cPad
+    )
 
     sigma_max = tf.norm(v)  # norm_u(v)
-    # print(tf.norm(v))
 
     # Minimum Singular Value
 
@@ -86,18 +57,18 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
         u,
         stride=Ks,
         conv_first=conv_first,
-        cPad=cPad,
+        circular_paddings=cPad,
         bigConstant=bigConstant,
     )
 
-    if bigConstant - tf.norm(u) >= 0:  # cas normal
+    if bigConstant - tf.norm(u) >= 0:  # normal case
         sigma_min = tf.sqrt(bigConstant - tf.norm(u))
     elif (
         bigConstant - tf.norm(u) >= -0.0000000000001
-    ):  # précaution pour gérer les erreurs numériques
+    ):  # margin to take into consideration numrica errors
         sigma_min = 0
     else:
-        sigma_min = -1  # veut dire qu'il y a un prolème
+        sigma_min = -1  # assertion (should not occur)
 
     return (float(sigma_min), float(sigma_max))
 
@@ -134,10 +105,8 @@ def _compute_sv_padconv2d(
     input_size = input_sizes[1]
     # isLinear = False
     weights = np.copy(layer.get_weights()[0])
-    # print(weights.shape)
     kernel_n = weights.astype(dtype="float32")
     if (Ks > 1) or (padding not in ["circular"]):
-        # print("Warning np.linalg.svd incompatible with strides")
         SVmin, SVmax = _compute_sv_conv2d(weights, Ks, input_size, padding=padding)
         _print_and_log(
             "Conv(K) SV min et max [conv iter]: " + str((SVmin, SVmax)),
@@ -162,7 +131,6 @@ def _compute_sv_padconv2d(
             log_out,
             verbose=verbose,
         )
-        # print("SV ",np.sort(np.reshape(svd,(-1,))))
     return (SVmin, SVmax)
 
 
@@ -191,7 +159,7 @@ def _compute_sv_activation(layer, input_sizes=[], log_out=None):
 
 def _compute_sv_add(layer, input_sizes=[], log_out=None):
     assert isinstance(input_sizes, list)
-    return (1.0, 1.0) * len(input_sizes)
+    return (len(input_sizes) * 1.0, len(input_sizes) * 1.0)
 
 
 def _compute_sv_bn(layer, input_sizes=[], log_out=None):
@@ -307,7 +275,19 @@ def compute_model_sv(model, supplementary_type2sv={}, log_out=None, verbose=Fals
     return list_sv
 
 
-def _generate_graph_layers(model, layer_name, node_n=0, output_n=-1, str_name=None):
+def _generate_graph_layers(model, layer_name, node_n=0, output_n=-1):
+    """
+     Compute the graph of the model
+     Args:
+        model: a  tf.keras Model or Sequential
+        layer_name (str): the name of the first layer
+        node_n: node number in layer
+        output_n: selection of output branch (-1 for processing any outputs)
+    Returns:
+        dict_input_layers (dict): A dictionary indicating for each layer name
+        a list of its input layers
+    """
+
     def add_layers_output(lay, node_n, output_n=-1):
         dict_output2layname = {}
         outs = lay.get_output_at(node_n)
@@ -375,7 +355,12 @@ def compute_model_upper_lip(
     list_sv = compute_model_sv(
         model, input_sizes=[], log_out=None, supplementary_type2sv=supplementary_type2sv
     )
-    dict_input_layers = _generate_graph_layers(model, layer_name=model.layers[1].name)
+    index_firstlayer = 0
+    if isinstance(model.layers[0], tf.keras.layers.Input):
+        index_firstlayer = 1
+    dict_input_layers = _generate_graph_layers(
+        model, layer_name=model.layers[index_firstlayer].name
+    )
     upper_lip = 1.0
     lower_lip = 1.0
     count_nb_notknown = 0

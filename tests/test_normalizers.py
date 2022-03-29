@@ -114,7 +114,7 @@ class TestSpectralNormConv(unittest.TestCase):
             u=_u,
             stride=self.strides[0],
             conv_first=not self.RO_case,
-            cPad=self.cPad,
+            circular_paddings=self.cPad,
             eps=1e-6,
         )
         # Test sigma is close to the one computed with svd first run @ 1e-1
@@ -126,7 +126,7 @@ class TestSpectralNormConv(unittest.TestCase):
             u=_u,
             stride=self.strides[0],
             conv_first=not self.RO_case,
-            cPad=self.cPad,
+            circular_paddings=self.cPad,
             eps=1e-6,
         )
         # Test W_bar is reshaped correctly

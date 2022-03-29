@@ -73,10 +73,10 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     return lip_cst
 
 
-def padding_circular(x, cPad):
-    if cPad is None:
+def _padding_circular(x, circular_paddings):
+    if circular_paddings is None:
         return x
-    w_pad, h_pad = cPad
+    w_pad, h_pad = circular_paddings
     if w_pad > 0:
         x = tf.concat((x[:, -w_pad:, :, :], x, x[:, :w_pad, :, :]), axis=1)
     if h_pad > 0:
@@ -84,7 +84,7 @@ def padding_circular(x, cPad):
     return x
 
 
-def zero_upscale2D(x, strides):
+def _zero_upscale2D(x, strides):
     stride_v = strides[0] * strides[1]
     if stride_v == 1:
         return x
@@ -106,7 +106,7 @@ def zero_upscale2D(x, strides):
     return x
 
 
-def transposeKernel(w, transpose=False):
+def _maybe_transpose_kernel(w, transpose=False):
     if not transpose:
         return w
     wAdj = tf.transpose(w, perm=[0, 1, 3, 2])
