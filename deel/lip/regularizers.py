@@ -19,9 +19,13 @@ class Lorth(ABC):
         flag_deconv=False,
     ) -> None:
         """
-        Lorth computation for 2D conv
+        Base class for Lorth regularization. Not meant to be used standalone.
 
         Args:
+            kernel_shape: the shape of the kernel.
+            stride: int: stride used in the associated convolution
+            flag_deconv: flag used to indicate if the dimension of the output is
+                greater or lower than the dimnesion of the input.
 
         """
         super(Lorth, self).__init__()
@@ -125,9 +129,14 @@ class Lorth2D(Lorth):
         flag_deconv=False,
     ) -> None:
         """
-        Lorth computation for 2D conv
+        Lorth computation for 2D convolutions. Although this class allow to compute
+        the regularization term, it cannot be used as-is in a layer.
 
         Args:
+            kernel_shape: the shape of the kernel.
+            stride: int: stride used in the associated convolution
+            flag_deconv: flag used to indicate if the dimension of the output is
+                greater or lower than the dimnesion of the input.
 
         """
         super(Lorth2D, self).__init__(
@@ -209,10 +218,16 @@ class LorthRegularizer(Regularizer):
         flag_deconv=False,
     ) -> None:
         """
-        Regularize a conv kernel to be orthogonal (sigma min and max =1)
-        using Lorth regularizer
+        Regularize a conv kernel to be orthogonal (sigma min and max are equal to 1)
+        using Lorth regularizer.
 
         Args:
+            kernel_shape: the shape of the kernel.
+            stride: int: stride used in the associated convolution
+            lambda_lorth: float : weight of the orthogonalization regularization.
+            dim: int: default 2: 1 for 1D convolutions, 2 for 2D convolutions.
+            flag_deconv: flag used to indicate if the dimension of the output is
+                greater or lower than the dimnesion of the input.
 
         """
         super(LorthRegularizer, self).__init__()
@@ -257,6 +272,8 @@ class OrthDenseRegularizer(Regularizer):
         minimizing W.W^T-Id
 
         Args:
+            lambda_orth: float: weight applied to the regularization (must be
+                positive).
 
         """
         super(OrthDenseRegularizer, self).__init__()

@@ -806,6 +806,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
             kernel_constraint: Constraint function applied to the kernel matrix.
             bias_constraint: Constraint function applied to the bias vector.
             k_coef_lip: lipschitz constant to ensure.
+            regul_lorth: float : weight of the orthogonalization regularization.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
