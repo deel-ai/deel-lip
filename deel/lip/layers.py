@@ -749,7 +749,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         bias_constraint=None,
         k_coef_lip=1.0,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
-        regulLorth=10.0,
+        regul_lorth=10.0,
         **kwargs
     ):
         """
@@ -825,7 +825,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
             self.strides = tuple(strides)
 
         self.eps_spectral = eps_spectral
-        regulLipConv = self.initRegulLorth(regulLorth, self.strides[0])
+        regul_lip_conv = self.init_regul_lorth(regul_lorth, self.strides[0])
 
         super(OrthoConv2D, self).__init__(
             filters=filters,
@@ -838,7 +838,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
             use_bias=use_bias,
             kernel_initializer=kernel_initializer,
             bias_initializer=bias_initializer,
-            kernel_regularizer=regulLipConv,  # internal value
+            kernel_regularizer=regul_lip_conv,  # internal value
             bias_regularizer=bias_regularizer,
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
@@ -850,31 +850,32 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         self.sig = None
         self.u = None
         self.spectral_input_shape = None
-        self.RO_case = True
+        self.ro_case = True
+        self.built = False
 
-    def initRegulLorth(self, regulLorth, stride):
-        self.regulLorth = regulLorth
-        if regulLorth < 0:
+    def init_regul_lorth(self, regul_lorth, stride):
+        self.regul_lorth = regul_lorth
+        if regul_lorth < 0:
             raise RuntimeError(
-                "OrthoConv2D requires a  positive regularization factor " "regulLorth"
+                "OrthoConv2D requires a  positive regularization factor " "regul_lorth"
             )
-        if regulLorth == 0:
+        if regul_lorth == 0:
             if self.eps_spectral > 0:
                 warnings.warn("No Lorth Regularization, spectral normalization only")
             else:
-                warnings.warn("No constraint regulLorth==0 and eps_spectral==0")
+                warnings.warn("No constraint regul_lorth==0 and eps_spectral==0")
 
-        regulLipConv = None
-        if regulLorth > 0:
-            regulLipConv = LorthRegularizer(
+        regul_lip_conv = None
+        if regul_lorth > 0:
+            regul_lip_conv = LorthRegularizer(
                 kernel_shape=None,
                 stride=stride,
-                lambdaLorth=regulLorth,
+                lambda_lorth=regul_lorth,
                 flag_deconv=False,
             )
-        return regulLipConv
+        return regul_lip_conv
 
-    def initSpectralNorm(self):
+    def init_spectral_norm(self):
         if self.eps_spectral <= 0:
             return
         (R0, R, C, M) = self.kernel.shape
@@ -890,10 +891,10 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
 
         if C * stride**2 > M:
             self.spectral_input_shape = (N, N, M)
-            self.RO_case = True
+            self.ro_case = True
         else:
             self.spectral_input_shape = (stride * N, stride * N, C)
-            self.RO_case = False
+            self.ro_case = False
         self.u = self.add_weight(
             shape=(1,) + self.spectral_input_shape,
             initializer=RandomNormal(-1, 1),
@@ -914,8 +915,8 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         super(OrthoConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         if self.kernel_regularizer is not None:
-            self.kernel_regularizer.set_kernel_shape(self.kernel.shape)
-        self.initSpectralNorm()
+            self.kernel_regularizer._set_kernel_shape(self.kernel.shape)
+        self.init_spectral_norm()
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -927,7 +928,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 self.kernel,
                 self.u,
                 stride=self.strides[0],
-                conv_first=not self.RO_case,
+                conv_first=not self.ro_case,
                 circular_paddings=self.padding_size,
                 eps=self.eps_spectral,
             )
@@ -948,7 +949,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
         config = {
             "k_coef_lip": self.k_coef_lip,
             "eps_spectral": self.eps_spectral,
-            "regulLorth": self.regulLorth,
+            "regul_lorth": self.regul_lorth,
             "kernel_regularizer": None,  # overwrite the kernel regul to None
         }
         base_config = super(OrthoConv2D, self).get_config()

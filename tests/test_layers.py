@@ -664,7 +664,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "regulLorth": 1000.0,
+                        "regul_lorth": 1000.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -680,7 +680,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "regulLorth": 1000.0,
+                        "regul_lorth": 1000.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -696,7 +696,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "regulLorth": 1000.0,
+                        "regul_lorth": 1000.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
@@ -712,7 +712,7 @@ class LipschitzLayersTest(unittest.TestCase):
                     layer_params={
                         "filters": 2,
                         "kernel_size": (3, 3),
-                        "regulLorth": 0.0,
+                        "regul_lorth": 0.0,
                     },
                     batch_size=1000,
                     steps_per_epoch=125,
