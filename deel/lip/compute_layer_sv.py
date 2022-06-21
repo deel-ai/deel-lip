@@ -1,0 +1,230 @@
+import numpy as np
+import tensorflow as tf
+
+from .activations import GroupSort, MaxMin
+from .layers import (
+    Condensable,
+    FrobeniusConv2D,
+    FrobeniusDense,
+    SpectralConv2D,
+    SpectralDense,
+)
+from .normalizers import _power_iteration_conv
+
+
+# Not the best place and no the best code => may replace by wandb
+def _print_and_log(txt, log_out=None, verbose=False):
+    if verbose:
+        print(txt)
+    if log_out is not None:
+        print(txt, file=log_out)
+
+
+def _compute_sv_conv2d(w, Ks, N, padding="circular"):
+    (R0, R, d, D) = w.shape
+    KN = int(Ks * N)
+    batch_size = 1
+    cPad = None
+    if padding in ["circular"]:
+        cPad = [int(R0 / 2), int(R / 2)]
+
+    if Ks * Ks * d > D:
+        input_shape = (N, N, D)
+        conv_first = False
+    else:
+        input_shape = (KN, KN, d)
+        conv_first = True
+
+    # Maximum singular value
+
+    u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
+
+    u, v = _power_iteration_conv(
+        w, u, stride=Ks, conv_first=conv_first, circular_paddings=cPad
+    )
+
+    sigma_max = tf.norm(v)  # norm_u(v)
+
+    # Minimum Singular Value
+
+    bigConstant = 1.1 * sigma_max ** 2
+    u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
+
+    u, v = _power_iteration_conv(
+        w,
+        u,
+        stride=Ks,
+        conv_first=conv_first,
+        circular_paddings=cPad,
+        bigConstant=bigConstant,
+    )
+
+    if bigConstant - tf.norm(u) >= 0:  # normal case
+        sigma_min = tf.sqrt(bigConstant - tf.norm(u))
+    elif (
+        bigConstant - tf.norm(u) >= -0.0000000000001
+    ):  # margin to take into consideration numrica errors
+        sigma_min = 0
+    else:
+        sigma_min = -1  # assertion (should not occur)
+
+    return (float(sigma_min), float(sigma_max))
+
+
+def _compute_sv_dense(layer, input_sizes, log_out=None, verbose=False):
+    weights = np.copy(layer.get_weights()[0])
+    _print_and_log(
+        "----------------------------------------------------------",
+        log_out,
+        verbose=verbose,
+    )
+    _print_and_log(
+        "Layer type " + str(type(layer)) + " weight shape " + str(weights.shape),
+        log_out,
+        verbose=verbose,
+    )
+    new_w = weights  # np.reshape(weights, [weights.shape[0], -1])
+    svdtmp = np.linalg.svd(new_w, compute_uv=False)
+    SVmin = np.min(svdtmp)
+    SVmax = np.max(svdtmp)
+    _print_and_log(
+        "kernel(W) SV (min, max, mean) " + str((SVmin, SVmax, np.mean(svdtmp))),
+        log_out,
+        verbose=verbose,
+    )
+    return (SVmin, SVmax)
+
+
+def _compute_sv_padconv2d(
+    layer, input_sizes, padding="circular", log_out=None, verbose=False
+):
+    Ks = layer.strides[0]
+    assert isinstance(input_sizes, tuple)
+    input_size = input_sizes[1]
+    weights = np.copy(layer.get_weights()[0])
+    kernel_n = weights.astype(dtype="float32")
+    if (Ks > 1) or (padding not in ["circular"]):
+        SVmin, SVmax = _compute_sv_conv2d(weights, Ks, input_size, padding=padding)
+        _print_and_log(
+            "Conv(K) SV min et max [conv iter]: " + str((SVmin, SVmax)),
+            log_out,
+            verbose=verbose,
+        )
+    else:
+        # only for circular padding and without stride
+        kernel_n = weights.astype(dtype="float32")
+        transforms = np.fft.fft2(kernel_n, (input_size, input_size), axes=[0, 1])
+        svd = np.linalg.svd(transforms, compute_uv=False)
+        SVmin = np.min(svd)
+        SVmax = np.max(svd)
+        _print_and_log(
+            "Conv(K) SV min et max [np.linalg.svd]: " + str((SVmin, SVmax)),
+            log_out,
+            verbose=verbose,
+        )
+        _print_and_log(
+            "Conv(K) SV mean et std [np.linalg.svd]: "
+            + str((np.mean(svd), np.std(svd))),
+            log_out,
+            verbose=verbose,
+        )
+    return (SVmin, SVmax)
+
+
+def _compute_sv_padsame_conv2d(layer, input_sizes, log_out=None):
+    return _compute_sv_padconv2d(layer, input_sizes, padding="same", log_out=None)
+
+
+# Warning this is not SV for non linear functions but grad min and grad max
+def _compute_sv_activation(layer, input_sizes=[], log_out=None):
+    if isinstance(layer, tf.keras.layers.Activation):
+        function2SV = {tf.keras.activations.relu: (0, 1)}
+        if layer.activation in function2SV.keys():
+            return function2SV[layer.activation]
+        else:
+            return (None, None)
+    layer2SV = {
+        tf.keras.layers.ReLU: (0, 1),
+        GroupSort: (1, 1),
+        MaxMin: (1, 1),
+    }
+    if layer in layer2SV.keys():
+        return layer2SV[layer.activation]
+    else:
+        return (None, None)
+
+
+def _compute_sv_add(layer, input_sizes=[], log_out=None):
+    assert isinstance(input_sizes, list)
+    return (len(input_sizes) * 1.0, len(input_sizes) * 1.0)
+
+
+def _compute_sv_bn(layer, input_sizes=[], log_out=None):
+    values = np.abs(
+        layer.gamma.numpy() / np.sqrt(layer.moving_variance.numpy() + layer.epsilon)
+    )
+    lower = np.min(values)
+    upper = np.max(values)
+    return (lower, upper)
+
+
+def compute_layer_sv(layer, supplementary_type2sv={}, log_out=None, verbose=False):
+    """
+     Compute the largest and lowest singular values (or upper and lower bounds)
+     of a given layer
+     If case of Condensable layers applies a vanilla_export to the layer
+     to get the weights.
+     Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization,
+     ReLU, Activation, and deel-lip layers)
+    Args:
+        layer: a single tf.keras.layer
+        supplementary_type2sv: a dictionary linking new layer type with user defined
+         function to compute the singular values [optional]
+         log_out: file descriptor for dumping verbose information
+         verbose: flag to prompt information
+    Returns:
+        lower_upper (tuple): a tuple (lowest sv, highest sv)
+    """
+    default_type2sv = {
+        tf.keras.layers.Conv2D: _compute_sv_padsame_conv2d,
+        tf.keras.layers.Conv2DTranspose: _compute_sv_padsame_conv2d,
+        SpectralConv2D: _compute_sv_padsame_conv2d,
+        FrobeniusConv2D: _compute_sv_padsame_conv2d,
+        tf.keras.layers.Dense: _compute_sv_dense,
+        SpectralDense: _compute_sv_dense,
+        FrobeniusDense: _compute_sv_dense,
+        tf.keras.layers.ReLU: _compute_sv_activation,
+        tf.keras.layers.Activation: _compute_sv_activation,
+        GroupSort: _compute_sv_activation,
+        MaxMin: _compute_sv_activation,
+        tf.keras.layers.Add: _compute_sv_add,
+        tf.keras.layers.BatchNormalization: _compute_sv_bn,
+    }
+    src_layer = layer
+    if isinstance(layer, Condensable):
+        _print_and_log("vanilla_export", log_out, verbose=verbose)
+        _print_and_log(str(type(layer)), log_out, verbose=verbose)
+        layer.condense()
+        layer = layer.vanilla_export()
+    _print_and_log(
+        "----------------------------------------------------------",
+        log_out,
+        verbose=verbose,
+    )
+    if type(layer) in default_type2sv.keys():
+        lower_upper = default_type2sv[type(layer)](
+            layer, src_layer.input_shape, log_out=log_out
+        )
+    elif type(layer) in supplementary_type2sv.keys():
+        lower_upper = supplementary_type2sv[type(layer)](
+            layer, src_layer.input_shape, log_out=log_out
+        )
+    else:
+        _print_and_log("No SV for layer " + str(type(layer)), log_out, verbose=verbose)
+        lower_upper = (None, None)
+    _print_and_log(
+        "Layer type " + str(type(layer)) + " (upper,lower) = " + str(lower_upper),
+        log_out,
+        verbose=verbose,
+    )
+    return lower_upper
