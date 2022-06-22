@@ -792,9 +792,7 @@ class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar = (
-            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
-        )
+        wbar = self.kernel / tf.norm(self.kernel) * self._get_coef()
         self.kernel.assign(wbar)
 
     def vanilla_export(self):
