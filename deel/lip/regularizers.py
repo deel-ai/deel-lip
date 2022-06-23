@@ -151,3 +151,52 @@ class Lorth2D(Lorth):
         target = tf.reshape(target, (outm3, outm2, C_out, C_out))
         target = tf.transpose(target, [2, 0, 1, 3])
         return target
+
+
+@register_keras_serializable("deel-lip", "LorthRegularizer")
+class LorthRegularizer(Regularizer):
+    def __init__(
+        self,
+        kernel_shape=None,
+        stride=1,
+        lambda_lorth=1.0,
+        dim=2,  # 2 for 2D conv, 1 for 1D conv
+        conv_transpose=False,
+    ) -> None:
+        """
+        Regularize a conv kernel to be orthogonal (all singular values are equal to 1)
+        using Lorth regularizer.
+
+        Args:
+            kernel_shape: the shape of the kernel.
+            stride (int): stride used in the associated convolution
+            lambda_lorth (float): weight of the orthogonalization regularization.
+            dim (int): 1 for 1D convolutions, 2 for 2D convolutions. Defaults to 2.
+            conv_transpose (bool): whether the kernel is from a transposed convolution.
+        """
+        super(LorthRegularizer, self).__init__()
+        self.kernel_shape = kernel_shape
+        self.stride = stride
+        self.lambda_lorth = lambda_lorth
+        self.dim = dim
+        self.conv_transpose = conv_transpose
+        if self.dim == 2:
+            self.lorth = Lorth2D(kernel_shape, stride, conv_transpose)
+        else:
+            raise NotImplementedError("Only 2D convolutions are supported for Lorth.")
+
+    def set_kernel_shape(self, shape):
+        self.kernel_shape = shape
+        self.lorth.set_kernel_shape(shape)
+
+    def __call__(self, x):
+        return self.lambda_lorth * self.lorth._compute_lorth(x)
+
+    def get_config(self):
+        return {
+            "kernel_shape": self.kernel_shape,
+            "stride": self.stride,
+            "lambda_lorth": self.lambda_lorth,
+            "dim": self.dim,
+            "conv_transpose": self.conv_transpose,
+        }
