@@ -200,3 +200,30 @@ class LorthRegularizer(Regularizer):
             "dim": self.dim,
             "conv_transpose": self.conv_transpose,
         }
+
+
+@register_keras_serializable("deel-lip", "OrthDenseRegularizer")
+class OrthDenseRegularizer(Regularizer):
+    def __init__(self, lambda_orth=1.0) -> None:
+        """
+        Regularize a Dense kernel to be orthogonal (all singular values are equal to 1)
+        minimizing W.W^T-Id
+
+        Args:
+            lambda_orth (float): regularization factor (must be positive)
+        """
+        super(OrthDenseRegularizer, self).__init__()
+        self.lambda_orth = lambda_orth
+
+    def _dense_orth_dist(self, w):
+        transp_b = w.shape[0] <= w.shape[1]
+        # W.W^T if h<=w; W^T.W otherwise
+        wwt = tf.matmul(w, w, transpose_a=not transp_b, transpose_b=transp_b)
+        idx = tf.eye(wwt.shape[0])
+        return tf.reduce_sum(tf.square(wwt - idx))
+
+    def __call__(self, x):
+        return self.lambda_orth * self._dense_orth_dist(x)
+
+    def get_config(self):
+        return {"lambda_orth": self.lambda_orth}
