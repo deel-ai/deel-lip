@@ -15,6 +15,9 @@ from tensorflow.keras.utils import register_keras_serializable
 from tensorflow.keras.models import clone_model
 
 
+_msg_not_lip = "Sequential model contains a layer which is not a 1-Lipschitz layer: {}"
+
+
 @register_keras_serializable("deel-lip", "Sequential")
 class Sequential(KerasSequential, LipschitzLayer, Condensable):
     def __init__(
@@ -49,33 +52,21 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
             if isinstance(layer, LipschitzLayer):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
             else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+                warn(_msg_not_lip.format(layer.name))
 
     def _compute_lip_coef(self, input_shape=None):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._compute_lip_coef(input_shape)
             else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+                warn(_msg_not_lip.format(layer.name))
 
     def _init_lip_coef(self, input_shape):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._init_lip_coef(input_shape)
             else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+                warn(_msg_not_lip.format(layer.name))
 
     def _get_coef(self):
         global_coef = 1.0
@@ -83,11 +74,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
             if isinstance(layer, LipschitzLayer) and (global_coef is not None):
                 global_coef *= layer._get_coef()
             else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+                warn(_msg_not_lip.format(layer.name))
                 global_coef = None
         return global_coef
 
