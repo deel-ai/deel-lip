@@ -1,8 +1,10 @@
 """These tests assert that deel.lip Sequential and Model objects behave as expected."""
 
+import warnings
 from unittest import TestCase
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras.layers as kl
 from deel.lip import Sequential, Model, vanillaModel
 from deel.lip.layers import SpectralConv2D, SpectralDense, ScaledL2NormPooling2D
 from deel.lip.activations import GroupSort2
@@ -14,7 +16,7 @@ def sequential_layers():
         SpectralConv2D(6, 3, input_shape=(20, 20, 3)),
         ScaledL2NormPooling2D(),
         GroupSort2(),
-        tf.keras.layers.Flatten(),
+        kl.Flatten(),
         SpectralDense(10),
     ]
 
@@ -27,9 +29,9 @@ def functional_input_output_tensors():
     x = ScaledL2NormPooling2D((2, 2), k_coef_lip=2.0)(x)
     x1 = SpectralConv2D(2, (3, 3), k_coef_lip=2.0)(x)
     x1 = GroupSort2()(x1)
-    x = tf.keras.layers.Add()([x, x1])
-    x = tf.keras.layers.Flatten()(x)
-    x = tf.keras.layers.Dense(4)(x)
+    x = kl.Add()([x, x1])
+    x = kl.Flatten()(x)
+    x = kl.Dense(4)(x)
     x = SpectralDense(4, k_coef_lip=2.0)(x)
     outputs = SpectralDense(2, k_coef_lip=2.0)(x)
     return inputs, outputs
@@ -68,3 +70,43 @@ class Test(TestCase):
         model = Model(inputs, outputs)
         vanilla_model = model.vanilla_export()
         self.assert_model_outputs(model, vanilla_model)
+
+    def test_warning_unsupported_1Lip_layers(self):
+        """Assert that some unsupported layers return a warning message that they are
+        not 1-Lipschitz and other supported layers don't raise a warning.
+        """
+
+        # Check that supported 1-Lipschitz layers do not raise a warning
+        supported_layers = [
+            kl.Input((32, 32, 3)),
+            kl.ReLU(),
+            kl.Activation("relu"),
+            kl.Softmax(),
+            kl.Flatten(),
+            kl.Reshape((10,)),
+            kl.MaxPool2D(),
+            SpectralDense(3),
+            ScaledL2NormPooling2D(),
+        ]
+        for lay in supported_layers:
+            with warnings.catch_warnings(record=True) as w:
+                Sequential([lay])
+                self.assertEqual(len(w), 0, f"Layer {lay.name} shouldn't raise warning")
+
+        # Check that unsupported layers raise a warning
+        unsupported_layers = [
+            kl.MaxPool2D(pool_size=3, strides=2),
+            kl.Add(),
+            kl.Concatenate(),
+            kl.Activation("gelu"),
+            kl.Dense(5),
+            kl.Conv2D(10, 3),
+            kl.UpSampling2D(),
+        ]
+        for lay in unsupported_layers:
+            with self.assertWarnsRegex(
+                Warning,
+                expected_regex="layer which is not a 1-Lipschitz",
+                msg=f"Layer {lay.name} should raise a warning.",
+            ):
+                Sequential([lay])
