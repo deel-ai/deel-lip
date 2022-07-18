@@ -202,7 +202,7 @@ class HingeMargin(Loss):
     def call(self, y_true, y_pred):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
-        hinge = tf.nn.relu(self.min_margin - sign * y_pred)
+        hinge = tf.nn.relu(self.min_margin/2.0 - sign * y_pred)
         # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
         # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
         return tf.reduce_mean(hinge, axis=-1)
@@ -283,7 +283,7 @@ class MulticlassHinge(Loss):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
         # compute the elementwise hinge term
-        hinge = tf.nn.relu(self.min_margin - sign * y_pred)
+        hinge = tf.nn.relu(self.min_margin/2.0 - sign * y_pred)
         # reweight positive elements
         if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
             factor = y_true.shape[-1] - 1.0
