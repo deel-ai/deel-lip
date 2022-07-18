@@ -5,6 +5,8 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.models import load_model
+import sys
+sys.path.append("./")
 from deel.lip.losses import (
     KR,
     HingeMargin,
@@ -54,9 +56,9 @@ def binary_tf_data(x):
 class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
-
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        #y_true and y_pred must be of rank 2
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(1), "KR loss must be equal to 1")
 
@@ -81,9 +83,9 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_hinge_margin_loss(self):
-        loss = HingeMargin(1.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        loss = HingeMargin(2.0)
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
@@ -125,12 +127,16 @@ class Test(TestCase):
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
-        multiclass_hinge = MulticlassHinge(1.0)
-        hinge = HingeMargin(1.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        multiclass_hinge = MulticlassHinge(2.0)
+        hinge = HingeMargin(2.0)
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
+        # y_true for multi class has to be one hot encoded
+        y_true_multi = tf.one_hot(tf.cast(tf.squeeze(y_true),tf.int32),2)
+        # each output value in binary is duplicated -v,v  
+        y_pred_multi = tf.concat([-y_pred,y_pred],axis=-1)
+        l_multi = multiclass_hinge(y_true_multi, y_pred_multi).numpy()
         self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         self.assertEqual(
             l_single,
@@ -139,17 +145,7 @@ class Test(TestCase):
             "results when given a single class "
             "vector",
         )
-        y_true = tf.expand_dims(y_true, -1)
-        y_pred = tf.expand_dims(y_pred, -1)
-        l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hinge multiclass must yield the same "
-            "results when given a single class "
-            "vector",
-        )
+
         n_class = 10
         n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
@@ -167,7 +163,7 @@ class Test(TestCase):
         check_serialization(1, multiclass_hinge)
 
     def test_hkr_multiclass_loss(self):
-        multiclass_hkr = MulticlassHKR(5.0, 1.0)
+        multiclass_hkr = MulticlassHKR(5.0, 2.0)
         y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
@@ -218,13 +214,13 @@ class Test(TestCase):
         Assert binary losses without reduction. Three losses are tested on hardcoded
         y_true/y_pred of shape [8 elements, 1]: KR, HingeMargin and HKR.
         """
-        y_true = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]).reshape((8, 1))
-        y_pred = np.array([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9]).reshape((8, 1))
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
 
         losses = (
             KR(reduction="none"),
-            HingeMargin(0.7, reduction="none"),
-            HKR(alpha=2.5, reduction="none"),
+            HingeMargin(0.7*2.0, reduction="none"),
+            HKR(alpha=2.5, min_margin=2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -264,9 +260,9 @@ class Test(TestCase):
         )
         losses = (
             MulticlassKR(reduction="none"),
-            MulticlassHinge(reduction="none"),
+            MulticlassHinge(min_margin=2.0,reduction="none"),
             MultiMargin(0.7, reduction="none"),
-            MulticlassHKR(alpha=2.5, min_margin=0.5, reduction="none"),
+            MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -301,8 +297,8 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             KR(multi_gpu=True, reduction=reduction),
-            HingeMargin(0.7, reduction=reduction),
-            HKR(alpha=2.5, multi_gpu=True, reduction=reduction),
+            HingeMargin(0.7*2.0, reduction=reduction),
+            HKR(alpha=2.5, min_margin=2.0,multi_gpu=True, reduction=reduction),
         )
 
         expected_loss_values = (9.2, 2.2, 0.3)
@@ -386,10 +382,10 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             MulticlassKR(multi_gpu=True, reduction=reduction),
-            MulticlassHinge(reduction=reduction),
+            MulticlassHinge(min_margin=2.0,reduction=reduction),
             MultiMargin(0.7, reduction=reduction),
             MulticlassHKR(
-                alpha=2.5, min_margin=0.5, multi_gpu=True, reduction=reduction
+                alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
             ),
         )
 
@@ -467,13 +463,13 @@ class Test(TestCase):
         # Tested losses (different reductions, multi_gpu)
         losses = (
             KR(reduction="none", name="KR none"),
-            HingeMargin(0.4, reduction="none", name="hinge none"),
-            HKR(alpha=5.2, reduction="none", name="HKR none"),
+            HingeMargin(0.4*2.0, reduction="none", name="hinge none"),
+            HKR(alpha=5.2, min_margin=2.0, reduction="none", name="HKR none"),
             KR(reduction="auto", name="KR auto"),
-            HingeMargin(0.6, reduction="auto", name="hinge auto"),
-            HKR(alpha=10, reduction="auto", name="HKR auto"),
+            HingeMargin(0.6*2.0, reduction="auto", name="hinge auto"),
+            HKR(alpha=10, min_margin=2.0, reduction="auto", name="HKR auto"),
             KR(multi_gpu=True, reduction="sum", name="KR multi_gpu"),
-            HKR(alpha=3.2, multi_gpu=True, reduction="sum", name="HKR multi_gpu"),
+            HKR(alpha=3.2, min_margin=2.0, multi_gpu=True, reduction="sum", name="HKR multi_gpu"),
         )
 
         # Compute loss values and assert that the multilabel value is equal to the mean
