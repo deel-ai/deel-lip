@@ -5,9 +5,7 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.models import load_model
-import sys
 
-sys.path.append("./")
 from deel.lip.losses import (
     KR,
     HingeMargin,
@@ -264,6 +262,7 @@ class Test(TestCase):
             MulticlassHinge(min_margin=2.0, reduction="none"),
             MultiMargin(0.7, reduction="none"),
             MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
+            MulticlassHinge(min_margin=2.0, soft_hinge_tau=20.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -271,6 +270,18 @@ class Test(TestCase):
             np.float64([17, 13, 34, 15, 12, 62, 17, 45]) / 30,
             np.float64([0, 0, 19, 0, 0, 35, 0, 0]) / 30,
             np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825]) / 900,
+            np.float64(
+                [
+                    1.199999418,
+                    1.3,
+                    3.2,
+                    0.999977301,
+                    0.99999991,
+                    4.8,
+                    1.299999986,
+                    2.288079708,
+                ]
+            ),
         )
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
@@ -388,6 +399,7 @@ class Test(TestCase):
             MulticlassHKR(
                 alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
             ),
+            MulticlassHinge(min_margin=2.0, soft_hinge_tau=20.0, reduction=reduction),
         )
 
         expected_loss_values = (
@@ -395,6 +407,7 @@ class Test(TestCase):
             np.float32(43 / 6),
             np.float32(9 / 5),
             np.float32(152 / 75),
+            np.float32(16.08805632),
         )
 
         # Losses are tested on 3 mini-batches of size [3, 4, 1]
