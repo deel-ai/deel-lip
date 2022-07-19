@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.models import load_model
 import sys
+
 sys.path.append("./")
 from deel.lip.losses import (
     KR,
@@ -56,7 +57,7 @@ def binary_tf_data(x):
 class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
-        #y_true and y_pred must be of rank 2
+        # y_true and y_pred must be of rank 2
         y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
@@ -133,9 +134,9 @@ class Test(TestCase):
         y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()
         # y_true for multi class has to be one hot encoded
-        y_true_multi = tf.one_hot(tf.cast(tf.squeeze(y_true),tf.int32),2)
-        # each output value in binary is duplicated -v,v  
-        y_pred_multi = tf.concat([-y_pred,y_pred],axis=-1)
+        y_true_multi = tf.one_hot(tf.cast(tf.squeeze(y_true), tf.int32), 2)
+        # each output value in binary is duplicated -v,v
+        y_pred_multi = tf.concat([-y_pred, y_pred], axis=-1)
         l_multi = multiclass_hinge(y_true_multi, y_pred_multi).numpy()
         self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         self.assertEqual(
@@ -219,7 +220,7 @@ class Test(TestCase):
 
         losses = (
             KR(reduction="none"),
-            HingeMargin(0.7*2.0, reduction="none"),
+            HingeMargin(0.7 * 2.0, reduction="none"),
             HKR(alpha=2.5, min_margin=2.0, reduction="none"),
         )
 
@@ -260,7 +261,7 @@ class Test(TestCase):
         )
         losses = (
             MulticlassKR(reduction="none"),
-            MulticlassHinge(min_margin=2.0,reduction="none"),
+            MulticlassHinge(min_margin=2.0, reduction="none"),
             MultiMargin(0.7, reduction="none"),
             MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
         )
@@ -297,8 +298,8 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             KR(multi_gpu=True, reduction=reduction),
-            HingeMargin(0.7*2.0, reduction=reduction),
-            HKR(alpha=2.5, min_margin=2.0,multi_gpu=True, reduction=reduction),
+            HingeMargin(0.7 * 2.0, reduction=reduction),
+            HKR(alpha=2.5, min_margin=2.0, multi_gpu=True, reduction=reduction),
         )
 
         expected_loss_values = (9.2, 2.2, 0.3)
@@ -382,7 +383,7 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             MulticlassKR(multi_gpu=True, reduction=reduction),
-            MulticlassHinge(min_margin=2.0,reduction=reduction),
+            MulticlassHinge(min_margin=2.0, reduction=reduction),
             MultiMargin(0.7, reduction=reduction),
             MulticlassHKR(
                 alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
@@ -463,13 +464,19 @@ class Test(TestCase):
         # Tested losses (different reductions, multi_gpu)
         losses = (
             KR(reduction="none", name="KR none"),
-            HingeMargin(0.4*2.0, reduction="none", name="hinge none"),
+            HingeMargin(0.4 * 2.0, reduction="none", name="hinge none"),
             HKR(alpha=5.2, min_margin=2.0, reduction="none", name="HKR none"),
             KR(reduction="auto", name="KR auto"),
-            HingeMargin(0.6*2.0, reduction="auto", name="hinge auto"),
+            HingeMargin(0.6 * 2.0, reduction="auto", name="hinge auto"),
             HKR(alpha=10, min_margin=2.0, reduction="auto", name="HKR auto"),
             KR(multi_gpu=True, reduction="sum", name="KR multi_gpu"),
-            HKR(alpha=3.2, min_margin=2.0, multi_gpu=True, reduction="sum", name="HKR multi_gpu"),
+            HKR(
+                alpha=3.2,
+                min_margin=2.0,
+                multi_gpu=True,
+                reduction="sum",
+                name="HKR multi_gpu",
+            ),
         )
 
         # Compute loss values and assert that the multilabel value is equal to the mean
