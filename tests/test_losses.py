@@ -277,6 +277,7 @@ class Test(TestCase):
             MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
             CategoricalHinge(1.1, reduction="none"),
             TauCategoricalCrossentropy(2.0, reduction="none"),
+            MulticlassHinge(min_margin=2.0, soft_hinge_tau=20.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -295,6 +296,18 @@ class Test(TestCase):
                     2.802300,
                     0.114224,
                     0.076357,
+                ]
+            ),
+            np.float64(
+                [
+                    1.199999418,
+                    1.3,
+                    3.2,
+                    0.999977301,
+                    0.99999991,
+                    4.8,
+                    1.299999986,
+                    2.288079708,
                 ]
             ),
         )
@@ -418,6 +431,7 @@ class Test(TestCase):
             MulticlassHKR(
                 alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
             ),
+            MulticlassHinge(min_margin=2.0, soft_hinge_tau=20.0, reduction=reduction),
         )
 
         expected_loss_values = (
@@ -425,6 +439,7 @@ class Test(TestCase):
             np.float32(43 / 6),
             np.float32(9 / 5),
             np.float32(152 / 75),
+            np.float32(16.08805632),
         )
 
         # Losses are tested on 3 mini-batches of size [3, 4, 1]
