@@ -389,7 +389,7 @@ class MulticlassHKR(Loss):
         config = {
             "alpha": self.alpha.numpy(),
             "min_margin": self.min_margin,
-            "soft_hinge_tau": self.soft_hinge_tau.numpy(),
+            "soft_hinge_tau": self.soft_hinge_tau,
             "multi_gpu": self.multi_gpu,
         }
         base_config = super(MulticlassHKR, self).get_config()
