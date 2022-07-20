@@ -236,7 +236,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=2e-7,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed",
             )
 
@@ -279,7 +280,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=5e-7,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed",
             )
 
@@ -311,7 +313,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=3e-6,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for hardcoded full batch",
             )
 
@@ -325,7 +328,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=2e-6,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for hardcoded mini-batches",
             )
 
@@ -350,7 +354,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val_full_batch,
                 loss_val_minibatches,
-                rtol=1e-5,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for random mini-batches",
             )
 
@@ -404,7 +409,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=5e-7,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for hardcoded full batch",
             )
 
@@ -418,7 +424,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
-                rtol=4e-7,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for hardcoded mini-batches",
             )
 
@@ -444,7 +451,8 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val_full_batch,
                 loss_val_minibatches,
-                rtol=1e-5,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed for random mini-batches",
             )
 
@@ -487,6 +495,7 @@ class Test(TestCase):
             np.testing.assert_allclose(
                 loss_val_multilabel,
                 mean_loss_vals,
-                rtol=2e-6,
+                rtol=5e-6,
+                atol=5e-6,
                 err_msg=f"Loss {loss.name} failed",
             )
