@@ -96,14 +96,16 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
          u and v corresponding to the maximum eigenvalue
 
     """
-    # build _u and _v
+    # build _u and _v (_v is size of _u@tf.transpose(w), will be set on the first body
+    # iteration)
     _u = u
-    _v = tf.math.l2_normalize(_u @ tf.transpose(w))
-    # create a fake old_w that does'nt pass the loop condition
-    # it won't affect computation as the firt action done in the loop overwrite it.
-    _old_u = 10 * _u
-    # define the loop condition
+    _v = tf.zeros(u.shape[:-1] + (w.shape[0],), dtype=w.dtype)
 
+    # create a fake old_w that doesn't pass the loop condition
+    # it won't affect computation as the first action done in the loop overwrite it.
+    _old_u = 10 * _u
+
+    # define the loop condition
     def cond(_u, _v, old_u):
         return tf.linalg.norm(_u - old_u) >= eps
 

@@ -505,21 +505,7 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         else:
             sn1 = self.strides[0]
             sn2 = self.strides[1]
-            ho = np.floor(h / sn1)
-            wo = np.floor(w / sn2)
-            alphabar1 = np.floor(k1_div2 / sn1)
-            alphabar2 = np.floor(k2_div2 / sn2)
-            betabar1 = k1_div2 - alphabar1 * sn1
-            betabar2 = k2_div2 - alphabar2 * sn2
-            zl1 = (alphabar1 * sn1 + 2 * betabar1) * (alphabar1 + 1) / 2
-            zl2 = (alphabar2 * sn2 + 2 * betabar2) * (alphabar2 + 1) / 2
-            gamma1 = h - 1 - sn1 * np.ceil((h - 1 - k1_div2) / sn1)
-            gamma2 = w - 1 - sn2 * np.ceil((w - 1 - k2_div2) / sn2)
-            alphah1 = np.floor(gamma1 / sn1)
-            alphaw2 = np.floor(gamma2 / sn2)
-            zr1 = (alphah1 + 1) * (k1_div2 - gamma1 + sn1 * alphah1 / 2.0)
-            zr2 = (alphaw2 + 1) * (k2_div2 - gamma2 + sn2 * alphaw2 / 2.0)
-            coefLip = np.sqrt((h * w) / ((k1 * ho - zl1 - zr1) * (k2 * wo - zl2 - zr2)))
+            coefLip = np.sqrt(1.0 / (np.ceil(k1 / sn1) * np.ceil(k2 / sn2)))
         return coefLip
 
     def call(self, x, training=True):
@@ -806,9 +792,7 @@ class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar = (
-            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
-        )
+        wbar = self.kernel / tf.norm(self.kernel) * self._get_coef()
         self.kernel.assign(wbar)
 
     def vanilla_export(self):
