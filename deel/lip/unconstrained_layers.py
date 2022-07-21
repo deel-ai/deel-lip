@@ -32,13 +32,14 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
         enable other type of padding, such as `"constant"`, `"symmetric"`, `"reflect"`
         or `"circular"`.
 
-        Warns:
+        Warning:
             The PadConv2D is not a Lipschitz layer and must not be directly used. This
             must be used as a base class to create a Lipschitz layer with padding.
 
+        All arguments are the same as the original `Conv2D` except the `padding`
+        which is defined as following:
+
         Args:
-            Same args as the body of the original keras.layers.Conv2D, except for
-                padding.
             padding: one of `"same"`, `"valid"` `"constant"`, `"symmetric"`,
                 `"reflect"` or `"circular"` (case-insensitive).
         """
