@@ -129,7 +129,7 @@ class Model(KerasModel):
         Returns:
             A Keras model, identical to this model, but where condensable layers have
             been replaced with their vanilla equivalent (e.g. SpectralConv2D with
-             Conv2D).
+            Conv2D).
         """
         return vanillaModel(self)
 
@@ -147,7 +147,7 @@ def vanillaModel(model):
 
     Returns:
         A Keras model, identical to the input model where `Condensable` layers are
-            replaced with their vanilla counterparts.
+        replaced with their vanilla counterparts.
     """
 
     def _replace_condensable_layer(layer):
