@@ -150,7 +150,8 @@ class HKR(Loss):
         self.min_margin = min_margin
         self.multi_gpu = multi_gpu
         self.KRloss = KR(multi_gpu=multi_gpu)
-        self.hingeloss = HingeMargin(min_margin)
+        if not hasattr(self, "hingeloss"):  # compatibility with HKRauto
+            self.hingeloss = HingeMargin(min_margin)
         super(HKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
@@ -171,6 +172,82 @@ class HKR(Loss):
             "multi_gpu": self.multi_gpu,
         }
         base_config = super(HKR, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "HKRauto")
+class HKRauto(HKR):
+    def __init__(
+        self,
+        alpha,
+        min_margin=1.0,
+        max_margin=200,
+        alpha_margin=0.1,
+        multi_gpu=False,
+        reduction=Reduction.AUTO,
+        name="HKRauto",
+    ):
+        r"""
+        Wasserstein loss with a regularization parameter based on the hinge margin loss.
+
+        .. math::
+            \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+            \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+            {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Args:
+            alpha: regularization factor
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+            (0.1 inforce that 90% of samples to be outside the margin).
+                Kantorovich-Rubinstein term of the loss. In order to be consistent
+                between hinge and KR, the first label must yield the positive class
+                while the second yields negative class.
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+
+        """
+        self.max_margin = max_margin
+        self.alpha_margin = alpha_margin
+        self.hingeloss = HingeMarginAuto(
+            min_margin=min_margin,
+            max_margin=self.max_margin,
+            alpha_margin=self.alpha_margin,
+        )
+        super(HKRauto, self).__init__(
+            alpha=alpha,
+            min_margin=min_margin,
+            multi_gpu=multi_gpu,
+            reduction=reduction,
+            name=name,
+        )
+
+    def get_trainable_variables(self):
+        return self.hingeloss.get_trainable_variables()
+
+    @property
+    def hinge_margins(self):
+        return self.hingeloss.margins
+
+    def get_config(self):
+        config = {
+            "max_margin": self.max_margin,
+            "alpha_margin": self.alpha_margin,
+        }
+        base_config = super(HKRauto, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -199,19 +276,94 @@ class HingeMargin(Loss):
         super(HingeMargin, self).__init__(reduction=reduction, name=name)
 
     @tf.function
-    def call(self, y_true, y_pred):
+    def compute_hinge_margin(self, y_true, y_pred, v_margin):
         sign = tf.where(y_true > 0, 1, -1)
         sign = tf.cast(sign, y_pred.dtype)
-        hinge = tf.nn.relu(self.min_margin / 2.0 - sign * y_pred)
+        hinge = tf.nn.relu(v_margin / 2.0 - sign * y_pred)
         # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
         # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
         return tf.reduce_mean(hinge, axis=-1)
+
+    def call(self, y_true, y_pred):
+        return self.compute_hinge_margin(y_true, y_pred, self.min_margin)
 
     def get_config(self):
         config = {
             "min_margin": self.min_margin.numpy(),
         }
         base_config = super(HingeMargin, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "HingeMarginAuto")
+class HingeMarginAuto(HingeMargin):
+    def __init__(
+        self,
+        min_margin=1.0,
+        max_margin=200,
+        alpha_margin=0.1,
+        reduction=Reduction.AUTO,
+        name="HingeMarginAuto",
+    ):
+        r"""
+        Compute the hinge margin loss.
+
+        .. math::
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Args:
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+            (0.1 inforce that 90% of samples to be outside the margin).
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+
+        """
+        self.alpha_margin = tf.Variable(alpha_margin, dtype=tf.float32)
+        self.max_margin = max_margin
+        self.min_margin_v = min_margin
+
+        self.margins = None
+        self.trainable_vars = None
+
+        super(HingeMarginAuto, self).__init__(
+            min_margin=min_margin, reduction=reduction, name=name
+        )
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        if self.margins is None:
+            self.margins = tf.Variable(
+                np.array([self.min_margin_v] * y_true.shape[-1]),
+                dtype=tf.float32,
+                constraint=lambda x: tf.clip_by_value(
+                    x, self.min_margin_v, self.max_margin
+                ),
+            )
+            self.trainable_vars = [self.margins]
+
+        hinge_value = self.compute_hinge_margin(y_true, y_pred, self.margins)
+
+        regul_margin = tf.reduce_sum(self.margins)
+
+        return hinge_value - self.alpha_margin * regul_margin
+
+    def get_trainable_variables(self):
+        return self.trainable_vars
+
+    def get_config(self):
+        config = {
+            "alpha_margin": self.alpha_margin.numpy(),
+            "max_margin": self.max_margin,
+        }
+        base_config = super(HingeMarginAuto, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -284,20 +436,23 @@ class MulticlassHinge(Loss):
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         self.use_soft_hinge = soft_hinge_tau > 0.0
         self.soft_hinge_tau = tf.Variable(soft_hinge_tau, dtype=tf.float32)
+
         super(MulticlassHinge, self).__init__(reduction=reduction, name=name)
 
     @tf.function
-    def call(self, y_true, y_pred):
+    def compute_hinge_margin(self, y_true, y_pred, v_margin):
+
         # binary GT to support weighted y_true values
         # generated by process_labels_for_multi_gpu
         y_gt = tf.where(y_true > 0, 1, 0)
         y_gt = tf.cast(y_gt, y_pred.dtype)
+
         # Retrieve the y_pred value of the y_gt neuron for each sample
         vYtrue = tf.reduce_sum(y_pred * y_gt, axis=1, keepdims=True)
         # Compute centered hinge (m/2-vYtrue)+(m/2+y_pred)
         # for each output neuron and each sample
-        hinge = tf.nn.relu(self.min_margin / 2.0 - vYtrue) + tf.nn.relu(
-            self.min_margin / 2.0 + y_pred
+        hinge = tf.nn.relu(v_margin / 2.0 - vYtrue) + tf.nn.relu(
+            v_margin / 2.0 + y_pred
         )
         if not self.use_soft_hinge:
             # Classical hinge: each neuron has the same weight
@@ -321,12 +476,105 @@ class MulticlassHinge(Loss):
 
         return tf.reduce_sum(hinge, axis=-1)
 
+    def call(self, y_true, y_pred):
+        return self.compute_hinge_margin(y_true, y_pred, self.min_margin)
+
     def get_config(self):
         config = {
             "min_margin": self.min_margin.numpy(),
             "soft_hinge_tau": self.soft_hinge_tau.numpy(),
         }
         base_config = super(MulticlassHinge, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "MulticlassHingeAuto")
+class MulticlassHingeAuto(MulticlassHinge):
+    def __init__(
+        self,
+        min_margin=1.0,
+        max_margin=200,
+        alpha_margin=0.1,
+        soft_hinge_tau=0.0,
+        reduction=Reduction.AUTO,
+        name="MulticlassHingeAuto",
+    ):
+        """
+        Loss to estimate the Hinge loss in a multiclass setup. It computes the
+        element-wise Hinge term. Note that this formulation differs from the one
+        commonly found in tensorflow/pytorch (which maximises the difference between
+        the two largest logits). This formulation is consistent with the binary
+        classification loss used in a multiclass fashion.
+
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Args:
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+            (0.1 inforce that 90% of samples to be outside the margin).
+            soft_hinge_tau: temperature applied in softmax for soft_hinge
+              (default: set to 0 for classical hinge)
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+
+        """
+        self.alpha_margin = tf.Variable(alpha_margin, dtype=tf.float32)
+        self.max_margin = max_margin
+        self.min_margin_v = min_margin
+
+        self.margins = None
+        self.trainable_vars = None
+
+        super(MulticlassHingeAuto, self).__init__(
+            min_margin=min_margin,
+            soft_hinge_tau=soft_hinge_tau,
+            reduction=reduction,
+            name=name,
+        )
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        if self.margins is None:
+            self.margins = tf.Variable(
+                np.array([self.min_margin_v] * y_true.shape[-1]),
+                dtype=tf.float32,
+                constraint=lambda x: tf.clip_by_value(
+                    x, self.min_margin_v, self.max_margin
+                ),
+            )
+            self.trainable_vars = [self.margins]
+
+        # binary GT to support weighted y_true values
+        # generated by process_labels_for_multi_gpu
+        y_gt = tf.where(y_true > 0, 1, 0)
+        y_gt = tf.cast(y_gt, y_pred.dtype)
+
+        # set the margin of the y_true class for each sample
+        v_margin = tf.reduce_sum(self.margins * y_gt, axis=1, keepdims=True)
+
+        hinge_value = self.compute_hinge_margin(y_true, y_pred, v_margin)
+
+        # keep only neurons that have at least one sample of the class
+        real_classes = tf.reduce_max(y_gt, axis=0)
+        # compute the average margin over the classes
+        # with at least one sample in the batch
+        regul_margin = (
+            1 / tf.reduce_sum(real_classes) * tf.reduce_sum(self.margins * real_classes)
+        )
+
+        return hinge_value - self.alpha_margin * regul_margin
+
+    def get_trainable_variables(self):
+        return self.trainable_vars
+
+    def get_config(self):
+        config = {
+            "alpha_margin": self.alpha_margin.numpy(),
+            "max_margin": self.max_margin,
+        }
+        base_config = super(MulticlassHingeAuto, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -366,9 +614,11 @@ class MulticlassHKR(Loss):
         self.min_margin = min_margin
         self.soft_hinge_tau = soft_hinge_tau
         self.multi_gpu = multi_gpu
-        self.hingeloss = MulticlassHinge(
-            self.min_margin, soft_hinge_tau=self.soft_hinge_tau
-        )
+        if not hasattr(self, "hingeloss"):  # compatibility with MulticlassHKRauto
+            self.hingeloss = MulticlassHinge(
+                self.min_margin, soft_hinge_tau=self.soft_hinge_tau
+            )
+
         self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=reduction, name=name)
         if alpha == np.inf:  # alpha = inf => hinge only
             self.fct = self.hingeloss
@@ -393,6 +643,76 @@ class MulticlassHKR(Loss):
             "multi_gpu": self.multi_gpu,
         }
         base_config = super(MulticlassHKR, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "MulticlassHKRauto")
+class MulticlassHKRauto(MulticlassHKR):
+    def __init__(
+        self,
+        alpha=10.0,
+        min_margin=1.0,
+        max_margin=200,
+        alpha_margin=0.1,
+        soft_hinge_tau=0.0,
+        multi_gpu=False,
+        reduction=Reduction.AUTO,
+        name="MulticlassHKRauto",
+    ):
+        """
+        The multiclass version of HKR. This is done by computing the HKR term over each
+        class and averaging the results.
+
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Args:
+            alpha: regularization factor
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+                (0.1 inforce that 90% of samples to be outside the margin).
+            soft_hinge_tau: temperature applied in softmax for soft_hinge
+              (default: set to 0 for classical hinge)
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+
+        """
+        self.max_margin = max_margin
+        self.alpha_margin = alpha_margin
+        self.hingeloss = MulticlassHingeAuto(
+            min_margin=min_margin,
+            max_margin=self.max_margin,
+            alpha_margin=self.alpha_margin,
+            soft_hinge_tau=soft_hinge_tau,
+        )
+        super(MulticlassHKRauto, self).__init__(
+            alpha=alpha,
+            min_margin=min_margin,
+            soft_hinge_tau=soft_hinge_tau,
+            multi_gpu=multi_gpu,
+            reduction=reduction,
+            name=name,
+        )
+
+    def get_trainable_variables(self):
+        return self.hingeloss.get_trainable_variables()
+
+    @property
+    def hinge_margins(self):
+        return self.hingeloss.margins
+
+    def get_config(self):
+        config = {
+            "max_margin": self.max_margin,
+            "alpha_margin": self.alpha_margin,
+        }
+        base_config = super(MulticlassHKRauto, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
