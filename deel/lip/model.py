@@ -6,6 +6,7 @@
 This module contains equivalents for Model and Sequential. These classes add support
 for condensation and vanilla exportation.
 """
+import warnings
 import math
 from warnings import warn
 import numpy as np
@@ -15,6 +16,7 @@ from tensorflow.keras import layers as kl
 from .layers import LipschitzLayer, Condensable
 from tensorflow.keras.utils import register_keras_serializable
 from tensorflow.keras.models import clone_model
+import tensorflow as tf
 
 
 _msg_not_lip = "Sequential model contains a layer which is not a 1-Lipschitz layer: {}"
@@ -166,3 +168,107 @@ def vanillaModel(model):
         return new_layer
 
     return clone_model(model, clone_function=_replace_condensable_layer)
+
+
+def lossvariables_train_step(model, data):
+    # Unpack the data. Its structure depends on your model and
+    # on what you pass to `fit()`.
+    if len(data) == 3:
+        x, y, sample_weight = data
+    else:
+        sample_weight = None
+        x, y = data
+
+    with tf.GradientTape() as tape:
+        y_pred = model(x, training=True)  # Forward pass
+        # Compute the loss value.
+        # The loss function is configured in `compile()`.
+        loss = model.compiled_loss(
+            y,
+            y_pred,
+            sample_weight=sample_weight,
+            regularization_losses=model.losses,
+        )
+
+    # Compute gradients
+    trainable_vars = model.trainable_variables
+
+    if hasattr(model.loss, "get_trainable_variables") and model.optim_margin:
+        trainable_vars = trainable_vars + model.loss.get_trainable_variables()
+
+    gradients = tape.gradient(loss, trainable_vars)
+    print(trainable_vars)
+    # Update weights
+    model.optimizer.apply_gradients(zip(gradients, trainable_vars))
+
+    # Update the metrics.
+    # Metrics are configured in `compile()`.
+    model.compiled_metrics.update_state(y, y_pred, sample_weight=sample_weight)
+
+    # Return a dict mapping metric names to current value.
+    # Note that it will include the loss (tracked in self.metrics).
+    return {m.name: m.result() for m in model.metrics}
+
+
+class LossVariableModel(Model):
+    def __init__(self, optim_margin=True, **kwargs):
+        """
+        Superclass for models. When training, will update
+        trainable variables in the loss.
+
+        Args:
+            optim_margin : A flag to activate/deactivate
+            loss trainable variables learning
+        """
+        super(LossVariableModel, self).__init__(**kwargs)
+        self.optim_margin = optim_margin
+
+    def compile(self, **kwargs):
+        super(LossVariableModel, self).compile(**kwargs)
+        if not hasattr(self.loss, "get_trainable_variables"):
+            warnings.warn(
+                "LossVariableModel: warning the loss has no trainable parameters."
+            )
+
+    @tf.function
+    def train_step(self, data):
+        return lossvariables_train_step(self, data)
+
+    def get_config(self):
+        config = {
+            "optim_margin": self.optim_margin,
+        }
+        base_config = super(LossVariableModel, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class LossVariableSequential(Sequential):
+    def __init__(self, layers=None, name=None, optim_margin=True, **kwargs):
+        """
+        Superclass for models. When training, will update
+        trainable variables in the loss.
+
+        Args:
+            optim_margin : A flag to activate/deactivate
+            loss trainable variables learning
+        """
+        super(LossVariableSequential, self).__init__(layers=layers, name=name, **kwargs)
+        self.optim_margin = optim_margin
+
+    def compile(self, **kwargs):
+        super(LossVariableSequential, self).compile(**kwargs)
+        if not hasattr(self.loss, "get_trainable_variables"):
+            warnings.warn(
+                "LossVariableModel: warning the loss has no trainable parameters."
+            )
+
+    @tf.function
+    def train_step(self, data):
+        return lossvariables_train_step(self, data)
+
+    def get_config(self):
+        config = {
+            "optim_margin": self.optim_margin,
+        }
+        base_config = super(LossVariableSequential, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
