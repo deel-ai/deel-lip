@@ -9,6 +9,7 @@ import tensorflow.keras.layers as kl
 from deel.lip import Sequential, Model, vanillaModel
 from deel.lip.layers import SpectralConv2D, SpectralDense, ScaledL2NormPooling2D
 from deel.lip.activations import GroupSort2
+from deel.lip.model import LossVariableModel, LossVariableSequential
 
 
 def sequential_layers():
@@ -69,6 +70,19 @@ class Test(TestCase):
         """Assert vanilla conversion of a deel.lip.Model model"""
         inputs, outputs = functional_input_output_tensors()
         model = Model(inputs, outputs)
+        vanilla_model = model.vanilla_export()
+        self.assert_model_outputs(model, vanilla_model)
+                
+    def test_LossVariableModel(self):
+        """Assert vanilla conversion of a deel.lip.LossVariableModel model"""
+        inputs, outputs = functional_input_output_tensors()
+        model = LossVariableModel(inputs=inputs, outputs=outputs)
+        vanilla_model = model.vanilla_export()
+        self.assert_model_outputs(model, vanilla_model)
+
+    def test_LossVariableSequential(self):
+        """Assert vanilla conversion of a deel.lip.LossVariableSequential model"""
+        model = LossVariableSequential(sequential_layers())
         vanilla_model = model.vanilla_export()
         self.assert_model_outputs(model, vanilla_model)
 
