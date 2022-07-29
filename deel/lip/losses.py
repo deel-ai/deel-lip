@@ -341,7 +341,7 @@ class HingeMarginAuto(HingeMargin):
     def call(self, y_true, y_pred):
         if self.margins is None:
             self.margins = tf.Variable(
-                np.array([self.min_margin_v] * y_true.shape[-1]),
+                self.min_margin_v * tf.ones((tf.shape(y_true)[-1],)),
                 dtype=tf.float32,
                 constraint=lambda x: tf.clip_by_value(
                     x, self.min_margin_v, self.max_margin
@@ -538,7 +538,7 @@ class MulticlassHingeAuto(MulticlassHinge):
     def call(self, y_true, y_pred):
         if self.margins is None:
             self.margins = tf.Variable(
-                np.array([self.min_margin_v] * y_true.shape[-1]),
+                self.min_margin_v * tf.ones((tf.shape(y_true)[-1],)),
                 dtype=tf.float32,
                 constraint=lambda x: tf.clip_by_value(
                     x, self.min_margin_v, self.max_margin
