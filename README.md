@@ -1,4 +1,5 @@
-# deel-lip
+<img src="doc/source/logo.svg#gh-light-mode-only" alt="logo deel-lip" style="width:500px;"/>
+<img src="doc/source/logo_white.svg#gh-dark-mode-only" alt="logo deel-lip" style="width:500px;"/>
 
 [![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![PyPI](https://img.shields.io/pypi/v/deel-lip.svg)](https://pypi.org/project/deel-lip)
