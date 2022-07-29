@@ -162,20 +162,10 @@ Eprint = {arXiv:2006.06520},
 
 ## Contributing
 
-To contribute, you can open an [issue](https://github.com/deel-ai/deel-lip/issues), or fork this repository and then submit
-changes through a [pull-request](https://github.com/deel-ai/deel-lip/pulls).
-We use [`black`](https://pypi.org/project/black/) to format the code and follow PEP-8 convention. To check
-that your code will pass the lint-checks, you can run:
-
-```bash
-tox -e py36-lint
-```
-
-You need [`tox`](https://tox.readthedocs.io/en/latest/) in order to run this. You can install it via `pip`:
-
-```bash
-pip install tox
-```
+Contributions are welcome! You can open an [issue](https://github.com/deel-ai/deel-lip/issues),
+or fork this repository and then submit changes through a
+[pull-request](https://github.com/deel-ai/deel-lip/pulls).
+Take a look at our [contribution guidelines](CONTRIBUTING.md).
 
 ## License
 
