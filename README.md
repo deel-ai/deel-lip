@@ -147,8 +147,8 @@ In order to use `deel-lip`, you also need a [valid tensorflow installation](http
 ## Cite this work
 
 This library has been built to support the work presented in the paper
-[*Achieving robustness in classification using optimaltransport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
-which aim provable and efficient robustness by design.
+[*Achieving robustness in classification using optimal transport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
+which aims provable and efficient robustness by design.
 
 This work can be cited as:
 ```latex
