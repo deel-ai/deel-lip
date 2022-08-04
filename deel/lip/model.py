@@ -10,9 +10,31 @@ import math
 from warnings import warn
 import numpy as np
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
+from tensorflow.keras import activations as ka
+from tensorflow.keras import layers as kl
 from .layers import LipschitzLayer, Condensable
 from tensorflow.keras.utils import register_keras_serializable
 from tensorflow.keras.models import clone_model
+
+
+_msg_not_lip = "Sequential model contains a layer which is not a 1-Lipschitz layer: {}"
+
+
+def _is_supported_1lip_layer(layer):
+    """Return True if the Keras layer is 1-Lipschitz. Note that in some cases, the layer
+    is 1-Lipschitz for specific set of parameters.
+    """
+    supported_1lip_layers = (kl.Softmax, kl.Flatten, kl.Reshape)
+    if isinstance(layer, supported_1lip_layers):
+        return True
+    elif isinstance(layer, kl.MaxPool2D):
+        return True if layer.pool_size <= layer.strides else False
+    elif isinstance(layer, kl.ReLU):
+        return True if (layer.threshold == 0 and layer.negative_slope <= 1) else False
+    elif isinstance(layer, kl.Activation):
+        supported_activations = (ka.linear, ka.relu, ka.sigmoid, ka.tanh)
+        return True if layer.activation in supported_activations else False
+    return False
 
 
 @register_keras_serializable("deel-lip", "Sequential")
@@ -48,46 +70,30 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _compute_lip_coef(self, input_shape=None):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._compute_lip_coef(input_shape)
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _init_lip_coef(self, input_shape):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._init_lip_coef(input_shape)
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _get_coef(self):
         global_coef = 1.0
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer) and (global_coef is not None):
                 global_coef *= layer._get_coef()
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
                 global_coef = None
         return global_coef
 
