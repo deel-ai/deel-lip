@@ -420,9 +420,9 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             or (dilation_rate == [1, 1])
             or (dilation_rate == 1)
         ):
-            raise RuntimeError("NormalizedConv does not support dilation rate")
+            raise RuntimeError("SpectralConv2D does not support dilation rate")
         if padding != "same":
-            raise RuntimeError("NormalizedConv only support padding='same'")
+            raise RuntimeError("SpectralConv2D only supports padding='same'")
         super(SpectralConv2D, self).__init__(
             filters=filters,
             kernel_size=kernel_size,
@@ -716,15 +716,15 @@ class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         **kwargs
     ):
         if not ((strides == (1, 1)) or (strides == [1, 1]) or (strides == 1)):
-            raise RuntimeError("NormalizedConv does not support strides")
+            raise RuntimeError("FrobeniusConv2D does not support strides")
         if not (
             (dilation_rate == (1, 1))
             or (dilation_rate == [1, 1])
             or (dilation_rate == 1)
         ):
-            raise RuntimeError("NormalizedConv does not support dilation rate")
+            raise RuntimeError("FrobeniusConv2D does not support dilation rate")
         if padding != "same":
-            raise RuntimeError("NormalizedConv only support padding='same'")
+            raise RuntimeError("FrobeniusConv2D only supports padding='same'")
         if not (
             (kernel_constraint is None)
             or isinstance(kernel_constraint, SpectralConstraint)
@@ -855,7 +855,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         if not ((strides == pool_size) or (strides is None)):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
-            raise RuntimeError("ScaledAveragePooling2D only support padding='valid'")
+            raise RuntimeError("ScaledAveragePooling2D only supports padding='valid'")
         super(ScaledAveragePooling2D, self).__init__(
             pool_size=pool_size,
             strides=pool_size,
@@ -943,7 +943,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         if not ((strides == pool_size) or (strides is None)):
             raise RuntimeError("stride must be equal to pool_size")
         if padding != "valid":
-            raise RuntimeError("NormalizedConv only support padding='valid'")
+            raise RuntimeError("ScaledL2NormPooling2D only supports padding='valid'")
         if eps_grad_sqrt < 0.0:
             raise RuntimeError("eps_grad_sqrt must be positive")
         super(ScaledL2NormPooling2D, self).__init__(
