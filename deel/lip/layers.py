@@ -150,6 +150,16 @@ class Condensable(abc.ABC):
         pass
 
 
+def _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck):
+    """Assert that the RKO hyper-parameters are supported values."""
+    if eps_spectral <= 0:
+        raise ValueError("eps_spectral has to be > 0")
+    if (eps_bjorck is not None) and (eps_bjorck <= 0.0):
+        raise ValueError("eps_bjorck must be > 0")
+    if (beta_bjorck is not None) and not (0.0 < beta_bjorck <= 0.5):
+        raise ValueError("beta_bjorck must be in ]0, 0.5]")
+
+
 @register_keras_serializable("deel-lip", "SpectralDense")
 class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
     def __init__(
@@ -226,21 +236,14 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         )
         self._kwargs = kwargs
         self.set_klip_factor(k_coef_lip)
+        _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck)
         self.eps_spectral = eps_spectral
         self.beta_bjorck = beta_bjorck
-        if (self.beta_bjorck is not None) and (
-            not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0))
-        ):
-            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.eps_bjorck = eps_bjorck
-        if (self.eps_bjorck is not None) and (not self.eps_bjorck > 0.0):
-            raise RuntimeError("eps_bjorck must be in > 0")
         self.u = None
         self.sig = None
         self.wbar = None
         self.built = False
-        if self.eps_spectral < 0:
-            raise RuntimeError("eps_spectral has to be > 0")
 
     def build(self, input_shape):
         super(SpectralDense, self).build(input_shape)
@@ -446,17 +449,10 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.u = None
         self.sig = None
         self.wbar = None
+        _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck)
         self.eps_spectral = eps_spectral
-        self.beta_bjorck = beta_bjorck
-        if (self.beta_bjorck is not None) and (
-            not ((self.beta_bjorck <= 0.5) and (self.beta_bjorck > 0.0))
-        ):
-            raise RuntimeError("beta_bjorck must be in ]0, 0.5]")
         self.eps_bjorck = eps_bjorck
-        if (self.eps_bjorck is not None) and (not self.eps_bjorck > 0.0):
-            raise RuntimeError("eps_bjorck must be in > 0")
-        if self.eps_spectral < 0:
-            raise RuntimeError("eps_spectral has to be > 0")
+        self.beta_bjorck = beta_bjorck
 
     def build(self, input_shape):
         super(SpectralConv2D, self).build(input_shape)
