@@ -7,6 +7,7 @@ __pycache__
 # IDE / Tools files
 .vscode
 .tox
+deel_lip_dev_env
 
 # Files generated:
 logs

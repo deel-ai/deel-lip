@@ -1,4 +1,5 @@
-# deel-lip
+<img src="doc/source/logo.svg#gh-light-mode-only" alt="logo deel-lip" style="width:500px;"/>
+<img src="doc/source/logo_white.svg#gh-dark-mode-only" alt="logo deel-lip" style="width:500px;"/>
 
 [![Python](https://img.shields.io/pypi/pyversions/deel-lip.svg)](https://pypi.org/project/deel-lip)
 [![PyPI](https://img.shields.io/pypi/v/deel-lip.svg)](https://pypi.org/project/deel-lip)
@@ -147,8 +148,8 @@ In order to use `deel-lip`, you also need a [valid tensorflow installation](http
 ## Cite this work
 
 This library has been built to support the work presented in the paper
-[*Achieving robustness in classification using optimaltransport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
-which aim provable and efficient robustness by design.
+[*Achieving robustness in classification using optimal transport with Hinge regularization*](https://arxiv.org/abs/2006.06520)
+which aims provable and efficient robustness by design.
 
 This work can be cited as:
 ```latex
@@ -162,20 +163,10 @@ Eprint = {arXiv:2006.06520},
 
 ## Contributing
 
-To contribute, you can open an [issue](https://github.com/deel-ai/deel-lip/issues), or fork this repository and then submit
-changes through a [pull-request](https://github.com/deel-ai/deel-lip/pulls).
-We use [`black`](https://pypi.org/project/black/) to format the code and follow PEP-8 convention. To check
-that your code will pass the lint-checks, you can run:
-
-```bash
-tox -e py36-lint
-```
-
-You need [`tox`](https://tox.readthedocs.io/en/latest/) in order to run this. You can install it via `pip`:
-
-```bash
-pip install tox
-```
+Contributions are welcome! You can open an [issue](https://github.com/deel-ai/deel-lip/issues),
+or fork this repository and then submit changes through a
+[pull-request](https://github.com/deel-ai/deel-lip/pulls).
+Take a look at our [contribution guidelines](CONTRIBUTING.md).
 
 ## License
 
