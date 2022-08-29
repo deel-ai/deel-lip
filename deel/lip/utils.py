@@ -7,6 +7,7 @@ Contains utility functions.
 """
 from typing import Generator, Tuple, Any
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras import backend as K
 
@@ -70,3 +71,75 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     lip_cst = K.max(ndfx / ndx)
     print("lip cst: %.3f" % lip_cst)
     return lip_cst
+
+
+def _padding_circular(x, circular_paddings):
+    """Add circular padding to a 4-D tensor. Only channels_last is supported."""
+    if circular_paddings is None:
+        return x
+    w_pad, h_pad = circular_paddings
+    if w_pad > 0:
+        x = tf.concat((x[:, -w_pad:, :, :], x, x[:, :w_pad, :, :]), axis=1)
+    if h_pad > 0:
+        x = tf.concat((x[:, :, -h_pad:, :], x, x[:, :, :h_pad, :]), axis=2)
+    return x
+
+
+def _zero_upscale2D(x, strides):
+    stride_v = strides[0] * strides[1]
+    if stride_v == 1:
+        return x
+    output_shape = x.get_shape().as_list()[1:]
+    if strides[1] > 1:
+        output_shape[1] *= strides[1]
+        x = tf.expand_dims(x, 3)
+        fillz = tf.zeros_like(x)
+        fillz = tf.tile(fillz, [1, 1, 1, strides[1] - 1, 1])
+        x = tf.concat((x, fillz), axis=3)
+        x = tf.reshape(x, (-1,) + tuple(output_shape))
+    if strides[0] > 1:
+        output_shape[0] *= strides[0]
+        x = tf.expand_dims(x, 2)
+        fillz = tf.zeros_like(x)
+        fillz = tf.tile(fillz, [1, 1, strides[0] - 1, 1, 1])
+        x = tf.concat((x, fillz), axis=2)
+        x = tf.reshape(x, (-1,) + tuple(output_shape))
+    return x
+
+
+def _maybe_transpose_kernel(w, transpose=False):
+    """Transpose 4-D kernel: permutation of axes 2 and 3 + reverse axes 0 and 1."""
+    if not transpose:
+        return w
+    w_adj = tf.transpose(w, perm=[0, 1, 3, 2])
+    w_adj = w_adj[::-1, ::-1, :]
+    return w_adj
+
+
+@tf.function
+def process_labels_for_multi_gpu(labels):
+    """Process labels to be fed to any loss based on KR estimation with a multi-GPU/TPU
+    strategy.
+
+    When using a multi-GPU/TPU strategy, the flag `multi_gpu` in KR-based losses must be
+    set to True and the labels have to be pre-processed with this function.
+
+    For binary classification, the labels should be of shape [batch_size, 1].
+    For multiclass problems, the labels must be one-hot encoded (1 or 0) with shape
+    [batch_size, number of classes].
+
+    Args:
+        labels: tf.Tensor containing the labels
+    Returns:
+        labels processed for KR-based losses with multi-GPU/TPU strategy.
+    """
+    eps = 1e-7
+    labels = tf.cast(tf.where(labels > 0, 1, 0), labels.dtype)
+    batch_size = tf.cast(tf.shape(labels)[0], labels.dtype)
+    counts = tf.reduce_sum(labels, axis=0)
+
+    pos = labels / (counts + eps)
+    neg = (1 - labels) / (batch_size - counts + eps)
+    # Since element-wise KR terms are averaged by loss reduction later on, it is needed
+    # to multiply by batch_size here.
+    return batch_size * (pos - neg)

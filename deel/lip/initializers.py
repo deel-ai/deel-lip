@@ -4,7 +4,12 @@
 # =====================================================================================
 from tensorflow.keras.initializers import Initializer, Orthogonal
 from tensorflow.keras import initializers
-from .normalizers import reshaped_kernel_orthogonalization
+from .normalizers import (
+    reshaped_kernel_orthogonalization,
+    DEFAULT_EPS_SPECTRAL,
+    DEFAULT_EPS_BJORCK,
+    DEFAULT_BETA_BJORCK,
+)
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -12,8 +17,9 @@ from tensorflow.keras.utils import register_keras_serializable
 class SpectralInitializer(Initializer):
     def __init__(
         self,
-        niter_spectral=3,
-        niter_bjorck=15,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        eps_bjorck=DEFAULT_EPS_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
         k_coef_lip=1.0,
         base_initializer=Orthogonal(gain=1.0, seed=None),
     ) -> None:
@@ -22,13 +28,16 @@ class SpectralInitializer(Initializer):
         normalization.
 
         Args:
-            niter_spectral: number of iteration to do with the iterative power method
-            niter_bjorck: number of iteration to do with the bjorck algorithm
+            eps_spectral: stopping criterion of iterative power method
+            eps_bjorck: float greater than 0, stopping criterion of
+                bjorck algorithm, setting it to None disable orthogonalization
+            beta_bjorck: beta parameter of bjorck algorithm
             base_initializer: method used to generate weights before applying the
                 orthonormalization
         """
-        self.niter_spectral = niter_spectral
-        self.niter_bjorck = niter_bjorck
+        self.eps_spectral = eps_spectral
+        self.eps_bjorck = eps_bjorck
+        self.beta_bjorck = beta_bjorck
         self.k_coef_lip = k_coef_lip
         self.base_initializer = initializers.get(base_initializer)
         super(SpectralInitializer, self).__init__()
@@ -39,15 +48,17 @@ class SpectralInitializer(Initializer):
             w,
             None,
             self.k_coef_lip,
-            self.niter_spectral,
-            self.niter_bjorck,
+            self.eps_spectral,
+            self.eps_bjorck,
+            self.beta_bjorck,
         )
         return wbar
 
     def get_config(self):
         return {
-            "niter_spectral": self.niter_spectral,
-            "niter_bjorck": self.niter_bjorck,
+            "eps_spectral": self.eps_spectral,
+            "eps_bjorck": self.eps_bjorck,
+            "beta_bjorck": self.beta_bjorck,
             "k_coef_lip": self.k_coef_lip,
             "base_initializer": initializers.serialize(self.base_initializer),
         }

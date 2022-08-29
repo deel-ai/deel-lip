@@ -7,14 +7,34 @@ This module contains equivalents for Model and Sequential. These classes add sup
 for condensation and vanilla exportation.
 """
 import math
-from typing import Dict
 from warnings import warn
 import numpy as np
-from tensorflow import Tensor
 from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
-from tensorflow.keras.layers import Input, InputLayer
+from tensorflow.keras import activations as ka
+from tensorflow.keras import layers as kl
 from .layers import LipschitzLayer, Condensable
 from tensorflow.keras.utils import register_keras_serializable
+from tensorflow.keras.models import clone_model
+
+
+_msg_not_lip = "Sequential model contains a layer which is not a 1-Lipschitz layer: {}"
+
+
+def _is_supported_1lip_layer(layer):
+    """Return True if the Keras layer is 1-Lipschitz. Note that in some cases, the layer
+    is 1-Lipschitz for specific set of parameters.
+    """
+    supported_1lip_layers = (kl.Softmax, kl.Flatten, kl.Reshape)
+    if isinstance(layer, supported_1lip_layers):
+        return True
+    elif isinstance(layer, kl.MaxPool2D):
+        return True if layer.pool_size <= layer.strides else False
+    elif isinstance(layer, kl.ReLU):
+        return True if (layer.threshold == 0 and layer.negative_slope <= 1) else False
+    elif isinstance(layer, kl.Activation):
+        supported_activations = (ka.linear, ka.relu, ka.sigmoid, ka.tanh)
+        return True if layer.activation in supported_activations else False
+    return False
 
 
 @register_keras_serializable("deel-lip", "Sequential")
@@ -50,46 +70,30 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer.set_klip_factor(math.pow(klip_factor, 1 / nb_layers))
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _compute_lip_coef(self, input_shape=None):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._compute_lip_coef(input_shape)
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _init_lip_coef(self, input_shape):
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer):
                 layer._init_lip_coef(input_shape)
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
 
     def _get_coef(self):
         global_coef = 1.0
         for layer in self.layers:
             if isinstance(layer, LipschitzLayer) and (global_coef is not None):
                 global_coef *= layer._get_coef()
-            else:
-                warn(
-                    "Sequential model contains a layer wich is not a Lipschitz layer: {}".format(  # noqa: E501
-                        layer.name
-                    )
-                )
+            elif _is_supported_1lip_layer(layer) is not True:
+                warn(_msg_not_lip.format(layer.name))
                 global_coef = None
         return global_coef
 
@@ -99,17 +103,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
                 layer.condense()
 
     def vanilla_export(self):
-        layers = list()
-        for layer in self.layers:
-            if isinstance(layer, Condensable):
-                layers.append(layer.vanilla_export())
-            else:
-                lay_cp = layer.__class__.from_config(layer.get_config())
-                lay_cp.build(layer.input.shape[1:])
-                lay_cp.set_weights(layer.get_weights())
-                layers.append(lay_cp)
-        model = KerasSequential(layers, self.name)
-        return model
+        return vanillaModel(self)
 
     def get_config(self):
         config = {"k_coef_lip": self.k_coef_lip}
@@ -141,58 +135,34 @@ class Model(KerasModel):
         Returns:
             A Keras model, identical to this model, but where condensable layers have
             been replaced with their vanilla equivalent (e.g. SpectralConv2D with
-             Conv2D).
+            Conv2D).
         """
-        # Dictionary that will map tensor names (from the current model) to tensors
-        # in the exported model.# We initialize the dictionary for inputs:
-        tensors: Dict[str, Tensor] = {}
-
-        # Initialize the dictionary with inputs:
-        tensors.update({inp.name: Input(shape=inp.shape[1:]) for inp in self.inputs})
-
-        for lay in self.layers:
-
-            # Skip input layers:
-            if isinstance(lay, InputLayer):
-                continue
-
-            # Condense+Export the layer if it is a non-vanilla layer, otherwise
-            # just copy the layer:
-            if isinstance(lay, Condensable):
-                lay_cp = lay.vanilla_export()
-            else:
-                # Duplicate layer (weights are not duplicated):
-                lay_cp = lay.__class__.from_config(lay.get_config())
-                lay_cp.build(lay.input_shape)
-                lay_cp.set_weights(lay.get_weights().copy())
-
-            # For each input nodes, we are going to create corresponding operations
-            # in the exported models:
-            for inode in range(len(lay.inbound_nodes)):
-                inputs = lay.get_input_at(inode)
-                outputs = lay.get_output_at(inode)
-
-                # Fetch the
-                if isinstance(inputs, list):
-                    inputs = [tensors[input.name] for input in inputs]
-                else:
-                    inputs = tensors[inputs.name]
-
-                # Retrieve outputs layers (for the exported layer):
-                moutputs = lay_cp(inputs)
-
-                # Add the output tensors to the dictionary, using the names from the
-                # original model:
-                if isinstance(outputs, list):
-                    for outi, mouti in zip(outputs, moutputs):
-                        tensors[outi.name] = mouti
-                else:
-                    tensors[outputs.name] = moutputs
-
-        return KerasModel(
-            [tensors[inp.name] for inp in self.inputs],
-            [tensors[out.name] for out in self.outputs],
-        )
+        return vanillaModel(self)
 
 
-vanillaModel = Model.vanilla_export
+def vanillaModel(model):
+    """
+    Transform a model to its equivalent "vanilla" model, i.e. a model where
+    `Condensable` layers are replaced with their vanilla equivalent. For example,
+    `SpectralConv2D` layers are converted to tf.keras `Conv2D` layers.
+
+    The input model can be a tf.keras Sequential/Model or a deel.lip Sequential/Model.
+
+    Args:
+        model: a tf.keras or deel.lip model with Condensable layers.
+
+    Returns:
+        A Keras model, identical to the input model where `Condensable` layers are
+        replaced with their vanilla counterparts.
+    """
+
+    def _replace_condensable_layer(layer):
+        # Return a vanilla layer if Condensable, else return a copy of the layer
+        if isinstance(layer, Condensable):
+            return layer.vanilla_export()
+        new_layer = layer.__class__.from_config(layer.get_config())
+        new_layer.build(layer.input_shape)
+        new_layer.set_weights(layer.get_weights())
+        return new_layer
+
+    return clone_model(model, clone_function=_replace_condensable_layer)

@@ -9,7 +9,12 @@ regular layers.
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import Constraint
-from .normalizers import reshaped_kernel_orthogonalization
+from .normalizers import (
+    reshaped_kernel_orthogonalization,
+    DEFAULT_EPS_SPECTRAL,
+    DEFAULT_EPS_BJORCK,
+    DEFAULT_BETA_BJORCK,
+)
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -71,7 +76,12 @@ class FrobeniusConstraint(Constraint):
 @register_keras_serializable("deel-lip", "SpectralConstraint")
 class SpectralConstraint(Constraint):
     def __init__(
-        self, k_coef_lip=1.0, niter_spectral=3, niter_bjorck=15, u=None
+        self,
+        k_coef_lip=1.0,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        eps_bjorck=DEFAULT_EPS_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
+        u=None,
     ) -> None:
         """
         Ensure that *all* singular values of the weight matrix equals to 1. Computation
@@ -82,13 +92,15 @@ class SpectralConstraint(Constraint):
 
         Args:
             k_coef_lip: lipschitz coefficient of the weight matrix
-            niter_spectral: number of iteration to find the maximum singular value.
-            niter_bjorck: number of iteration with Bjorck algorithm..
+            eps_spectral: stopping criterion for the iterative power algorithm.
+            eps_bjorck: stopping criterion Bjorck algorithm.
+            beta_bjorck: beta parameter in bjorck algorithm.
             u: vector used for iterated power method, can be set to None (used for
                 serialization/deserialization purposes).
         """
-        self.niter_spectral = niter_spectral
-        self.niter_bjorck = niter_bjorck
+        self.eps_spectral = eps_spectral
+        self.eps_bjorck = eps_bjorck
+        self.beta_bjorck = beta_bjorck
         self.k_coef_lip = k_coef_lip
         if not (isinstance(u, tf.Tensor) or (u is None)):
             u = tf.convert_to_tensor(u)
@@ -100,16 +112,18 @@ class SpectralConstraint(Constraint):
             w,
             self.u,
             self.k_coef_lip,
-            self.niter_spectral,
-            self.niter_bjorck,
+            self.eps_spectral,
+            self.eps_bjorck,
+            self.beta_bjorck,
         )
         return wbar
 
     def get_config(self):
         config = {
             "k_coef_lip": self.k_coef_lip,
-            "niter_spectral": self.niter_spectral,
-            "niter_bjorck": self.niter_bjorck,
+            "eps_spectral": self.eps_spectral,
+            "eps_bjorck": self.eps_bjorck,
+            "beta_bjorck": self.beta_bjorck,
             "u": None if self.u is None else self.u.numpy(),
         }
         base_config = super(SpectralConstraint, self).get_config()
