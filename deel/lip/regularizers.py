@@ -63,6 +63,22 @@ class Lorth(ABC):
             delta = C - (self.stride**self.dim) * M
         return max(0, delta)
 
+    def _alphaNormSpectral(self):
+        """delta is positive in CO case, zero in RO case."""
+        R, C1, M1 = self._get_kernel_shape()
+        if not self.conv_transpose:
+            C, M = C1, M1
+        else:
+            C, M = M1, C1
+        alpha = (
+            R * C * M
+        )  # huge value to get the minimum value in case of square matrix
+        if M - (self.stride**self.dim) * C <= 0:  # RO case
+            alpha = M * (2 * ((R - 1) // self.stride) + 1) ** self.dim
+        if M - (self.stride**self.dim) * C >= 0:  # CO case
+            alpha = min(alpha, C * (2 * R - 1) ** self.dim)
+        return alpha
+
     def _check_if_orthconv_exists(self):
         R, C, M = self._get_kernel_shape()
         msg = "Impossible {} configuration for orthogonal convolution."
@@ -86,6 +102,7 @@ class Lorth(ABC):
         self.kernel_shape = shape
         self.padding = ((R - 1) // self.stride) * self.stride
         self.delta = self._compute_delta()
+        self.alphaNormSpectral = self._alphaNormSpectral()
 
         # Assertions on kernel shape and existence of orthogonal convolution
         assert R & 1, "Lorth regularizer requires odd kernels. Receives " + str(R)
@@ -190,7 +207,7 @@ class LorthRegularizer(Regularizer):
         self.lorth.set_kernel_shape(shape)
 
     def __call__(self, x):
-        return self.lambda_lorth * self.lorth._compute_lorth(x)
+        return self.lambda_lorth * self.lorth.compute_lorth(x)
 
     def get_config(self):
         return {
