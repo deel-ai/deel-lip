@@ -71,7 +71,7 @@ class Test(TestCase):
         model = Model(inputs, outputs)
         vanilla_model = model.vanilla_export()
         self.assert_model_outputs(model, vanilla_model)
-                
+
     def test_LossVariableModel(self):
         """Assert vanilla conversion of a deel.lip.LossVariableModel model"""
         inputs, outputs = functional_input_output_tensors()
