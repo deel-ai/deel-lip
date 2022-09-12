@@ -831,6 +831,39 @@ class Test(TestCase):
             "test failed when margin is not twice the alpha_margin quantile",
         )
 
+    def test_LossVariableModel_binaryDataset(self):
+        print("test_LossVariableModel_dataset")
+        inputs = tf.keras.Input((1,))
+        model = LossVariableModel(inputs=inputs, outputs=inputs)
+        alpha_m = 0.01
+        model.compile(
+            loss=HingeMarginAuto(alpha_margin=alpha_m, min_margin=0.01, max_margin=200),
+            optimizer=tf.keras.optimizers.Adam(1e-1),
+            metrics=[],
+        )
+
+        # callbck_log = LossParamLog("margins",rate=3)
+
+        x_t, y_t = get_gaussian_data(n=500, mean1=2.0, mean2=-2.0)
+        ds_train = (
+            tf.data.Dataset.from_tensor_slices((x_t, y_t)).shuffle(500).batch(120)
+        )
+        model.fit(
+            ds_train,
+            epochs=10,
+            # callbacks = [callbck_log]
+        )
+        x_all_pos = np.reshape(x_t * (2 * y_t - 1), (-1,))
+        x_sorted = np.sort(x_all_pos)
+        print(model.loss.margins)
+        print(2 * x_sorted[int(alpha_m * len(x_t))])
+        np.testing.assert_almost_equal(
+            model.loss.margins,
+            2 * x_sorted[int(alpha_m * len(x_t))],
+            1,
+            "test failed when margin is not twice the alpha_margin quantile",
+        )
+
     def test_LossVariableModel_multiclass(self):
         print("test_LossVariableModel_multiclass")
         inputs = tf.keras.Input((2,))
@@ -852,6 +885,39 @@ class Test(TestCase):
         model.fit(
             x2_t, y2_t, batch_size=100, epochs=10, shuffle=True, callbacks=[callbck_log]
         )
+        x_all_pos = np.reshape(x_t * (2 * y_t - 1), (-1,))
+        x_sorted = np.sort(x_all_pos)
+        print(model.loss.margins)
+        print([2 * x_sorted[int(alpha_m * len(x_t))]] * 2)
+        np.testing.assert_almost_equal(
+            model.loss.margins,
+            [2 * x_sorted[int(alpha_m * len(x_t))]] * 2,
+            1,
+            "test failed when margin is not twice the alpha_margin quantile",
+        )
+
+    def test_LossVariableModel_multiclass_dataset(self):
+        print("test_LossVariableModel_multiclass")
+        inputs = tf.keras.Input((2,))
+        model = LossVariableModel(inputs=inputs, outputs=inputs)
+        alpha_m = 0.01
+        model.compile(
+            loss=MulticlassHingeAuto(
+                alpha_margin=alpha_m, min_margin=0.01, max_margin=200
+            ),
+            optimizer=tf.keras.optimizers.Adam(1e-1),
+            metrics=[],
+        )
+
+        callbck_log = LossParamLog("margins", rate=3)
+
+        x_t, y_t = get_gaussian_data(n=500, mean1=2.0, mean2=-2.0)
+        x2_t = tf.concat([-x_t, x_t], axis=1)
+        y2_t = tf.one_hot(tf.cast(tf.squeeze(y_t), tf.int32), 2)
+        ds_train = (
+            tf.data.Dataset.from_tensor_slices((x2_t, y2_t)).shuffle(500).batch(120)
+        )
+        model.fit(ds_train, epochs=10, callbacks=[callbck_log])
         x_all_pos = np.reshape(x_t * (2 * y_t - 1), (-1,))
         x_sorted = np.sort(x_all_pos)
         print(model.loss.margins)

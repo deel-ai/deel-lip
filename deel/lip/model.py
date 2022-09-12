@@ -197,7 +197,6 @@ def lossvariables_train_step(model, data):
         trainable_vars = trainable_vars + model.loss.get_trainable_variables()
 
     gradients = tape.gradient(loss, trainable_vars)
-    print(trainable_vars)
     # Update weights
     model.optimizer.apply_gradients(zip(gradients, trainable_vars))
 
