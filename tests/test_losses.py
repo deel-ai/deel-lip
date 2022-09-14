@@ -27,7 +27,7 @@ import os
 import numpy as np
 from deel.lip.model import LossVariableModel, LossVariableSequential
 from deel.lip.callbacks import LossParamLog
-
+from . import set_global_seed
 # a tester:
 # - un cas hardcodé
 # - les dtypes pour y_true
@@ -60,6 +60,9 @@ def binary_tf_data(x):
 
 
 class Test(TestCase):
+    def setUp(self):  # set  the seed for tensorflow and numpy
+        set_global_seed(42)
+
     def test_kr_loss(self):
         loss = KR()
         # y_true and y_pred must be of rank 2
