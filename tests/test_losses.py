@@ -28,6 +28,7 @@ import numpy as np
 from deel.lip.model import LossVariableModel, LossVariableSequential
 from deel.lip.callbacks import LossParamLog
 from . import set_global_seed
+
 # a tester:
 # - un cas hardcodé
 # - les dtypes pour y_true
