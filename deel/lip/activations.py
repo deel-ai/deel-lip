@@ -7,6 +7,7 @@ This module contains extra activation functions which respect the Lipschitz cons
 It can be added as a layer, or it can be used in the "activation" params for other
 layers.
 """
+import math
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.constraints import MinMaxNorm
@@ -211,3 +212,85 @@ def PReLUlip(k_coef_lip=1.0):
     return PReLU(
         alpha_constraint=MinMaxNorm(min_value=-k_coef_lip, max_value=k_coef_lip)
     )
+
+
+@register_keras_serializable("deel-lip", "Householder")
+class Householder(Layer, LipschitzLayer):
+    def __init__(
+        self,
+        data_format="channels_last",
+        k_coef_lip=1.0,
+        theta_initializer=None,
+        **kwargs,
+    ):
+        """
+        Householder activation: https://openreview.net/pdf?id=tD7eCtaSkR
+        From https://github.com/singlasahil14/SOC
+
+        Args:
+            data_format: either channels_first or channels_last. Only channels_last is
+                supported.
+            k_coef_lip: The lipschitz coefficient to be enforced.
+            theta_initializer: initializer for the angle theta of reflection. Defaults
+                to pi/2, which corresponds to GroupSort2.
+            **kwargs: parameters passed to the `tf.keras.layers.Layer`.
+
+        Input shape:
+            Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
+            not include the samples axis) when using this layer as the first layer in a
+            model.
+
+        Output shape:
+            Same size as input.
+
+        """
+        if data_format != "channels_last":
+            raise RuntimeError("Only 'channels_last' data format is supported")
+
+        self.data_format = data_format
+        self.set_klip_factor(k_coef_lip)
+        self.theta_initializer = theta_initializer
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        self._init_lip_coef(input_shape)
+        if (input_shape[-1] % 2) != 0:
+            raise RuntimeError("2 has to be a divisor of the number of channels")
+
+        self.theta = self.add_weight(
+            "theta",
+            shape=[input_shape[-1] // 2],
+            initializer=self.theta_initializer,
+        )
+        if self.theta_initializer is None:
+            self.theta.assign(tf.ones_like(self.theta, dtype=tf.float32) * math.pi / 2)
+
+    def _compute_lip_coef(self, input_shape=None):
+        return 1.0
+
+    def call(self, x):
+        z1, z2 = tf.split(x, 2, axis=-1)
+
+        # selector > 0 if point (z1, z2) is on one side of reflection line, else < 0.
+        # Reflection line is defined by angle theta/2.
+        selector = (z1 * tf.sin(0.5 * self.theta)) - (z2 * tf.cos(0.5 * self.theta))
+
+        cos_theta = tf.cos(self.theta)
+        sin_theta = tf.sin(self.theta)
+        reflected_z1 = z1 * cos_theta + z2 * sin_theta
+        reflected_z2 = z1 * sin_theta - z2 * cos_theta
+
+        a = tf.where(selector <= 0, z1, reflected_z1)
+        b = tf.where(selector <= 0, z2, reflected_z2)
+
+        return tf.concat([a, b], axis=-1)
+
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+            "data_format": self.data_format,
+            "theta_initializer": self.theta_initializer,
+        }
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
