@@ -337,6 +337,32 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         return layer
 
 
+def _compute_conv_lip_factor(kernel_size, strides, input_shape, data_format):
+    """Compute the Lipschitz factor to apply on estimated Lipschitz constant in
+    convolutional layer. This factor depends on the kernel size, the strides and the
+    input shape.
+    """
+    stride = np.prod(strides)
+    kh, kw = kernel_size[0], kernel_size[1]
+    kh_div2 = (kh - 1) / 2
+    kw_div2 = (kw - 1) / 2
+
+    if data_format == "channels_last":
+        h, w = input_shape[-3], input_shape[-2]
+    elif data_format == "channels_first":
+        h, w = input_shape[-2], input_shape[-1]
+    else:
+        raise RuntimeError("data_format not understood: " % data_format)
+
+    if stride == 1:
+        return np.sqrt(
+            (w * h)
+            / ((kh * h - kh_div2 * (kh_div2 + 1)) * (kw * w - kw_div2 * (kw_div2 + 1)))
+        )
+    else:
+        return np.sqrt(1.0 / (np.ceil(kh / strides[0]) * np.ceil(kw / strides[1])))
+
+
 @register_keras_serializable("deel-lip", "SpectralConv2D")
 class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
     def __init__(
@@ -481,33 +507,9 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        # According to the file lipschitz_CNN.pdf
-        stride = np.prod(self.strides)
-        k1 = self.kernel_size[0]
-        k1_div2 = (k1 - 1) / 2
-        k2 = self.kernel_size[1]
-        k2_div2 = (k2 - 1) / 2
-        if self.data_format == "channels_last":
-            h = input_shape[-3]
-            w = input_shape[-2]
-        elif self.data_format == "channels_first":
-            h = input_shape[-2]
-            w = input_shape[-1]
-        else:
-            raise RuntimeError("data_format not understood: " % self.data_format)
-        if stride == 1:
-            coefLip = np.sqrt(
-                (w * h)
-                / (
-                    (k1 * h - k1_div2 * (k1_div2 + 1))
-                    * (k2 * w - k2_div2 * (k2_div2 + 1))
-                )
-            )
-        else:
-            sn1 = self.strides[0]
-            sn2 = self.strides[1]
-            coefLip = np.sqrt(1.0 / (np.ceil(k1 / sn1) * np.ceil(k2 / sn2)))
-        return coefLip
+        return _compute_conv_lip_factor(
+            self.kernel_size, self.strides, input_shape, self.data_format
+        )
 
     def call(self, x, training=True):
         if training:
@@ -732,30 +734,9 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
         self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
 
     def _compute_lip_coef(self, input_shape=None):
-        stride = np.prod(self.strides)
-        k1 = self.kernel_size[0]
-        k1_div2 = (k1 - 1) / 2
-        k2 = self.kernel_size[1]
-        k2_div2 = (k2 - 1) / 2
-        if self.data_format == "channels_last":
-            h = input_shape[-3]
-            w = input_shape[-2]
-        elif self.data_format == "channels_first":
-            h = input_shape[-2]
-            w = input_shape[-1]
-        if stride == 1:
-            coefLip = np.sqrt(
-                (w * h)
-                / (
-                    (k1 * h - k1_div2 * (k1_div2 + 1))
-                    * (k2 * w - k2_div2 * (k2_div2 + 1))
-                )
-            )
-        else:
-            sn1 = self.strides[0]
-            sn2 = self.strides[1]
-            coefLip = np.sqrt(1.0 / (np.ceil(k1 / sn1) * np.ceil(k2 / sn2)))
-        return coefLip
+        return _compute_conv_lip_factor(
+            self.kernel_size, self.strides, input_shape, self.data_format
+        )
 
     def call(self, inputs, training=True):
         if training:
@@ -1071,7 +1052,9 @@ class FrobeniusConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return SpectralConv2D._compute_lip_coef(self, input_shape)
+        return _compute_conv_lip_factor(
+            self.kernel_size, self.strides, input_shape, self.data_format
+        )
 
     def call(self, x, training=True):
         if training:
