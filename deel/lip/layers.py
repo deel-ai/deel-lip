@@ -38,6 +38,8 @@ from .normalizers import (
     DEFAULT_EPS_SPECTRAL,
     reshaped_kernel_orthogonalization,
     DEFAULT_BETA_BJORCK,
+    DEFAULT_MAXITER_BJORCK,
+    DEFAULT_MAXITER_SPECTRAL,
 )
 from tensorflow.keras.utils import register_keras_serializable
 
@@ -183,6 +185,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         eps_spectral=DEFAULT_EPS_SPECTRAL,
         eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
+        maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
+        maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
         **kwargs
     ):
         """
@@ -213,6 +217,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
             eps_spectral: stopping criterion for the iterative power algorithm.
             eps_bjorck: stopping criterion Bjorck algorithm.
             beta_bjorck: beta parameter in bjorck algorithm.
+            maxiter_spectral: maximum number of iterations for the power iteration.
+            maxiter_bjorck: maximum number of iterations for bjorck algorithm.
 
         Input shape:
             N-D tensor with shape: `(batch_size, ..., input_dim)`.
@@ -243,8 +249,10 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
         self.set_klip_factor(k_coef_lip)
         _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck)
         self.eps_spectral = eps_spectral
-        self.beta_bjorck = beta_bjorck
         self.eps_bjorck = eps_bjorck
+        self.beta_bjorck = beta_bjorck
+        self.maxiter_bjorck = maxiter_bjorck
+        self.maxiter_spectral = maxiter_spectral
         self.u = None
         self.sig = None
         self.wbar = None
@@ -284,6 +292,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
                 self.eps_spectral,
                 self.eps_bjorck,
                 self.beta_bjorck,
+                self.maxiter_spectral,
+                self.maxiter_bjorck,
             )
             self.wbar.assign(wbar)
             self.u.assign(u)
@@ -303,6 +313,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
             "eps_spectral": self.eps_spectral,
             "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
+            "maxiter_spectral": self.maxiter_spectral,
+            "maxiter_bjorck": self.maxiter_bjorck,
         }
         base_config = super(SpectralDense, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -315,6 +327,8 @@ class SpectralDense(keraslayers.Dense, LipschitzLayer, Condensable):
             self.eps_spectral,
             self.eps_bjorck,
             self.beta_bjorck,
+            self.maxiter_spectral,
+            self.maxiter_bjorck,
         )
         self.kernel.assign(wbar)
         self.u.assign(u)
@@ -386,6 +400,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         eps_spectral=DEFAULT_EPS_SPECTRAL,
         eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
+        maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
+        maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
         **kwargs
     ):
         """
@@ -446,6 +462,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             eps_spectral: stopping criterion for the iterative power algorithm.
             eps_bjorck: stopping criterion Bjorck algorithm.
             beta_bjorck: beta parameter in bjorck algorithm.
+            maxiter_spectral: maximum number of iterations for the power iteration.
+            maxiter_bjorck: maximum number of iterations for bjorck algorithm.
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
@@ -484,6 +502,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         self.eps_spectral = eps_spectral
         self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
+        self.maxiter_bjorck = maxiter_bjorck
+        self.maxiter_spectral = maxiter_spectral
 
     def build(self, input_shape):
         super(SpectralConv2D, self).build(input_shape)
@@ -520,6 +540,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
                 self.eps_spectral,
                 self.eps_bjorck,
                 self.beta_bjorck,
+                self.maxiter_spectral,
+                self.maxiter_bjorck,
             )
             self.wbar.assign(wbar)
             self.u.assign(u)
@@ -546,6 +568,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             "eps_spectral": self.eps_spectral,
             "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
+            "maxiter_spectral": self.maxiter_spectral,
+            "maxiter_bjorck": self.maxiter_bjorck,
         }
         base_config = super(SpectralConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -558,6 +582,8 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
             self.eps_spectral,
             self.eps_bjorck,
             self.beta_bjorck,
+            self.maxiter_spectral,
+            self.maxiter_bjorck,
         )
         self.kernel.assign(wbar)
         self.u.assign(u)
@@ -609,6 +635,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
         eps_spectral=DEFAULT_EPS_SPECTRAL,
         eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
+        maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
+        maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
         **kwargs
     ):
         """
@@ -674,6 +702,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
             eps_spectral: stopping criterion for the iterative power algorithm.
             eps_bjorck: stopping criterion Björck algorithm.
             beta_bjorck: beta parameter in Björck algorithm.
+            maxiter_spectral: maximum number of iterations for the power iteration.
+            maxiter_bjorck: maximum number of iterations for bjorck algorithm.
         """
         super().__init__(
             filters,
@@ -711,6 +741,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
         self.eps_spectral = eps_spectral
         self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
+        self.maxiter_bjorck = maxiter_bjorck
+        self.maxiter_spectral = maxiter_spectral
         self._kwargs = kwargs
 
     def build(self, input_shape):
@@ -748,6 +780,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
                 self.eps_spectral,
                 self.eps_bjorck,
                 self.beta_bjorck,
+                self.maxiter_spectral,
+                self.maxiter_bjorck,
             )
             wbar = tf.transpose(wbar, [0, 1, 3, 2])
             self.wbar.assign(wbar)
@@ -836,6 +870,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
             "eps_spectral": self.eps_spectral,
             "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
+            "maxiter_spectral": self.maxiter_spectral,
+            "maxiter_bjorck": self.maxiter_bjorck,
         }
         base_config = super().get_config()
         return dict(list(base_config.items()) + list(config.items()))
@@ -848,6 +884,8 @@ class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Conde
             self.eps_spectral,
             self.eps_bjorck,
             self.beta_bjorck,
+            self.maxiter_spectral,
+            self.maxiter_bjorck,
         )
         self.kernel.assign(wbar)
         self.u.assign(u)
