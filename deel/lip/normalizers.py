@@ -12,6 +12,8 @@ from tensorflow.keras import backend as K
 DEFAULT_BETA_BJORCK = 0.5
 DEFAULT_EPS_SPECTRAL = 1e-3
 DEFAULT_EPS_BJORCK = 1e-3
+DEFAULT_MAXITER_BJORCK = 15
+DEFAULT_MAXITER_SPECTRAL = 10
 
 
 def reshaped_kernel_orthogonalization(
@@ -21,6 +23,8 @@ def reshaped_kernel_orthogonalization(
     eps_spectral=DEFAULT_EPS_SPECTRAL,
     eps_bjorck=DEFAULT_EPS_BJORCK,
     beta=DEFAULT_BETA_BJORCK,
+    maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
+    maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
 ):
     """
     Perform reshaped kernel orthogonalization (RKO) to the kernel given as input. It
@@ -35,6 +39,8 @@ def reshaped_kernel_orthogonalization(
         eps_spectral: stopping criterion in spectral algorithm
         eps_bjorck: stopping criterion in bjorck algorithm
         beta: the beta used in the bjorck algorithm
+        maxiter_spectral: maximum number of iterations for the power iteration
+        maxiter_bjorck: maximum number of iterations for bjorck algorithm
 
     Returns: the orthogonalized kernel, the new u, and sigma which is the largest
         singular value
@@ -43,15 +49,21 @@ def reshaped_kernel_orthogonalization(
     W_shape = kernel.shape
     # Flatten the Tensor
     W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
-    W_bar, u, sigma = spectral_normalization(W_reshaped, u, eps=eps_spectral)
+    W_bar, u, sigma = spectral_normalization(
+        W_reshaped, u, eps=eps_spectral, maxiter=maxiter_spectral
+    )
     if (eps_bjorck is not None) and (beta is not None):
-        W_bar = bjorck_normalization(W_bar, eps=eps_bjorck, beta=beta)
+        W_bar = bjorck_normalization(
+            W_bar, eps=eps_bjorck, beta=beta, maxiter=maxiter_bjorck
+        )
     W_bar = W_bar * adjustment_coef
     W_bar = K.reshape(W_bar, kernel.shape)
     return W_bar, u, sigma
 
 
-def bjorck_normalization(w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK):
+def bjorck_normalization(
+    w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK, maxiter=DEFAULT_MAXITER_BJORCK
+):
     """
     apply Bjorck normalization on w.
 
@@ -60,6 +72,7 @@ def bjorck_normalization(w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK):
             max_eigenval(w) ~= 1
         eps: epsilon stopping criterion: norm(wt - wt-1) must be less than eps
         beta: beta used in each iteration, must be in the interval ]0, 0.5]
+        maxiter: maximum number of iterations for the algorithm
 
     Returns:
         the orthonormal weights
@@ -81,12 +94,12 @@ def bjorck_normalization(w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK):
 
     # apply the loop
     w, old_w = tf.while_loop(
-        cond, body, (w, old_w), parallel_iterations=1, maximum_iterations=30
+        cond, body, (w, old_w), parallel_iterations=1, maximum_iterations=maxiter
     )
     return w
 
 
-def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
+def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPECTRAL):
     """
     Internal function that performs the power iteration algorithm.
 
@@ -94,6 +107,7 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
         w: weights matrix that we want to find eigen vector
         u: initialization of the eigen vector
         eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter: maximum number of iterations for the algorithm
 
     Returns:
          u and v corresponding to the maximum eigenvalue
@@ -127,12 +141,14 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
 
     # apply the loop
     _u, _v, _old_u = tf.while_loop(
-        cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=30
+        cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=maxiter
     )
     return _u, _v
 
 
-def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
+def spectral_normalization(
+    kernel, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPECTRAL
+):
     """
     Normalize the kernel to have it's max eigenvalue == 1.
 
@@ -140,13 +156,14 @@ def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
         kernel: the kernel to normalize, assuming a 2D kernel
         u: initialization for the max eigen vector
         eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter: maximum number of iterations for the algorithm
 
     Returns:
         the normalized kernel w_bar, it's shape, the maximum eigen vector, and the
         maximum singular value
 
     """
-    _u, _v = _power_iteration(kernel, u, eps)
+    _u, _v = _power_iteration(kernel, u, eps, maxiter)
     # compute Sigma
     sigma = _v @ kernel
     sigma = sigma @ tf.transpose(_u)
