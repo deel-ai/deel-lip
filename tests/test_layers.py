@@ -4,6 +4,7 @@
 # =====================================================================================
 import os
 import pprint
+import tempfile
 import unittest
 
 import numpy as np
@@ -30,6 +31,7 @@ from deel.lip.layers import (
     LipschitzLayer,
     SpectralDense,
     SpectralConv2D,
+    SpectralConv2DTranspose,
     FrobeniusDense,
     FrobeniusConv2D,
     ScaledAveragePooling2D,
@@ -187,7 +189,7 @@ def train_k_lip_model(
     np.random.seed(42)
     # create the keras model, defin opt, and compile it
     model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
-    optimizer = Adam(lr=0.001)
+    optimizer = Adam(learning_rate=0.001)
     model.compile(optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse])
     # model.summary()
     # create the synthetic data generator
@@ -544,6 +546,49 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
                 dict(
                     layer_type=SpectralConv2D,
+                    layer_params={"filters": 2, "kernel_size": (3, 3)},
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_SpectralConv2DTranspose(self):
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=SpectralConv2DTranspose,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "use_bias": False,
+                    },
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralConv2DTranspose,
+                    layer_params={"filters": 2, "kernel_size": (3, 3)},
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralConv2DTranspose,
                     layer_params={"filters": 2, "kernel_size": (3, 3)},
                     batch_size=250,
                     steps_per_epoch=125,
@@ -953,6 +998,61 @@ class LipschitzLayersTest(unittest.TestCase):
                 ),
             ]
         )
+
+
+class TestSpectralConv2DTranspose(unittest.TestCase):
+    def test_instantiation(self):
+
+        # Supported cases
+        cases = (
+            dict(filters=5, kernel_size=3),
+            dict(filters=12, kernel_size=5, strides=2, use_bias=False),
+            dict(filters=3, kernel_size=3, padding="same", dilation_rate=1),
+            dict(filters=4, kernel_size=1, output_padding=None, activation="relu"),
+            dict(filters=16, kernel_size=3, data_format="channels_first"),
+        )
+
+        for i, kwargs in enumerate(cases):
+            with self.subTest(i=i):
+                SpectralConv2DTranspose(**kwargs)
+
+        # Unsupported cases
+        cases = (
+            {"msg": "Wrong padding", "kwarg": {"padding": "valid"}},
+            {"msg": "Wrong dilation rate", "kwarg": {"dilation_rate": 2}},
+            {"msg": "Wrong data format", "kwarg": {"output_padding": 5}},
+        )
+
+        for case in cases:
+            with self.subTest(case["msg"]):
+                with self.assertRaises(ValueError):
+                    SpectralConv2DTranspose(10, 3, **case["kwarg"])
+
+    def test_vanilla_export(self):
+        kwargs = dict(
+            filters=16,
+            kernel_size=5,
+            strides=2,
+            activation="relu",
+            data_format="channels_first",
+            input_shape=(28, 28, 3),
+        )
+
+        lay = SpectralConv2DTranspose(**kwargs)
+        model = Sequential([lay])
+
+        x = tf.random.normal((5,) + (kwargs["input_shape"]))
+        y1 = model(x)
+
+        # Test vanilla export inference comparison
+        vanilla_model = model.vanilla_export()
+        y2 = vanilla_model(x)
+        np.testing.assert_allclose(y1, y2, atol=1e-6)
+
+        # Test saving/loading model
+        with tempfile.TemporaryDirectory():
+            model.save("model.h5")
+            tf.keras.models.load_model("model.h5")
 
 
 if __name__ == "__main__":
