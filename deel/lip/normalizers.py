@@ -40,7 +40,10 @@ def reshaped_kernel_orthogonalization(
         singular value
 
     """
-    W_bar, u, sigma = spectral_normalization(kernel, u, eps=eps_spectral)
+    W_shape = kernel.shape
+    # Flatten the Tensor
+    W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
+    W_bar, u, sigma = spectral_normalization(W_reshaped, u, eps=eps_spectral)
     if (eps_bjorck is not None) and (beta is not None):
         W_bar = bjorck_normalization(W_bar, eps=eps_bjorck, beta=beta)
     W_bar = W_bar * adjustment_coef
@@ -98,8 +101,14 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
     """
     # build _u and _v (_v is size of _u@tf.transpose(w), will be set on the first body
     # iteration)
+    if u is None:
+        u = tf.linalg.l2_normalize(
+            tf.random.uniform(
+                shape=(1, w.shape[-1]), minval=0.0, maxval=1.0, dtype=w.dtype
+            )
+        )
     _u = u
-    _v = tf.zeros(u.shape[:-1] + (w.shape[0],), dtype=w.dtype)
+    _v = tf.zeros((1,) + (w.shape[0],), dtype=w.dtype)
 
     # create a fake old_w that doesn't pass the loop condition
     # it won't affect computation as the first action done in the loop overwrite it.
@@ -128,7 +137,7 @@ def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
     Normalize the kernel to have it's max eigenvalue == 1.
 
     Args:
-        kernel: the kernel to normalize
+        kernel: the kernel to normalize, assuming a 2D kernel
         u: initialization for the max eigen vector
         eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
 
@@ -137,19 +146,14 @@ def spectral_normalization(kernel, u, eps=DEFAULT_EPS_SPECTRAL):
         maximum singular value
 
     """
-    W_shape = kernel.shape
-    if u is None:
-        u = tf.linalg.l2_normalize(tf.ones(shape=tuple([1, W_shape[-1]])))
-    # Flatten the Tensor
-    W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
-    _u, _v = _power_iteration(W_reshaped, u, eps)
+    _u, _v = _power_iteration(kernel, u, eps)
     # compute Sigma
-    sigma = _v @ W_reshaped
+    sigma = _v @ kernel
     sigma = sigma @ tf.transpose(_u)
     # normalize it
     # we assume that in the worst case we converged to sigma + eps (as u and v are
     # normalized after each iteration)
     # in order to be sure that operator norm of W_bar is strictly less than one we
     # use sigma + eps, which ensure stability of the bjorck even when beta=0.5
-    W_bar = W_reshaped / (sigma + eps)
+    W_bar = kernel / (sigma + eps)
     return W_bar, _u, sigma
