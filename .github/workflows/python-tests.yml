@@ -1,6 +1,13 @@
 name: deel-lip tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+  schedule:
+    - cron: "0 2 * * 0" # Run tests every Sunday at 2am
 
 jobs:
   checks:
