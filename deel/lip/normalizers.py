@@ -94,7 +94,12 @@ def bjorck_normalization(
 
     # apply the loop
     w, old_w = tf.while_loop(
-        cond, body, (w, old_w), parallel_iterations=1, maximum_iterations=maxiter
+        cond,
+        body,
+        (w, old_w),
+        parallel_iterations=1,
+        maximum_iterations=maxiter,
+        swap_memory=True,
     )
     return w
 
@@ -141,7 +146,12 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPE
 
     # apply the loop
     _u, _v, _old_u = tf.while_loop(
-        cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=maxiter
+        cond,
+        body,
+        (_u, _v, _old_u),
+        parallel_iterations=1,
+        maximum_iterations=maxiter,
+        swap_memory=True,
     )
     return _u, _v
 
