@@ -61,6 +61,13 @@ def reshaped_kernel_orthogonalization(
     return W_bar, u, sigma
 
 
+def _wwtw(w):
+    if w.shape[0] > w.shape[1]:
+        return w @ (tf.transpose(w) @ w)
+    else:
+        return (w @ tf.transpose(w)) @ w
+
+
 def bjorck_normalization(
     w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK, maxiter=DEFAULT_MAXITER_BJORCK
 ):
@@ -89,7 +96,7 @@ def bjorck_normalization(
     # define the loop body
     def body(w, old_w):
         old_w = w
-        w = (1 + beta) * w - beta * w @ tf.transpose(w) @ w
+        w = (1 + beta) * w - beta * _wwtw(w)
         return w, old_w
 
     # apply the loop
