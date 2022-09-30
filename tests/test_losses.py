@@ -434,7 +434,7 @@ class Test(TestCase):
         num_items = 10000
         y_true = tf.one_hot(np.random.randint(num_classes, size=num_items), num_classes)
         y_true = process_labels_for_multi_gpu(y_true)
-        y_pred = tf.random.normal((num_items, num_classes))
+        y_pred = tf.random.normal((num_items, num_classes), seed=17)
 
         # Compare full batch loss and mini-batches loss
         for loss in losses:
