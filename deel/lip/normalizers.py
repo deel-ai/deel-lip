@@ -14,6 +14,8 @@ DEFAULT_EPS_SPECTRAL = 1e-3
 DEFAULT_EPS_BJORCK = 1e-3
 DEFAULT_MAXITER_BJORCK = 15
 DEFAULT_MAXITER_SPECTRAL = 10
+SWAP_MEMORY = True
+STOP_GRAD_SPECTRAL = True
 
 
 def reshaped_kernel_orthogonalization(
@@ -106,7 +108,7 @@ def bjorck_normalization(
         (w, old_w),
         parallel_iterations=30,
         maximum_iterations=maxiter,
-        swap_memory=True,
+        swap_memory=SWAP_MEMORY,
     )
     return w
 
@@ -158,8 +160,11 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPE
         (_u, _v, _old_u),
         parallel_iterations=30,
         maximum_iterations=maxiter,
-        swap_memory=True,
+        swap_memory=SWAP_MEMORY,
     )
+    if STOP_GRAD_SPECTRAL:
+        _u = tf.stop_gradient(_u)
+        _v = tf.stop_gradient(_v)
     return _u, _v
 
 
