@@ -104,7 +104,7 @@ def bjorck_normalization(
         cond,
         body,
         (w, old_w),
-        parallel_iterations=1,
+        parallel_iterations=30,
         maximum_iterations=maxiter,
         swap_memory=True,
     )
@@ -156,7 +156,7 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPE
         cond,
         body,
         (_u, _v, _old_u),
-        parallel_iterations=1,
+        parallel_iterations=30,
         maximum_iterations=maxiter,
         swap_memory=True,
     )
