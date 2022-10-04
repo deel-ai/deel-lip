@@ -41,6 +41,11 @@ from .normalizers import (
 )
 from tensorflow.keras.utils import register_keras_serializable
 
+try:
+    from keras.utils import conv_utils  # in Keras for TF >= 2.6
+except ModuleNotFoundError:
+    from tensorflow.python.keras.utils import conv_utils  # in TF.python for TF <= 2.5
+
 
 class LipschitzLayer(abc.ABC):
     """
@@ -574,6 +579,314 @@ class SpectralConv2D(keraslayers.Conv2D, LipschitzLayer, Condensable):
         layer.build(self.input_shape)
         layer.kernel.assign(self.wbar)
         if self.use_bias:
+            layer.bias.assign(self.bias)
+        return layer
+
+
+@register_keras_serializable("deel-lip", "SpectralConv2DTranspose")
+class SpectralConv2DTranspose(keraslayers.Conv2DTranspose, LipschitzLayer, Condensable):
+    def __init__(
+        self,
+        filters,
+        kernel_size,
+        strides=(1, 1),
+        padding="same",
+        output_padding=None,
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        kernel_initializer=SpectralInitializer(),
+        bias_initializer="zeros",
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+        k_coef_lip=1.0,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        eps_bjorck=DEFAULT_EPS_BJORCK,
+        beta_bjorck=DEFAULT_BETA_BJORCK,
+        **kwargs
+    ):
+        """
+        This class is a Conv2DTranspose layer constrained such that all singular values
+        of its kernel are 1. The computation is based on Björck orthogonalization
+        algorithm.
+
+        The computation is done in three steps:
+        1. reduce the largest singular value to 1, using iterated power method.
+        2. increase other singular values to 1, using Björck algorithm.
+        3. divide the output by the Lipschitz target K to ensure K-Lipschitzity.
+
+        This documentation reuses the body of the original
+        `tf.keras.layers.Conv2DTranspose` doc.
+
+        Args:
+            filters: Integer, the dimensionality of the output space
+                (i.e. the number of output filters in the convolution).
+            kernel_size: An integer or tuple/list of 2 integers, specifying the
+                height and width of the 2D convolution window.
+                Can be a single integer to specify the same value for
+                all spatial dimensions.
+            strides: An integer or tuple/list of 2 integers,
+                specifying the strides of the convolution along the height and width.
+                Can be a single integer to specify the same value for
+                all spatial dimensions.
+            padding: only `"same"` padding is supported in this Lipschitz layer
+                (case-insensitive).
+            output_padding: if set to `None` (default), the output shape is inferred.
+                Only `None` value is supported in this Lipschitz layer.
+            data_format: A string,
+                one of `channels_last` (default) or `channels_first`.
+                The ordering of the dimensions in the inputs.
+                `channels_last` corresponds to inputs with shape
+                `(batch, height, width, channels)` while `channels_first`
+                corresponds to inputs with shape
+                `(batch, channels, height, width)`.
+                It defaults to the `image_data_format` value found in your
+                Keras config file at `~/.keras/keras.json`.
+                If you never set it, then it will be "channels_last".
+            dilation_rate: an integer, specifying the dilation rate for all spatial
+                dimensions for dilated convolution. This Lipschitz layer does not
+                support dilation rate != 1.
+            activation: Activation function to use.
+                If you don't specify anything, no activation is applied
+                (see `keras.activations`).
+            use_bias: Boolean, whether the layer uses a bias vector.
+            kernel_initializer: Initializer for the `kernel` weights matrix
+                (see `keras.initializers`). Defaults to `SpectralInitializer`.
+            bias_initializer: Initializer for the bias vector
+                (see `keras.initializers`). Defaults to 'zeros'.
+            kernel_regularizer: Regularizer function applied to
+                the `kernel` weights matrix (see `keras.regularizers`).
+            bias_regularizer: Regularizer function applied to the bias vector
+                (see `keras.regularizers`).
+            activity_regularizer: Regularizer function applied to
+                the output of the layer (its "activation") (see `keras.regularizers`).
+            kernel_constraint: Constraint function applied to the kernel matrix
+                (see `keras.constraints`).
+            bias_constraint: Constraint function applied to the bias vector
+                (see `keras.constraints`).
+            k_coef_lip: Lipschitz constant to ensure
+            eps_spectral: stopping criterion for the iterative power algorithm.
+            eps_bjorck: stopping criterion Björck algorithm.
+            beta_bjorck: beta parameter in Björck algorithm.
+        """
+        super().__init__(
+            filters,
+            kernel_size,
+            strides,
+            padding,
+            output_padding,
+            data_format,
+            dilation_rate,
+            activation,
+            use_bias,
+            kernel_initializer,
+            bias_initializer,
+            kernel_regularizer,
+            bias_regularizer,
+            activity_regularizer,
+            kernel_constraint,
+            bias_constraint,
+            **kwargs
+        )
+
+        if self.dilation_rate != (1, 1):
+            raise ValueError("SpectralConv2DTranspose does not support dilation rate")
+        if self.padding != "same":
+            raise ValueError("SpectralConv2DTranspose only supports padding='same'")
+        if self.output_padding is not None:
+            raise ValueError(
+                "SpectralConv2DTranspose only supports output_padding=None"
+            )
+        self.set_klip_factor(k_coef_lip)
+        self.u = None
+        self.sig = None
+        self.wbar = None
+        _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck)
+        self.eps_spectral = eps_spectral
+        self.eps_bjorck = eps_bjorck
+        self.beta_bjorck = beta_bjorck
+        self._kwargs = kwargs
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        self._init_lip_coef(input_shape)
+        self.u = self.add_weight(
+            shape=tuple([1, self.kernel.shape.as_list()[2]]),
+            initializer=RandomNormal(0, 1),
+            name="sn",
+            trainable=False,
+            dtype=self.dtype,
+        )
+
+        self.sig = self.add_weight(
+            shape=tuple([1, 1]),  # maximum spectral  value
+            name="sigma",
+            trainable=False,
+            dtype=self.dtype,
+        )
+        self.sig.assign([[1.0]])
+        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
+
+    def _compute_lip_coef(self, input_shape=None):
+        stride = np.prod(self.strides)
+        k1 = self.kernel_size[0]
+        k1_div2 = (k1 - 1) / 2
+        k2 = self.kernel_size[1]
+        k2_div2 = (k2 - 1) / 2
+        if self.data_format == "channels_last":
+            h = input_shape[-3]
+            w = input_shape[-2]
+        elif self.data_format == "channels_first":
+            h = input_shape[-2]
+            w = input_shape[-1]
+        if stride == 1:
+            coefLip = np.sqrt(
+                (w * h)
+                / (
+                    (k1 * h - k1_div2 * (k1_div2 + 1))
+                    * (k2 * w - k2_div2 * (k2_div2 + 1))
+                )
+            )
+        else:
+            sn1 = self.strides[0]
+            sn2 = self.strides[1]
+            coefLip = np.sqrt(1.0 / (np.ceil(k1 / sn1) * np.ceil(k2 / sn2)))
+        return coefLip
+
+    def call(self, inputs, training=True):
+        if training:
+            kernel_reshaped = tf.transpose(self.kernel, [0, 1, 3, 2])
+            wbar, u, sigma = reshaped_kernel_orthogonalization(
+                kernel_reshaped,
+                self.u,
+                self._get_coef(),
+                self.eps_spectral,
+                self.eps_bjorck,
+                self.beta_bjorck,
+            )
+            wbar = tf.transpose(wbar, [0, 1, 3, 2])
+            self.wbar.assign(wbar)
+            self.u.assign(u)
+            self.sig.assign(sigma)
+        else:
+            wbar = self.wbar
+
+        # Apply conv2D_transpose operation on constrained weights
+        # (code from TF/Keras 2.9.1)
+        inputs_shape = tf.shape(inputs)
+        batch_size = inputs_shape[0]
+        if self.data_format == "channels_first":
+            h_axis, w_axis = 2, 3
+        else:
+            h_axis, w_axis = 1, 2
+
+        height, width = None, None
+        if inputs.shape.rank is not None:
+            dims = inputs.shape.as_list()
+            height = dims[h_axis]
+            width = dims[w_axis]
+        height = height if height is not None else inputs_shape[h_axis]
+        width = width if width is not None else inputs_shape[w_axis]
+
+        kernel_h, kernel_w = self.kernel_size
+        stride_h, stride_w = self.strides
+
+        if self.output_padding is None:
+            out_pad_h = out_pad_w = None
+        else:
+            out_pad_h, out_pad_w = self.output_padding
+
+        # Infer the dynamic output shape:
+        out_height = conv_utils.deconv_output_length(
+            height,
+            kernel_h,
+            padding=self.padding,
+            output_padding=out_pad_h,
+            stride=stride_h,
+            dilation=self.dilation_rate[0],
+        )
+        out_width = conv_utils.deconv_output_length(
+            width,
+            kernel_w,
+            padding=self.padding,
+            output_padding=out_pad_w,
+            stride=stride_w,
+            dilation=self.dilation_rate[1],
+        )
+        if self.data_format == "channels_first":
+            output_shape = (batch_size, self.filters, out_height, out_width)
+        else:
+            output_shape = (batch_size, out_height, out_width, self.filters)
+        output_shape_tensor = tf.stack(output_shape)
+
+        outputs = K.conv2d_transpose(
+            inputs,
+            wbar,
+            output_shape_tensor,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+        )
+
+        if not tf.executing_eagerly():
+            # Infer the static output shape:
+            out_shape = self.compute_output_shape(inputs.shape)
+            outputs.set_shape(out_shape)
+
+        if self.use_bias:
+            outputs = tf.nn.bias_add(
+                outputs,
+                self.bias,
+                data_format=conv_utils.convert_data_format(self.data_format, ndim=4),
+            )
+
+        if self.activation is not None:
+            return self.activation(outputs)
+        return outputs
+
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+            "eps_spectral": self.eps_spectral,
+            "eps_bjorck": self.eps_bjorck,
+            "beta_bjorck": self.beta_bjorck,
+        }
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def condense(self):
+        wbar, u, sigma = reshaped_kernel_orthogonalization(
+            self.kernel,
+            self.u,
+            self._get_coef(),
+            self.eps_spectral,
+            self.eps_bjorck,
+            self.beta_bjorck,
+        )
+        self.kernel.assign(wbar)
+        self.u.assign(u)
+        self.sig.assign(sigma)
+
+    def vanilla_export(self):
+        self._kwargs["name"] = self.name
+        layer = keraslayers.Conv2DTranspose(
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            **self._kwargs
+        )
+        layer.build(self.input_shape)
+        layer.kernel.assign(self.wbar)
+        if layer.use_bias:
             layer.bias.assign(self.bias)
         return layer
 
