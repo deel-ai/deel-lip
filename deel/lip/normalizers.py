@@ -18,6 +18,38 @@ SWAP_MEMORY = True
 STOP_GRAD_SPECTRAL = True
 
 
+def set_swap_memory(value: bool):
+    """
+    Set the global SWAP_MEMORY to values. This function must be called before
+    constructing the model (first call of `reshaped_kernel_orthogonalization`) in
+    order to be accounted.
+
+    Args:
+        value: boolean that will be used as the swap_memory parameter in while loops
+            in spectral and bjorck algorithms.
+
+    """
+    global SWAP_MEMORY
+    SWAP_MEMORY = value
+
+
+def set_stop_grad_spectral(value: bool):
+    """
+    Set the global STOP_GRAD_SPECTRAL to values. This function must be called before
+    constructing the model (first call of `reshaped_kernel_orthogonalization`) in
+    order to be accounted.
+
+    Args:
+        value: boolean, when set to True, disable back-propagation through the power
+            iteration algorithm. The back-propagation will account how updates affects
+            the maximum singular value but not how it affects the largest singular
+            vector. When set to False, back-propagate through the while loop.
+
+    """
+    global STOP_GRAD_SPECTRAL
+    STOP_GRAD_SPECTRAL = value
+
+
 def reshaped_kernel_orthogonalization(
     kernel,
     u,
