@@ -212,6 +212,7 @@ class LossParamLog(Callback):
     def on_epoch_end(self, epoch: int, logs=None):
         if epoch % self.rate == 0:
             tf.print(
+                "\n",
                 self.model.loss.name,
                 self.param_name,
                 self.model.loss.__getattribute__(self.param_name),
