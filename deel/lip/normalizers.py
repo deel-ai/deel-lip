@@ -79,7 +79,11 @@ def bjorck_normalization(w, eps=DEFAULT_EPS_BJORCK, beta=DEFAULT_BETA_BJORCK):
 
     # apply the loop
     w, old_w = tf.while_loop(
-        cond, body, (w, old_w), parallel_iterations=1, maximum_iterations=DEFAULT_MAX_NITER_BJORCK
+        cond,
+        body,
+        (w, old_w),
+        parallel_iterations=1,
+        maximum_iterations=DEFAULT_MAX_NITER_BJORCK,
     )
     return w
 
@@ -119,7 +123,11 @@ def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL):
 
     # apply the loop
     _u, _v, _old_u = tf.while_loop(
-        cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=DEFAULT_MAX_NITER_BJORCK
+        cond,
+        body,
+        (_u, _v, _old_u),
+        parallel_iterations=1,
+        maximum_iterations=DEFAULT_MAX_NITER_BJORCK,
     )
     return _u, _v
 

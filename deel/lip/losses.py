@@ -352,7 +352,6 @@ class HingeMarginAuto(HingeMargin):
                     name="margin_loss",
                 )
                 self.trainable_vars.append(self.margins)
-            
 
         hinge_value = self.compute_hinge_margin(y_true, y_pred, self.margins)
 
