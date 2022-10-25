@@ -99,5 +99,7 @@ Indices and tables
    demo2.rst
    demo3.rst
    demo4.rst
+   demo4_auto.rst
+   demo5_auto.rst
 
    deel.lip
