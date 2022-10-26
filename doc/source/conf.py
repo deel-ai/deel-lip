@@ -14,7 +14,8 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 # import guzzle_sphinx_theme
-import sphinx_rtd_theme
+# import sphinx_rtd_theme
+from deel.lip import __version__
 
 # -- Project information -----------------------------------------------------
 
@@ -31,7 +32,8 @@ author = (
 )
 
 # The full version, including alpha/beta/rc tags
-release = "1.3.0"
+version = __version__
+release = version
 
 # -- General configuration ---------------------------------------------------
 
