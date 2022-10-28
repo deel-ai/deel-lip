@@ -10,7 +10,7 @@ from typing import Optional, Dict, Iterable
 
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
-
+import numpy as np
 from .layers import Condensable
 
 
@@ -164,3 +164,36 @@ class MonitorCallback(Callback):
         }
         base_config = super(MonitorCallback, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+class LossParamScheduler(Callback):
+    def __init__(self, param_name, fp, xp, step=0):
+        """
+        Scheduler to modify a loss parameter during training. It uses a linear
+        interpolation (defined by fp and xp) depending on the optimization step.
+
+        Args:
+            param_name (str): name of the parameter of the loss to tune. Must be a
+                tf.Variable.
+            fp (list): values of the loss parameter as steps given by the xp.
+            xp (list): step where the parameter equals fp.
+            step: step value, for serialization/deserialization purposes.
+        """
+        self.xp = xp
+        self.fp = fp
+        self.step = step
+        self.param_name = param_name
+
+    def on_train_batch_begin(self, batch: int, logs=None):
+        new_value = np.interp(self.step, self.xp, self.fp)
+        self.model.loss.__getattribute__(self.param_name).assign(new_value)
+        self.step += 1
+        super(LossParamScheduler, self).on_train_batch_end(batch, logs)
+
+    def get_config(self):
+        return {
+            "xp": self.xp,
+            "fp": self.fp,
+            "step": self.step,
+            "param_name": self.param_name,
+        }
