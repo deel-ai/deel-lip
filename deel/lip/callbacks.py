@@ -197,3 +197,32 @@ class LossParamScheduler(Callback):
             "step": self.step,
             "param_name": self.param_name,
         }
+
+
+class LossParamLog(Callback):
+    def __init__(self, param_name, rate=1):
+        """
+        Logger to print values of a loss parameter at each epoch.
+
+        Args:
+            param_name (str): name of the parameter of the loss to log.
+            rate (int): logging rate (in epochs)
+        """
+        self.param_name = param_name
+        self.rate = rate
+
+    def on_epoch_end(self, epoch: int, logs=None):
+        if epoch % self.rate == 0:
+            tf.print(
+                "\n",
+                self.model.loss.name,
+                self.param_name,
+                self.model.loss.__getattribute__(self.param_name),
+            )
+        super(LossParamLog, self).on_train_batch_end(epoch, logs)
+
+    def get_config(self):
+        return {
+            "param_name": self.param_name,
+            "rate": self.rate,
+        }
