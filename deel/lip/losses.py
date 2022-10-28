@@ -148,18 +148,20 @@ class HKR(Loss):
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         self.multi_gpu = multi_gpu
         self.KRloss = KR(multi_gpu=multi_gpu)
+        if alpha == np.inf:  # alpha = inf => hinge only
+            self.fct = partial(hinge_margin, min_margin=self.min_margin)
+        else:
+            self.fct = self.hkr
         super(HKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
+    def hkr(self, y_true, y_pred):
+        a = -self.KRloss.call(y_true, y_pred)
+        b = hinge_margin(y_true, y_pred, self.min_margin)
+        return a + self.alpha * b
+
     def call(self, y_true, y_pred):
-        if self.alpha == np.inf:  # alpha = inf => hinge only
-            return hinge_margin(y_true, y_pred, self.min_margin)
-        elif self.alpha == 0.0:  # alpha = 0 => KR only
-            return -self.KRloss.call(y_true, y_pred)
-        else:
-            kr = -self.KRloss.call(y_true, y_pred)
-            hinge = hinge_margin(y_true, y_pred, self.min_margin)
-            return kr + self.alpha * hinge
+        return self.fct(y_true, y_pred)
 
     def get_config(self):
         config = {
@@ -362,19 +364,21 @@ class MulticlassHKR(Loss):
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         self.multi_gpu = multi_gpu
-        self.KRloss = MulticlassKR(multi_gpu=multi_gpu, name=name)
+        self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=reduction, name=name)
+        if alpha == np.inf:  # alpha = inf => hinge only
+            self.fct = partial(multiclass_hinge, min_margin=self.min_margin)
+        else:
+            self.fct = self.hkr
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
+    def hkr(self, y_true, y_pred):
+        a = -self.KRloss.call(y_true, y_pred)
+        b = multiclass_hinge(y_true, y_pred, self.min_margin)
+        return a + self.alpha * b
+
     def call(self, y_true, y_pred):
-        if self.alpha == np.inf:  # alpha = inf => hinge only
-            return multiclass_hinge(y_true, y_pred, self.min_margin)
-        elif self.alpha == 0.0:  # alpha = 0 => KR only
-            return -self.KRloss.call(y_true, y_pred)
-        else:
-            kr = -self.KRloss.call(y_true, y_pred)
-            hinge = multiclass_hinge(y_true, y_pred, self.min_margin)
-            return kr + self.alpha * hinge
+        return self.fct(y_true, y_pred)
 
     def get_config(self):
         config = {
