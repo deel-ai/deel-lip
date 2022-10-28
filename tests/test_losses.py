@@ -81,7 +81,7 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_hinge_margin_loss(self):
-        loss = HingeMargin(1.0)
+        loss = HingeMargin(2.0)
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
@@ -125,8 +125,8 @@ class Test(TestCase):
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
-        multiclass_hinge = MulticlassHinge(1.0)
-        hinge = HingeMargin(1.0)
+        multiclass_hinge = MulticlassHinge(2.0)
+        hinge = HingeMargin(2.0)
         y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
         y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()
@@ -167,7 +167,7 @@ class Test(TestCase):
         check_serialization(1, multiclass_hinge)
 
     def test_hkr_multiclass_loss(self):
-        multiclass_hkr = MulticlassHKR(5.0, 1.0)
+        multiclass_hkr = MulticlassHKR(5.0, 2.0)
         y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
@@ -251,8 +251,8 @@ class Test(TestCase):
 
         losses = (
             KR(reduction="none"),
-            HingeMargin(0.7, reduction="none"),
-            HKR(alpha=2.5, reduction="none"),
+            HingeMargin(0.7 * 2.0, reduction="none"),
+            HKR(alpha=2.5, min_margin=2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -293,9 +293,9 @@ class Test(TestCase):
         )
         losses = (
             MulticlassKR(reduction="none"),
-            MulticlassHinge(reduction="none"),
+            MulticlassHinge(min_margin=2.0, reduction="none"),
             MultiMargin(0.7, reduction="none"),
-            MulticlassHKR(alpha=2.5, min_margin=0.5, reduction="none"),
+            MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
             CategoricalHinge(1.1, reduction="none"),
             TauCategoricalCrossentropy(2.0, reduction="none"),
         )
@@ -346,8 +346,8 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             KR(multi_gpu=True, reduction=reduction),
-            HingeMargin(0.7, reduction=reduction),
-            HKR(alpha=2.5, multi_gpu=True, reduction=reduction),
+            HingeMargin(0.7 * 2.0, reduction=reduction),
+            HKR(alpha=2.5, min_margin=2.0, multi_gpu=True, reduction=reduction),
         )
 
         expected_loss_values = (9.2, 2.2, 0.3)
@@ -434,10 +434,10 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             MulticlassKR(multi_gpu=True, reduction=reduction),
-            MulticlassHinge(reduction=reduction),
+            MulticlassHinge(min_margin=2.0, reduction=reduction),
             MultiMargin(0.7, reduction=reduction),
             MulticlassHKR(
-                alpha=2.5, min_margin=0.5, multi_gpu=True, reduction=reduction
+                alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
             ),
         )
 
