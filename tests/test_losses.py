@@ -55,8 +55,8 @@ class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
 
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(1), "KR loss must be equal to 1")
 
@@ -82,8 +82,8 @@ class Test(TestCase):
 
     def test_hinge_margin_loss(self):
         loss = HingeMargin(2.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
@@ -127,8 +127,8 @@ class Test(TestCase):
     def test_hinge_multiclass_loss(self):
         multiclass_hinge = MulticlassHinge(2.0)
         hinge = HingeMargin(2.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         l_single = hinge(y_true, y_pred).numpy()
         l_multi = multiclass_hinge(y_true, y_pred).numpy()
         self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
@@ -246,8 +246,8 @@ class Test(TestCase):
         Assert binary losses without reduction. Three losses are tested on hardcoded
         y_true/y_pred of shape [8 elements, 1]: KR, HingeMargin and HKR.
         """
-        y_true = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]).reshape((8, 1))
-        y_pred = np.array([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9]).reshape((8, 1))
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
 
         losses = (
             KR(reduction="none"),
