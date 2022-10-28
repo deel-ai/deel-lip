@@ -148,18 +148,17 @@ class HKR(Loss):
         self.min_margin = min_margin
         self.multi_gpu = multi_gpu
         self.KRloss = KR(multi_gpu=multi_gpu)
-        self.hingeloss = HingeMargin(min_margin)
         super(HKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
         if self.alpha == np.inf:  # alpha = inf => hinge only
-            return self.hingeloss.call(y_true, y_pred)
+            return hinge_margin(y_true, y_pred, self.min_margin)
         elif self.alpha == 0.0:  # alpha = 0 => KR only
             return -self.KRloss.call(y_true, y_pred)
         else:
             kr = -self.KRloss.call(y_true, y_pred)
-            hinge = self.hingeloss.call(y_true, y_pred)
+            hinge = hinge_margin(y_true, y_pred, self.min_margin)
             return kr + self.alpha * hinge
 
     def get_config(self):
@@ -170,6 +169,29 @@ class HKR(Loss):
         }
         base_config = super(HKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+def hinge_margin(y_true, y_pred, min_margin):
+    """Compute the element-wise binary hinge margin loss.
+
+    Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+    (batch_size, C) for multilabel classification (with C categories).
+    `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+    Args:
+        min_margin: positive float, margin to enforce.
+
+    Returns:
+        Element-wise hinge margin loss value.
+
+    """
+    sign = tf.where(y_true > 0, 1, -1)
+    sign = tf.cast(sign, y_pred.dtype)
+    hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
+    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
+    # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
+    return tf.reduce_mean(hinge, axis=-1)
 
 
 @register_keras_serializable("deel-lip", "HingeMargin")
@@ -198,12 +220,7 @@ class HingeMargin(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        sign = tf.where(y_true > 0, 1, -1)
-        sign = tf.cast(sign, y_pred.dtype)
-        hinge = tf.nn.relu(self.min_margin / 2.0 - sign * y_pred)
-        # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
-        # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
-        return tf.reduce_mean(hinge, axis=-1)
+        return hinge_margin(y_true, y_pred, self.min_margin)
 
     def get_config(self):
         config = {
@@ -252,6 +269,31 @@ class MulticlassKR(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+def multiclass_hinge(y_true, y_pred, min_margin):
+    """Compute the multi-class hinge margin loss.
+
+    Note that `y_true` should be one-hot encoded or pre-processed with the
+    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+    Args:
+        min_margin: positive float, margin to enforce.
+
+    Returns:
+        Element-wise multi-class hinge margin loss value.
+    """
+    sign = tf.where(y_true > 0, 1, -1)
+    sign = tf.cast(sign, y_pred.dtype)
+    # compute the elementwise hinge term
+    hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
+    # reweight positive elements
+    if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
+        factor = y_true.shape[-1] - 1.0
+    else:
+        factor = 1.0
+    hinge = tf.where(sign > 0, hinge * factor, hinge)
+    return tf.reduce_mean(hinge, axis=-1)
+
+
 @register_keras_serializable("deel-lip", "MulticlassHinge")
 class MulticlassHinge(Loss):
     def __init__(
@@ -278,17 +320,7 @@ class MulticlassHinge(Loss):
 
     @tf.function
     def call(self, y_true, y_pred):
-        sign = tf.where(y_true > 0, 1, -1)
-        sign = tf.cast(sign, y_pred.dtype)
-        # compute the elementwise hinge term
-        hinge = tf.nn.relu(self.min_margin / 2.0 - sign * y_pred)
-        # reweight positive elements
-        if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
-            factor = y_true.shape[-1] - 1.0
-        else:
-            factor = 1.0
-        hinge = tf.where(sign > 0, hinge * factor, hinge)
-        return tf.reduce_mean(hinge, axis=-1)
+        return multiclass_hinge(y_true, y_pred, self.min_margin)
 
     def get_config(self):
         config = {
@@ -330,19 +362,18 @@ class MulticlassHKR(Loss):
         self.alpha = alpha
         self.min_margin = min_margin
         self.multi_gpu = multi_gpu
-        self.hingeloss = MulticlassHinge(self.min_margin)
         self.KRloss = MulticlassKR(multi_gpu=multi_gpu, name=name)
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
     @tf.function
     def call(self, y_true, y_pred):
         if self.alpha == np.inf:  # alpha = inf => hinge only
-            return self.hingeloss.call(y_true, y_pred)
+            return multiclass_hinge(y_true, y_pred, self.min_margin)
         elif self.alpha == 0.0:  # alpha = 0 => KR only
             return -self.KRloss.call(y_true, y_pred)
         else:
             kr = -self.KRloss.call(y_true, y_pred)
-            hinge = self.hingeloss.call(y_true, y_pred)
+            hinge = multiclass_hinge(y_true, y_pred, self.min_margin)
             return kr + self.alpha * hinge
 
     def get_config(self):
