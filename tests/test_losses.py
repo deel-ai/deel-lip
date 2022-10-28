@@ -13,6 +13,8 @@ from deel.lip.losses import (
     MulticlassHinge,
     MulticlassHKR,
     MultiMargin,
+    TauCategoricalCrossentropy,
+    CategoricalHinge,
 )
 from deel.lip.utils import process_labels_for_multi_gpu
 import os
@@ -211,6 +213,34 @@ class Test(TestCase):
         )
         check_serialization(1, multimargin_loss)
 
+    def test_categoricalhinge(self):
+        cathinge = CategoricalHinge(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = cathinge(y_true, y_pred).numpy()
+        loss_val_2 = cathinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, cathinge)
+
+    def test_tau_catcrossent(self):
+        taucatcrossent_loss = TauCategoricalCrossentropy(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = taucatcrossent_loss(y_true, y_pred).numpy()
+        loss_val_2 = taucatcrossent_loss(
+            tf.cast(y_true, dtype=tf.int32), y_pred
+        ).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, taucatcrossent_loss)
+
     def test_no_reduction_binary_losses(self):
         """
         Assert binary losses without reduction. Three losses are tested on hardcoded
@@ -266,6 +296,8 @@ class Test(TestCase):
             MulticlassHinge(reduction="none"),
             MultiMargin(0.7, reduction="none"),
             MulticlassHKR(alpha=2.5, min_margin=0.5, reduction="none"),
+            CategoricalHinge(1.1, reduction="none"),
+            TauCategoricalCrossentropy(2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -273,6 +305,19 @@ class Test(TestCase):
             np.float64([17, 13, 34, 15, 12, 62, 17, 45]) / 30,
             np.float64([0, 0, 19, 0, 0, 35, 0, 0]) / 30,
             np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825]) / 900,
+            np.float64([0, 0.4, 2.3, 0.1, 0, 3.9, 0.4, 0]),
+            np.float64(
+                [
+                    0.044275,
+                    0.115109,
+                    1.243572,
+                    0.084923,
+                    0.010887,
+                    2.802300,
+                    0.114224,
+                    0.076357,
+                ]
+            ),
         )
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
