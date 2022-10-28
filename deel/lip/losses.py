@@ -9,8 +9,7 @@ https://arxiv.org/abs/2006.06520 for more information.
 from functools import partial
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import Loss
-from tensorflow.keras.losses import Reduction
+from tensorflow.keras.losses import categorical_crossentropy, Loss, Reduction
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -393,4 +392,67 @@ class MultiMargin(Loss):
             "min_margin": self.min_margin,
         }
         base_config = super(MultiMargin, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "CategoricalHinge")
+class CategoricalHinge(Loss):
+    def __init__(self, min_margin, reduction=Reduction.AUTO, name="CategoricalHinge"):
+        """
+        Similar to original categorical hinge, but with a settable margin parameter.
+        This implementation is sligthly different from the Keras one.
+
+        `y_true` and `y_pred` must be of shape (batch_size, # classes).
+        Note that `y_true` should be one-hot encoded or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+
+        Args:
+            min_margin: positive float, margin parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred):
+        mask = tf.where(y_true > 0, 1, 0)
+        mask = tf.cast(mask, y_pred.dtype)
+        pos = tf.reduce_sum(mask * y_pred, axis=-1)
+        neg = tf.reduce_max(tf.where(mask > 0, tf.float32.min, y_pred), axis=-1)
+        return tf.nn.relu(self.min_margin - (pos - neg))
+
+    def get_config(self):
+        config = {"min_margin": self.min_margin.numpy()}
+        base_config = super(CategoricalHinge, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "TauCategoricalCrossentropy")
+class TauCategoricalCrossentropy(Loss):
+    def __init__(
+        self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
+    ):
+        """
+        Similar to original categorical crossentropy, but with a settable temperature
+        parameter.
+
+        Args:
+            tau: temperature parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.tau = tf.Variable(tau, dtype=tf.float32)
+        super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred, *args, **kwargs):
+        return (
+            categorical_crossentropy(
+                y_true, self.tau * y_pred, from_logits=True, *args, **kwargs
+            )
+            / self.tau
+        )
+
+    def get_config(self):
+        config = {"tau": self.tau.numpy()}
+        base_config = super(TauCategoricalCrossentropy, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
