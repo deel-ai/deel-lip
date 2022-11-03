@@ -372,6 +372,7 @@ class MulticlassHKR(Loss):
         self,
         alpha=10.0,
         min_margin=1.0,
+        soft_hinge_tau=0.0,
         multi_gpu=False,
         reduction=Reduction.AUTO,
         name="MulticlassHKR",
@@ -390,6 +391,8 @@ class MulticlassHKR(Loss):
         Args:
             alpha: regularization factor
             min_margin: positive float, margin to enforce.
+            soft_hinge_tau: temperature applied in softmax for soft_hinge
+                (default: set to 0 for classical hinge)
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
             name: passed to tf.keras.Loss constructor
@@ -397,10 +400,15 @@ class MulticlassHKR(Loss):
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.soft_hinge_tau = tf.Variable(soft_hinge_tau, dtype=tf.float32)
         self.multi_gpu = multi_gpu
         self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=reduction, name=name)
         if alpha == np.inf:  # alpha = inf => hinge only
-            self.fct = partial(multiclass_hinge, min_margin=self.min_margin)
+            self.fct = partial(
+                multiclass_hinge,
+                min_margin=self.min_margin,
+                soft_hinge_tau=self.soft_hinge_tau,
+            )
         else:
             self.fct = self.hkr
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
@@ -408,7 +416,7 @@ class MulticlassHKR(Loss):
     @tf.function
     def hkr(self, y_true, y_pred):
         a = -self.KRloss.call(y_true, y_pred)
-        b = multiclass_hinge(y_true, y_pred, self.min_margin)
+        b = multiclass_hinge(y_true, y_pred, self.min_margin, self.soft_hinge_tau)
         return a + self.alpha * b
 
     def call(self, y_true, y_pred):
@@ -418,6 +426,7 @@ class MulticlassHKR(Loss):
         config = {
             "alpha": self.alpha.numpy(),
             "min_margin": self.min_margin.numpy(),
+            "soft_hinge_tau": self.soft_hinge_tau.numpy(),
             "multi_gpu": self.multi_gpu,
         }
         base_config = super(MulticlassHKR, self).get_config()
