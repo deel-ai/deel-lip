@@ -173,6 +173,77 @@ class HKR(Loss):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@register_keras_serializable("deel-lip", "HKRauto")
+class HKRauto(HKR):
+    def __init__(
+        self,
+        alpha,
+        min_margin=1.0,
+        max_margin=200.0,
+        alpha_margin=0.1,
+        multi_gpu=False,
+        reduction=Reduction.AUTO,
+        name="HKRauto",
+    ):
+        r"""
+        Wasserstein loss with a regularization parameter based on the hinge margin loss.
+        .. math::
+            \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+            \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+            {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
+        pre-process the labels `y_true` with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        Args:
+            alpha: regularization factor
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+            (0.1 inforce that 90% of samples to be outside the margin).
+                Kantorovich-Rubinstein term of the loss. In order to be consistent
+                between hinge and KR, the first label must yield the positive class
+                while the second yields negative class.
+            multi_gpu (bool): set to True when running on multi-GPU/TPU
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+        """
+        self.max_margin = max_margin
+        self.alpha_margin = alpha_margin
+        self.hingeloss = HingeMarginAuto(
+            min_margin=min_margin,
+            max_margin=self.max_margin,
+            alpha_margin=self.alpha_margin,
+        )
+        super(HKRauto, self).__init__(
+            alpha=alpha,
+            min_margin=min_margin,
+            multi_gpu=multi_gpu,
+            reduction=reduction,
+            name=name,
+        )
+
+    def get_trainable_variables(self):
+        return self.hingeloss.get_trainable_variables()
+
+    @property
+    def hinge_margins(self):
+        return self.hingeloss.margins
+
+    def get_config(self):
+        config = {
+            "max_margin": self.max_margin,
+            "alpha_margin": self.alpha_margin,
+        }
+        base_config = super(HKRauto, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 def hinge_margin(y_true, y_pred, min_margin):
     """Compute the element-wise binary hinge margin loss.
 
@@ -229,6 +300,78 @@ class HingeMargin(Loss):
             "min_margin": self.min_margin.numpy(),
         }
         base_config = super(HingeMargin, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "HingeMarginAuto")
+class HingeMarginAuto(HingeMargin):
+    def __init__(
+        self,
+        min_margin=1.0,
+        max_margin=200.0,
+        alpha_margin=0.1,
+        reduction=Reduction.AUTO,
+        name="HingeMarginAuto",
+    ):
+        r"""
+        Compute the hinge margin loss.
+        .. math::
+            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+            -Yf(\textbf{x})\right)_+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
+        (batch_size, C) for multilabel classification (with C categories).
+        `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
+        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        Args:
+            min_margin: positive float, minimum bound and initialization for margins.
+            max_margin: positive float, minimum bound for margins.
+            alpha_margin: regularization factor for margins
+            (0.1 inforce that 90% of samples to be outside the margin).
+            reduction: passed to tf.keras.Loss constructor
+            name: passed to tf.keras.Loss constructor
+        """
+        self.alpha_margin = tf.Variable(
+            alpha_margin, dtype=tf.float32, name="alpha_margin_loss"
+        )
+        self.max_margin = max_margin
+        self.min_margin_v = min_margin
+
+        self.margins = None
+        self.trainable_vars = []
+
+        super(HingeMarginAuto, self).__init__(
+            min_margin=min_margin, reduction=reduction, name=name
+        )
+
+    @tf.function
+    def call(self, y_true, y_pred):
+        if self.margins is None:
+            with tf.init_scope():
+                self.margins = tf.Variable(
+                    self.min_margin_v * tf.ones((y_pred.shape.as_list()[-1],)),
+                    dtype=tf.float32,
+                    constraint=lambda x: tf.clip_by_value(
+                        x, self.min_margin_v, self.max_margin
+                    ),
+                    name="margin_loss",
+                )
+                self.trainable_vars.append(self.margins)
+
+        hinge_value = self.compute_hinge_margin(y_true, y_pred, self.margins)
+
+        regul_margin = tf.reduce_sum(self.margins)
+
+        return hinge_value - self.alpha_margin * regul_margin
+
+    def get_trainable_variables(self):
+        return self.trainable_vars
+
+    def get_config(self):
+        config = {
+            "alpha_margin": self.alpha_margin.numpy(),
+            "max_margin": self.max_margin,
+        }
+        base_config = super(HingeMarginAuto, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
