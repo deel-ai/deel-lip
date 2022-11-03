@@ -22,10 +22,16 @@ prepare-dev:
 	. deel_lip_dev_env/bin/activate && pip install -e .[docs]
 
 test:
-	. deel_lip_dev_env/bin/activate && tox
+	. deel_lip_dev_env/bin/activate && tox -e py37-tf23
+	. deel_lip_dev_env/bin/activate && tox -e py39-tf27
+	. deel_lip_dev_env/bin/activate && tox -e py310-tflatest
+	. deel_lip_dev_env/bin/activate && tox -e py310-lint
 
 test-disable-gpu:
-	. deel_lip_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox
+	. deel_lip_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox -e py37-tf23
+	. deel_lip_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox -e py39-tf27
+	. deel_lip_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox -e py310-tflatest
+	. deel_lip_dev_env/bin/activate && CUDA_VISIBLE_DEVICES=-1 tox -e py310-lint
 
 doc:
 	. deel_lip_dev_env/bin/activate && cd doc && make html && cd -
