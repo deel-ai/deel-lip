@@ -3,6 +3,7 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 import unittest
+from functools import partial
 
 import numpy as np
 import tensorflow as tf
@@ -12,6 +13,7 @@ from deel.lip.normalizers import (
     bjorck_normalization,
     reshaped_kernel_orthogonalization,
 )
+from deel.lip.utils import _padding_circular
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
@@ -109,12 +111,14 @@ class TestSpectralNormConv(unittest.TestCase):
         SVmax = np.max(svd)
 
         _u = np.random.normal(size=(1,) + self.spectral_input_shape).astype("float32")
+        fPad = partial(_padding_circular, circular_paddings=self.cPad)
+
         W_bar, _u, sigma = spectral_normalization_conv(
             kernel,
             u=_u,
             stride=self.strides[0],
             conv_first=not self.RO_case,
-            circular_paddings=self.cPad,
+            pad_func=fPad,
             eps=1e-6,
         )
         # Test sigma is close to the one computed with svd first run @ 1e-1
@@ -126,7 +130,7 @@ class TestSpectralNormConv(unittest.TestCase):
             u=_u,
             stride=self.strides[0],
             conv_first=not self.RO_case,
-            circular_paddings=self.cPad,
+            pad_func=fPad,
             eps=1e-6,
         )
         # Test W_bar is reshaped correctly

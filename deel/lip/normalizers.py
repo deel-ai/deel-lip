@@ -8,7 +8,7 @@ normalization. This is done for internal use only.
 """
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from .utils import _padding_circular, _maybe_transpose_kernel, _zero_upscale2D
+from .utils import _maybe_transpose_kernel, _zero_upscale2D
 
 
 DEFAULT_BETA_BJORCK = 0.5
@@ -163,7 +163,7 @@ def _power_iteration_conv(
     u,
     stride=1.0,
     conv_first=True,
-    circular_paddings=None,
+    pad_func=None,
     eps=DEFAULT_EPS_SPECTRAL,
     bigConstant=-1,
 ):
@@ -176,25 +176,24 @@ def _power_iteration_conv(
         eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
         stride: stride parameter of the convolution
         conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
-        circular_paddings: Circular padding (k//2,k//2)
+        pad_func: function for applying paddig (None is padding same)
         bigConstant: only for computing the minimum singular value (otherwise -1)
     Returns:
          u and v corresponding to the maximum eigenvalue
 
     """
+    padType = "VALID"
+    if pad_func is None:
+        padType = "SAME"
 
     def body(_u, _v, _old_u):
         _old_u = _u
-        u = _u / tf.norm(_u)
-        if circular_paddings is None:
-            padType = "SAME"
-        else:
-            padType = "VALID"
+        u = tf.math.l2_normalize(_u)  # _u / tf.norm(_u)
 
         if conv_first:
-            u_pad = _padding_circular(u, circular_paddings)
+            u_pad = pad_func(u)
             v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
-            if circular_paddings is None:
+            if pad_func is None:
                 unew = tf.nn.conv2d_transpose(
                     v,
                     w,
@@ -204,11 +203,11 @@ def _power_iteration_conv(
                 )
             else:
                 v1 = _zero_upscale2D(v, (stride, stride))
-                v1 = _padding_circular(v1, circular_paddings)
+                v1 = pad_func(v1)
                 wAdj = _maybe_transpose_kernel(w, True)
                 unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
         else:
-            if circular_paddings is None:
+            if pad_func is None:
                 v = tf.nn.conv2d_transpose(
                     u,
                     w,
@@ -219,10 +218,10 @@ def _power_iteration_conv(
                 v1 = v
             else:
                 u1 = _zero_upscale2D(u, (stride, stride))
-                u_pad = _padding_circular(u1, circular_paddings)
+                u_pad = pad_func(u1)
                 wAdj = _maybe_transpose_kernel(w, True)
                 v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
-                v1 = _padding_circular(v, circular_paddings)
+                v1 = pad_func(v)
             unew = tf.nn.conv2d(v1, w, padding=padType, strides=(1, stride, stride, 1))
         if bigConstant > 0:
             unew = bigConstant * u - unew
@@ -265,7 +264,7 @@ def spectral_normalization_conv(
     u=None,
     stride=1.0,
     conv_first=True,
-    circular_paddings=None,
+    pad_func=None,
     eps=DEFAULT_EPS_SPECTRAL,
 ):
     """
@@ -292,7 +291,7 @@ def spectral_normalization_conv(
         u,
         stride=stride,
         conv_first=conv_first,
-        circular_paddings=circular_paddings,
+        pad_func=pad_func,
         eps=eps,
     )
     # Calculate Sigma
