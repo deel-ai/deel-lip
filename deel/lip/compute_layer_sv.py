@@ -48,7 +48,9 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
     else:
         fPad = None
 
-    u, v = _power_iteration_conv(w, u, stride=Ks, conv_first=conv_first, pad_func=fPad)
+    u, v, _ = _power_iteration_conv(
+        w, u, stride=Ks, conv_first=conv_first, pad_func=fPad
+    )
 
     sigma_max = tf.norm(v)  # norm_u(v)
 

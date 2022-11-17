@@ -248,7 +248,7 @@ def _power_iteration_conv(
     # build _u and _v
     _norm_u = tf.norm(u)
     _u = tf.math.l2_normalize(u)
-
+    _u += tf.random.uniform(_u.shape, minval=-eps, maxval=eps)
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
@@ -260,10 +260,7 @@ def _power_iteration_conv(
         parallel_iterations=1,
         maximum_iterations=30,
     )
-    if bigConstant > 0:
-        return _u, _v, _norm_u
-    else:
-        return _u, _v
+    return _u, _v, _norm_u
 
 
 def spectral_normalization_conv(
@@ -293,7 +290,7 @@ def spectral_normalization_conv(
 
     if eps < 0:
         return kernel, u, 1.0
-    _u, _v = _power_iteration_conv(
+    _u, _v, _ = _power_iteration_conv(
         kernel,
         u,
         stride=stride,
