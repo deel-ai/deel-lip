@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 import tensorflow as tf
 
@@ -12,6 +13,7 @@ from .layers import (
     FrobeniusDense,
 )
 from .normalizers import _power_iteration_conv
+from .utils import _padding_circular
 
 
 # Not the best place and no the best code => may replace by wandb
@@ -41,9 +43,12 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
 
     u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
 
-    u, v = _power_iteration_conv(
-        w, u, stride=Ks, conv_first=conv_first, circular_paddings=cPad
-    )
+    if cPad is not None:
+        fPad = partial(_padding_circular, circular_paddings=cPad)
+    else:
+        fPad = None
+
+    u, v = _power_iteration_conv(w, u, stride=Ks, conv_first=conv_first, pad_func=fPad)
 
     sigma_max = tf.norm(v)  # norm_u(v)
 
@@ -51,20 +56,19 @@ def _compute_sv_conv2d(w, Ks, N, padding="circular"):
 
     bigConstant = 1.1 * sigma_max**2
     u = tf.random.uniform((batch_size,) + input_shape, minval=-1.0, maxval=1.0)
-
-    u, v = _power_iteration_conv(
+    u, v, norm_u = _power_iteration_conv(
         w,
         u,
         stride=Ks,
         conv_first=conv_first,
-        circular_paddings=cPad,
+        pad_func=fPad,
         bigConstant=bigConstant,
     )
 
-    if bigConstant - tf.norm(u) >= 0:  # normal case
-        sigma_min = tf.sqrt(bigConstant - tf.norm(u))
+    if bigConstant - norm_u >= 0:  # normal case
+        sigma_min = tf.sqrt(bigConstant - norm_u)
     elif (
-        bigConstant - tf.norm(u) >= -0.0000000000001
+        bigConstant - norm_u >= -0.0000000000001
     ):  # margin to take into consideration numrica errors
         sigma_min = 0
     else:

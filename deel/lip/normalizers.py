@@ -172,7 +172,7 @@ def _power_iteration_conv(
 
     Args:
         w: weights matrix that we want to find eigen vector
-        u: initialization of the eigen matrix
+        u: initialization of the eigen matrix should be ||u||=1 for L2_norm
         eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
         stride: stride parameter of the convolution
         conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
@@ -182,16 +182,23 @@ def _power_iteration_conv(
          u and v corresponding to the maximum eigenvalue
 
     """
-    padType = "VALID"
-    if pad_func is None:
-        padType = "SAME"
 
-    def body(_u, _v, _old_u):
+    def identity(x):
+        return x
+
+    if pad_func is None:  # default is zero padding done in conv2d
+        padType = "SAME"
+        _pad_func = identity
+    else:
+        padType = "VALID"
+        _pad_func = pad_func
+
+    def body(_u, _v, _old_u, _norm_u):
         _old_u = _u
-        u = tf.math.l2_normalize(_u)  # _u / tf.norm(_u)
+        u = _u  # normalization should be done before
 
         if conv_first:
-            u_pad = pad_func(u)
+            u_pad = _pad_func(u)
             v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
             if pad_func is None:
                 unew = tf.nn.conv2d_transpose(
@@ -203,7 +210,7 @@ def _power_iteration_conv(
                 )
             else:
                 v1 = _zero_upscale2D(v, (stride, stride))
-                v1 = pad_func(v1)
+                v1 = _pad_func(v1)
                 wAdj = _maybe_transpose_kernel(w, True)
                 unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
         else:
@@ -218,18 +225,20 @@ def _power_iteration_conv(
                 v1 = v
             else:
                 u1 = _zero_upscale2D(u, (stride, stride))
-                u_pad = pad_func(u1)
+                u_pad = _pad_func(u1)
                 wAdj = _maybe_transpose_kernel(w, True)
                 v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
-                v1 = pad_func(v)
+                v1 = _pad_func(v)
             unew = tf.nn.conv2d(v1, w, padding=padType, strides=(1, stride, stride, 1))
         if bigConstant > 0:
             unew = bigConstant * u - unew
-        return unew, v, _old_u
+        _norm_unew = tf.norm(unew)
+        unew = tf.math.l2_normalize(unew)
+        return unew, v, _old_u, _norm_unew
 
     # define the loop condition
 
-    def cond(_u, _v, old_u):
+    def cond(_u, _v, old_u, _norm_u):
         return tf.linalg.norm(_u - old_u) >= eps
 
     # v shape
@@ -246,17 +255,24 @@ def _power_iteration_conv(
     _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
 
     # build _u and _v
-    _u = u
+    _norm_u = tf.norm(u)
+    _u = tf.math.l2_normalize(u)
 
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the firt action done in the loop overwrite it.
     _old_u = 10 * _u
     # apply the loop
-    _u, _v, _old_u = tf.while_loop(
-        cond, body, (_u, _v, _old_u), parallel_iterations=1, maximum_iterations=30
+    _u, _v, _old_u, _norm_u = tf.while_loop(
+        cond,
+        body,
+        (_u, _v, _old_u, _norm_u),
+        parallel_iterations=1,
+        maximum_iterations=30,
     )
-
-    return _u, _v
+    if bigConstant > 0:
+        return _u, _v, _norm_u
+    else:
+        return _u, _v
 
 
 def spectral_normalization_conv(

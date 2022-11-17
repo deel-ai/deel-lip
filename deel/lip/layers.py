@@ -930,7 +930,7 @@ class OrthoConv2D(PadConv2D, LipschitzLayer, Condensable):
                 self.u,
                 stride=self.strides[0],
                 conv_first=not self.ro_case,
-                circular_paddings=self.padding_size,
+                pad_func=self.pad,
                 eps=self.eps_spectral,
             )
             self.sig.assign([[sigma]])
