@@ -186,50 +186,41 @@ def _power_iteration_conv(
     def identity(x):
         return x
 
-    if pad_func is None:  # default is zero padding done in conv2d
+    # If pad_func is None, standard convolution with SAME padding
+    # Else, pad_func padding function (externally defined)
+    #       + standard convolution with VALID padding.
+    if pad_func is None:
         padType = "SAME"
         _pad_func = identity
     else:
         padType = "VALID"
         _pad_func = pad_func
 
+    def _conv(u, w, stride):
+        u_pad = _pad_func(u)
+        return tf.nn.conv2d(u_pad, w, padding=padType, strides=stride)
+
+    def _conv_transpose(u, w, output_shape, stride):
+        if pad_func is None:
+            return tf.nn.conv2d_transpose(
+                u, w, output_shape=output_shape, padding=padType, strides=stride
+            )
+        else:
+            u_upscale = _zero_upscale2D(u, (stride, stride))
+            w_adj = _maybe_transpose_kernel(w, True)
+            return _conv(u_upscale, w_adj, stride=1)
+
     def body(_u, _v, _old_u, _norm_u):
         _old_u = _u
         u = _u  # normalization should be done before
 
-        if conv_first:
-            u_pad = _pad_func(u)
-            v = tf.nn.conv2d(u_pad, w, padding=padType, strides=(1, stride, stride, 1))
-            if pad_func is None:
-                unew = tf.nn.conv2d_transpose(
-                    v,
-                    w,
-                    output_shape=u.shape,
-                    padding=padType,
-                    strides=(1, stride, stride, 1),
-                )
-            else:
-                v1 = _zero_upscale2D(v, (stride, stride))
-                v1 = _pad_func(v1)
-                wAdj = _maybe_transpose_kernel(w, True)
-                unew = tf.nn.conv2d(v1, wAdj, padding=padType, strides=1)
-        else:
-            if pad_func is None:
-                v = tf.nn.conv2d_transpose(
-                    u,
-                    w,
-                    output_shape=_v.shape,
-                    padding=padType,
-                    strides=(1, stride, stride, 1),
-                )
-                v1 = v
-            else:
-                u1 = _zero_upscale2D(u, (stride, stride))
-                u_pad = _pad_func(u1)
-                wAdj = _maybe_transpose_kernel(w, True)
-                v = tf.nn.conv2d(u_pad, wAdj, padding=padType, strides=1)
-                v1 = _pad_func(v)
-            unew = tf.nn.conv2d(v1, w, padding=padType, strides=(1, stride, stride, 1))
+        if conv_first:  # Conv, then transposed conv
+            v = _conv(u, w, stride)
+            unew = _conv_transpose(v, w, u.shape, stride)
+        else:  # Transposed conv, then conv
+            v = _conv_transpose(u, w, _v.shape, stride)
+            unew = _conv(v, w, stride)
+
         if bigConstant > 0:
             unew = bigConstant * u - unew
         _norm_unew = tf.norm(unew)
