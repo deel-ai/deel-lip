@@ -274,10 +274,13 @@ class MulticlassKR(Loss):
 def multiclass_hinge(y_true, y_pred, min_margin):
     """Compute the multi-class hinge margin loss.
 
+    `y_true` and `y_pred` must be of shape (batch_size, # classes).
     Note that `y_true` should be one-hot encoded or pre-processed with the
     :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
+        y_true: tensor of true targets of shape (batch_size, # classes)
+        y_pred: tensor of predicted targets of shape (batch_size, # classes)
         min_margin: positive float, margin to enforce.
 
     Returns:
@@ -288,10 +291,7 @@ def multiclass_hinge(y_true, y_pred, min_margin):
     # compute the elementwise hinge term
     hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
     # reweight positive elements
-    if (len(tf.shape(y_pred)) == 2) and (tf.shape(y_pred)[-1] != 1):
-        factor = y_true.shape[-1] - 1.0
-    else:
-        factor = 1.0
+    factor = y_pred.shape[-1] - 1.0
     hinge = tf.where(sign > 0, hinge * factor, hinge)
     return tf.reduce_mean(hinge, axis=-1)
 

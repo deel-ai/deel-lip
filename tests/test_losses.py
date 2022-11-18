@@ -126,30 +126,7 @@ class Test(TestCase):
 
     def test_hinge_multiclass_loss(self):
         multiclass_hinge = MulticlassHinge(2.0)
-        hinge = HingeMargin(2.0)
-        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
-        l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
-        self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hinge multiclass must yield the same "
-            "results when given a single class "
-            "vector",
-        )
-        y_true = tf.expand_dims(y_true, -1)
-        y_pred = tf.expand_dims(y_pred, -1)
-        l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hinge multiclass must yield the same "
-            "results when given a single class "
-            "vector",
-        )
+
         n_class = 10
         n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
