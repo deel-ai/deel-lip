@@ -38,6 +38,10 @@ class Lorth(ABC):
         """
         Base class for Lorth regularization. Not meant to be used standalone.
 
+        Ref. Achour & al., Existence, Stability And Scalability Of Orthogonal
+        Convolutional Neural Networks (2022).
+        https://hal.archives-ouvertes.fr/hal-03315801
+
         Args:
             dim (int): the rank of the convolution, e.g. "2" for 2D convolution.
             kernel_shape: the shape of the kernel.
@@ -80,6 +84,7 @@ class Lorth(ABC):
         return alpha
 
     def _check_if_orthconv_exists(self):
+        """check the existence of Orthogonal convolution (for circular padding)"""
         R, C, M = self._get_kernel_shape()
         msg = "Impossible {} configuration for orthogonal convolution."
         if C * self.stride**self.dim >= M:  # RO case
@@ -127,6 +132,9 @@ class Lorth2D(Lorth):
         """
         Lorth computation for 2D convolutions. Although this class allows to compute
         the regularization term, it cannot be used as it is in a layer.
+
+        Ref. Wang & al., Orthogonal Convolutional Neural Networks (2020).
+        http://arxiv.org/abs/1911.12207
 
         Args:
             kernel_shape: the shape of the kernel.
