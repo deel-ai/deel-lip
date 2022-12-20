@@ -2,7 +2,7 @@
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
-from tensorflow.keras.initializers import Initializer, Orthogonal
+from tensorflow.keras.initializers import Initializer
 from tensorflow.keras import initializers
 from .normalizers import (
     reshaped_kernel_orthogonalization,
@@ -21,7 +21,7 @@ class SpectralInitializer(Initializer):
         eps_bjorck=DEFAULT_EPS_BJORCK,
         beta_bjorck=DEFAULT_BETA_BJORCK,
         k_coef_lip=1.0,
-        base_initializer=Orthogonal(gain=1.0, seed=None),
+        base_initializer="orthogonal",
     ) -> None:
         """
         Initialize a kernel to be 1-lipschitz orthogonal using bjorck
