@@ -23,9 +23,8 @@ class TestSpectralNorm(unittest.TestCase):
         kernel_shape = (15, 32)
         kernel = np.random.normal(size=kernel_shape).astype("float32")
         self._test_kernel(kernel)
-
-        # Conv kernel
-        kernel_shape = (5, 5, 64, 32)
+        # Dense kernel projection
+        kernel_shape = (32, 15)
         kernel = np.random.normal(size=kernel_shape).astype("float32")
         self._test_kernel(kernel)
 
