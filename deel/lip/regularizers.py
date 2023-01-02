@@ -40,7 +40,7 @@ class Lorth(ABC):
 
         Ref. Achour & al., Existence, Stability And Scalability Of Orthogonal
         Convolutional Neural Networks (2022).
-        https://hal.archives-ouvertes.fr/hal-03315801
+        https://www.jmlr.org/papers/v23/22-0026.html
 
         Args:
             dim (int): the rank of the convolution, e.g. "2" for 2D convolution.
