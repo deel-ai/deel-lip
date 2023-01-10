@@ -4,7 +4,7 @@ from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import SGD
 from tensorflow.keras.losses import CategoricalCrossentropy
-from deel.lip.activations import GroupSort
+from deel.lip.activations import GroupSort, Householder
 import os
 import numpy as np
 
@@ -109,3 +109,184 @@ class TestGroupSort(TestCase):
         y1 = gs(x)
         y2 = gs(y1)
         np.testing.assert_equal(y1.numpy(), y2.numpy())
+
+
+class TestHouseholder(TestCase):
+    """Tests for Householder activation:
+    - instantiation of layer
+    - check outputs on dense (bs, n) tensor, with three thetas: 0, pi/2 and pi
+    - check outputs on dense (bs, h, w, n) tensor, with three thetas: 0, pi/2 and pi
+    - check idempotence hh(hh(x)) = hh(x)
+    """
+
+    def test_instantiation(self):
+        # Instantiation without argument
+        hh = Householder()
+        hh.build((28, 28, 10))
+        assert hh.theta.shape == (5,)
+        np.testing.assert_equal(hh.theta.numpy(), np.pi / 2)
+
+        # Instantiation with arguments
+        hh = Householder(
+            data_format="channels_last", k_coef_lip=2.5, theta_initializer="ones"
+        )
+        hh.build((32, 32, 16))
+        assert hh.theta.shape == (8,)
+        np.testing.assert_equal(hh.theta.numpy(), 1)
+
+        # Check serialization
+        hh = Householder(theta_initializer="glorot_uniform")
+        check_serialization(hh)
+
+        # Instantiation error because of wrong data format
+        with self.assertRaisesRegex(RuntimeError, "data format is supported"):
+            Householder(data_format="channels_first")
+
+    def test_theta_zero_dense_potentials(self):
+        """Householder with theta=0 on 2-D tensor (bs, n).
+        Theta=0 means Id if z2 > 0, and reflection if z2 < 0.
+        """
+        hh = Householder(theta_initializer="zeros")
+
+        bs = np.random.randint(64, 512)
+        n = np.random.randint(1, 1024) * 2
+
+        # Case 1: hh(x) = x   (identity case, z2 > 0)
+        z1 = tf.random.normal((bs, n // 2))
+        z2 = tf.random.uniform((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x)
+
+        # Case 2: hh(x) = [z1, -z2]   (reflection across z1 axis, z2 < 0)
+        z1 = tf.random.normal((bs, n // 2))
+        z2 = -tf.random.uniform((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([z1, -z2], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output)
+
+    def test_theta_pi_dense_potentials(self):
+        """Householder with theta=pi on 2-D tensor (bs, n).
+        Theta=pi means Id if z1 < 0, and reflection if z1 > 0.
+        """
+        hh = Householder(theta_initializer=tf.keras.initializers.Constant(np.pi))
+
+        bs = np.random.randint(64, 512)
+        n = np.random.randint(1, 1024) * 2
+
+        # Case 1: hh(x) = x   (identity case, z1 < 0)
+        z1 = -tf.random.uniform((bs, n // 2))
+        z2 = tf.random.normal((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x, atol=1e-6)
+
+        # Case 2: hh(x) = [z1, -z2]   (reflection across z2 axis, z1 > 0)
+        z1 = tf.random.uniform((bs, n // 2))
+        z2 = tf.random.normal((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([-z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
+
+    def test_theta_90_dense_potentials(self):
+        """Householder with theta=pi/2 on 2-D tensor (bs, n).
+        Theta=pi/2 is equivalent to GroupSort2: Id if z1 < z2, and reflection if z1 > z2
+        """
+        hh = Householder()
+
+        bs = np.random.randint(64, 512)
+        n = np.random.randint(1, 1024) * 2
+
+        # Case 1: hh(x) = x   (identity case, z1 < z2)
+        z1 = -tf.random.normal((bs, n // 2))
+        z2 = z1 + tf.random.uniform((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x)
+
+        # Case 2: hh(x) = reflection(x)   (if z1 > z2)
+        z1 = tf.random.normal((bs, n // 2))
+        z2 = z1 - tf.random.uniform((bs, n // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([z2, z1], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
+
+    def test_theta_zero_conv_potentials(self):
+        """Householder with theta=0 on 4-D tensor (bs, h, w, c).
+        Theta=0 means Id if z2 > 0, and reflection if z2 < 0.
+        """
+        hh = Householder(theta_initializer="zeros")
+
+        bs = np.random.randint(32, 128)
+        h, w = np.random.randint(1, 64), np.random.randint(1, 64)
+        c = np.random.randint(1, 64) * 2
+
+        # Case 1: hh(x) = x   (identity case, z2 > 0)
+        z1 = tf.random.normal((bs, h, w, c // 2))
+        z2 = tf.random.uniform((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x)
+
+        # Case 2: hh(x) = [z1, -z2]   (reflection across z1 axis, z2 < 0)
+        z1 = tf.random.normal((bs, h, w, c // 2))
+        z2 = -tf.random.uniform((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([z1, -z2], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output)
+
+    def test_theta_pi_conv_potentials(self):
+        """Householder with theta=pi on 4-D tensor (bs, h, w, c).
+        Theta=pi means Id if z1 < 0, and reflection if z1 > 0.
+        """
+        hh = Householder(theta_initializer=tf.keras.initializers.Constant(np.pi))
+
+        bs = np.random.randint(32, 128)
+        h, w = np.random.randint(1, 64), np.random.randint(1, 64)
+        c = np.random.randint(1, 64) * 2
+
+        # Case 1: hh(x) = x   (identity case, z1 < 0)
+        z1 = -tf.random.uniform((bs, h, w, c // 2))
+        z2 = tf.random.normal((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x, atol=1e-6)
+
+        # Case 2: hh(x) = [z1, -z2]   (reflection across z2 axis, z1 > 0)
+        z1 = tf.random.uniform((bs, h, w, c // 2))
+        z2 = tf.random.normal((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([-z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
+
+    def test_theta_90_conv_potentials(self):
+        """Householder with theta=pi/2 on 4-D tensor (bs, h, w, c).
+        Theta=pi/2 is equivalent to GroupSort2: Id if z1 < z2, and reflection if z1 > z2
+        """
+        hh = Householder()
+
+        bs = np.random.randint(32, 128)
+        h, w = np.random.randint(1, 64), np.random.randint(1, 64)
+        c = np.random.randint(1, 64) * 2
+
+        # Case 1: hh(x) = x   (identity case, z1 < z2)
+        z1 = -tf.random.normal((bs, h, w, c // 2))
+        z2 = z1 + tf.random.uniform((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        np.testing.assert_allclose(hh(x), x)
+
+        # Case 2: hh(x) = reflection(x)   (if z1 > z2)
+        z1 = tf.random.normal((bs, h, w, c // 2))
+        z2 = z1 - tf.random.uniform((bs, h, w, c // 2))
+        x = tf.concat([z1, z2], axis=-1)
+        expected_output = tf.concat([z2, z1], axis=-1)
+        np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
+
+    def test_idempotence(self):
+        """Assert idempotence of Householder activation: hh(hh(x)) = hh(x)"""
+        hh = Householder(theta_initializer="glorot_uniform")
+
+        bs = np.random.randint(32, 128)
+        h, w = np.random.randint(1, 64), np.random.randint(1, 64)
+        c = np.random.randint(1, 32) * 2
+        x = tf.random.normal((bs, h, w, c))
+
+        # Run two times the HH activation and compare both outputs
+        y = hh(x)
+        z = hh(y)
+        np.testing.assert_allclose(y, z)

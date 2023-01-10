@@ -16,6 +16,7 @@ Submodules
    deel.lip.metrics
    deel.lip.model
    deel.lip.normalizers
+   deel.lip.regularizers
    deel.lip.unconstrained_layers
    deel.lip.utils
 

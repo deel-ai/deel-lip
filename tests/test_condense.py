@@ -11,6 +11,7 @@ from deel.lip.model import Sequential, Model
 from deel.lip.layers import (
     SpectralDense,
     SpectralConv2D,
+    SpectralConv2DTranspose,
     FrobeniusDense,
     FrobeniusConv2D,
     ScaledL2NormPooling2D,
@@ -42,6 +43,7 @@ class MyTestCase(unittest.TestCase):
                 SpectralConv2D(2, (3, 3)),
                 ScaledL2NormPooling2D((2, 2)),
                 FrobeniusConv2D(2, (3, 3)),
+                SpectralConv2DTranspose(5, 3),
                 Flatten(),
                 Dense(4),
                 SpectralDense(4),
@@ -57,6 +59,7 @@ class MyTestCase(unittest.TestCase):
         x = SpectralConv2D(2, (3, 3), k_coef_lip=2.0)(inp)
         x = ScaledL2NormPooling2D((2, 2), k_coef_lip=2.0)(x)
         x = FrobeniusConv2D(2, (3, 3), k_coef_lip=2.0)(x)
+        x = SpectralConv2DTranspose(5, 3, k_coef_lip=2.0)(x)
         x = Flatten()(x)
         x = Dense(4)(x)
         x = SpectralDense(4, k_coef_lip=2.0)(x)

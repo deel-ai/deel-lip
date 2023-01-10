@@ -11,6 +11,9 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
+with open(path.join(this_directory, "deel/lip/VERSION")) as f:
+    version = f.read().strip()
+
 dev_requires = [
     "tox",
     "black",
@@ -30,7 +33,7 @@ docs_requires = [
 
 setuptools.setup(
     name="deel-lip",
-    version="1.3.0",
+    version=version,
     author=", ".join(["Mathieu SERRURIER", "Franck MAMALET", "Thibaut BOISSIN"]),
     author_email=", ".join(
         [
@@ -44,16 +47,18 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/deel-ai/deel-lip",
     packages=setuptools.find_namespace_packages(include=["deel.*"]),
-    install_requires=["numpy", "tensorflow>=2,<3"],
+    include_package_data=True,
+    install_requires=["numpy", "tensorflow~=2.2"],
     license="MIT",
     extras_require={"dev": dev_requires, "docs": docs_requires},
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )

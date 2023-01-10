@@ -1,6 +1,7 @@
 """These tests assert that deel.lip Sequential and Model objects behave as expected."""
 
 import warnings
+from packaging import version
 from unittest import TestCase
 import numpy as np
 import tensorflow as tf
@@ -98,11 +99,13 @@ class Test(TestCase):
             kl.MaxPool2D(pool_size=3, strides=2),
             kl.Add(),
             kl.Concatenate(),
-            kl.Activation("gelu"),
             kl.Dense(5),
             kl.Conv2D(10, 3),
             kl.UpSampling2D(),
         ]
+        if version.parse(tf.__version__) >= version.parse("2.4.0"):
+            unsupported_layers.append(kl.Activation("gelu"))
+
         for lay in unsupported_layers:
             with self.assertWarnsRegex(
                 Warning,

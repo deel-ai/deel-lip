@@ -13,6 +13,8 @@ from deel.lip.losses import (
     MulticlassHinge,
     MulticlassHKR,
     MultiMargin,
+    TauCategoricalCrossentropy,
+    CategoricalHinge,
 )
 from deel.lip.utils import process_labels_for_multi_gpu
 import os
@@ -53,8 +55,8 @@ class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
 
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(1), "KR loss must be equal to 1")
 
@@ -79,9 +81,9 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_hinge_margin_loss(self):
-        loss = HingeMargin(1.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        loss = HingeMargin(2.0)
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
         loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
@@ -123,31 +125,8 @@ class Test(TestCase):
         check_serialization(1, multiclass_kr)
 
     def test_hinge_multiclass_loss(self):
-        multiclass_hinge = MulticlassHinge(1.0)
-        hinge = HingeMargin(1.0)
-        y_true = tf.convert_to_tensor([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = tf.convert_to_tensor([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
-        l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
-        self.assertEqual(l_single, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hinge multiclass must yield the same "
-            "results when given a single class "
-            "vector",
-        )
-        y_true = tf.expand_dims(y_true, -1)
-        y_pred = tf.expand_dims(y_pred, -1)
-        l_single = hinge(y_true, y_pred).numpy()
-        l_multi = multiclass_hinge(y_true, y_pred).numpy()
-        self.assertEqual(
-            l_single,
-            l_multi,
-            "hinge multiclass must yield the same "
-            "results when given a single class "
-            "vector",
-        )
+        multiclass_hinge = MulticlassHinge(2.0)
+
         n_class = 10
         n_items = 10000
         y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
@@ -165,7 +144,7 @@ class Test(TestCase):
         check_serialization(1, multiclass_hinge)
 
     def test_hkr_multiclass_loss(self):
-        multiclass_hkr = MulticlassHKR(5.0, 1.0)
+        multiclass_hkr = MulticlassHKR(5.0, 2.0)
         y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
@@ -211,18 +190,46 @@ class Test(TestCase):
         )
         check_serialization(1, multimargin_loss)
 
+    def test_categoricalhinge(self):
+        cathinge = CategoricalHinge(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = cathinge(y_true, y_pred).numpy()
+        loss_val_2 = cathinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, cathinge)
+
+    def test_tau_catcrossent(self):
+        taucatcrossent_loss = TauCategoricalCrossentropy(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = taucatcrossent_loss(y_true, y_pred).numpy()
+        loss_val_2 = taucatcrossent_loss(
+            tf.cast(y_true, dtype=tf.int32), y_pred
+        ).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(1, taucatcrossent_loss)
+
     def test_no_reduction_binary_losses(self):
         """
         Assert binary losses without reduction. Three losses are tested on hardcoded
         y_true/y_pred of shape [8 elements, 1]: KR, HingeMargin and HKR.
         """
-        y_true = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]).reshape((8, 1))
-        y_pred = np.array([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9]).reshape((8, 1))
+        y_true = binary_tf_data([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
 
         losses = (
             KR(reduction="none"),
-            HingeMargin(0.7, reduction="none"),
-            HKR(alpha=2.5, reduction="none"),
+            HingeMargin(0.7 * 2.0, reduction="none"),
+            HKR(alpha=2.5, min_margin=2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -263,9 +270,11 @@ class Test(TestCase):
         )
         losses = (
             MulticlassKR(reduction="none"),
-            MulticlassHinge(reduction="none"),
+            MulticlassHinge(min_margin=2.0, reduction="none"),
             MultiMargin(0.7, reduction="none"),
-            MulticlassHKR(alpha=2.5, min_margin=0.5, reduction="none"),
+            MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
+            CategoricalHinge(1.1, reduction="none"),
+            TauCategoricalCrossentropy(2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -273,6 +282,19 @@ class Test(TestCase):
             np.float64([17, 13, 34, 15, 12, 62, 17, 45]) / 30,
             np.float64([0, 0, 19, 0, 0, 35, 0, 0]) / 30,
             np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825]) / 900,
+            np.float64([0, 0.4, 2.3, 0.1, 0, 3.9, 0.4, 0]),
+            np.float64(
+                [
+                    0.044275,
+                    0.115109,
+                    1.243572,
+                    0.084923,
+                    0.010887,
+                    2.802300,
+                    0.114224,
+                    0.076357,
+                ]
+            ),
         )
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
@@ -301,8 +323,8 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             KR(multi_gpu=True, reduction=reduction),
-            HingeMargin(0.7, reduction=reduction),
-            HKR(alpha=2.5, multi_gpu=True, reduction=reduction),
+            HingeMargin(0.7 * 2.0, reduction=reduction),
+            HKR(alpha=2.5, min_margin=2.0, multi_gpu=True, reduction=reduction),
         )
 
         expected_loss_values = (9.2, 2.2, 0.3)
@@ -389,10 +411,10 @@ class Test(TestCase):
         reduction = "sum"
         losses = (
             MulticlassKR(multi_gpu=True, reduction=reduction),
-            MulticlassHinge(reduction=reduction),
+            MulticlassHinge(min_margin=2.0, reduction=reduction),
             MultiMargin(0.7, reduction=reduction),
             MulticlassHKR(
-                alpha=2.5, min_margin=0.5, multi_gpu=True, reduction=reduction
+                alpha=2.5, min_margin=1.0, multi_gpu=True, reduction=reduction
             ),
         )
 
@@ -434,7 +456,7 @@ class Test(TestCase):
         num_items = 10000
         y_true = tf.one_hot(np.random.randint(num_classes, size=num_items), num_classes)
         y_true = process_labels_for_multi_gpu(y_true)
-        y_pred = tf.random.normal((num_items, num_classes))
+        y_pred = tf.random.normal((num_items, num_classes), seed=17)
 
         # Compare full batch loss and mini-batches loss
         for loss in losses:

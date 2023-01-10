@@ -27,18 +27,12 @@ Before opening a pull request, please make sure you check your code and you run 
 unit tests:
 
 ```bash
-# Using make:
 $ make test
-
-# Or using directly tox in your development environment:
-$ tox
 ```
 
 This command will:
 - check your code with black PEP-8 formatter and flake8 linter.
-- run `unittest` on the `tests/` folder with Python 3.6, 3.7 and 3.8.
-> Note: If you do not have those 3 interpreters, the tests will only be only performed
-  with your current interpreter.
+- run `unittest` on the `tests/` folder with different Python and TensorFlow versions.
 
 
 ## Submitting your changes
