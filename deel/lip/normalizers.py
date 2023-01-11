@@ -354,3 +354,42 @@ def _power_iteration_conv(
         _v = tf.stop_gradient(_v)
 
     return _u, _v, _norm_u
+
+
+def spectral_normalization_conv(
+    kernel,
+    u,
+    stride=1.0,
+    conv_first=True,
+    pad_func=None,
+    eps=DEFAULT_EPS_SPECTRAL,
+    maxiter=DEFAULT_MAXITER_SPECTRAL,
+):
+    """
+    Normalize the convolution kernel to have its max eigenvalue == 1.
+
+    Args:
+        kernel: the convolution kernel to normalize
+        u: initialization for the max eigen vector (as a 4d tensor)
+        stride: stride parameter of convolutions
+        conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
+        circular_paddings: Circular padding (k//2,k//2)
+        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter: maximum number of iterations for the power iteration algorithm.
+
+    Returns:
+        the normalized kernel w_bar, the maximum eigen vector, and the maximum eigen
+        value
+    """
+
+    if eps < 0:
+        return kernel, u, 1.0
+
+    _u, _v, _ = _power_iteration_conv(
+        kernel, u, stride, conv_first, pad_func, eps, maxiter
+    )
+
+    # Calculate Sigma
+    sigma = tf.norm(_v)
+    W_bar = kernel / (sigma + eps)
+    return W_bar, _u, sigma
