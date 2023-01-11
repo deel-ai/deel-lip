@@ -9,6 +9,8 @@ normalization. This is done for internal use only.
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
+from .utils import _maybe_transpose_kernel, _zero_upscale2D
+
 DEFAULT_BETA_BJORCK = 0.5
 DEFAULT_EPS_SPECTRAL = 1e-3
 DEFAULT_EPS_BJORCK = 1e-3
@@ -238,3 +240,117 @@ def spectral_normalization(
     # use sigma + eps, which ensure stability of the bjorck even when beta=0.5
     W_bar = kernel / (sigma + eps)
     return W_bar, _u, sigma
+
+
+def _power_iteration_conv(
+    w,
+    u,
+    stride=1.0,
+    conv_first=True,
+    pad_func=None,
+    eps=DEFAULT_EPS_SPECTRAL,
+    maxiter=DEFAULT_MAXITER_SPECTRAL,
+    big_constant=-1,
+):
+    """
+    Internal function that performs the power iteration algorithm for convolution.
+
+    Args:
+        w: weights matrix that we want to find eigen vector
+        u: initialization of the eigen matrix should be ||u||=1 for L2_norm
+        stride: stride parameter of the convolution
+        conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
+        pad_func: function for applying padding (None is padding same)
+        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter: maximum number of iterations for the algorithm
+        big_constant: only for computing the minimum singular value (otherwise -1)
+    Returns:
+         u and v corresponding to the maximum eigenvalue
+
+    """
+
+    def identity(x):
+        return x
+
+    # If pad_func is None, standard convolution with SAME padding
+    # Else, pad_func padding function (externally defined)
+    #       + standard convolution with VALID padding.
+    if pad_func is None:
+        pad_type = "SAME"
+        _pad_func = identity
+    else:
+        pad_type = "VALID"
+        _pad_func = pad_func
+
+    def _conv(u, w, stride):
+        u_pad = _pad_func(u)
+        return tf.nn.conv2d(u_pad, w, stride, pad_type)
+
+    def _conv_transpose(u, w, output_shape, stride):
+        if pad_func is None:
+            return tf.nn.conv2d_transpose(u, w, output_shape, stride, pad_type)
+        else:
+            u_upscale = _zero_upscale2D(u, (stride, stride))
+            w_adj = _maybe_transpose_kernel(w, True)
+            return _conv(u_upscale, w_adj, stride=1)
+
+    def body(_u, _v, _old_u, _norm_u):
+        # _u is supposed to be normalized when entering in the body function
+        _old_u = _u
+        u = _u
+
+        if conv_first:  # Conv, then transposed conv
+            v = _conv(u, w, stride)
+            unew = _conv_transpose(v, w, u.shape, stride)
+        else:  # Transposed conv, then conv
+            v = _conv_transpose(u, w, _v.shape, stride)
+            unew = _conv(v, w, stride)
+
+        if big_constant > 0:
+            unew = big_constant * u - unew
+
+        _norm_unew = tf.norm(unew)
+        unew = tf.math.l2_normalize(unew)
+        return unew, v, _old_u, _norm_unew
+
+    # define the loop condition
+
+    def cond(_u, _v, old_u, _norm_u):
+        return tf.linalg.norm(_u - old_u) >= eps
+
+    # v shape
+    if conv_first:
+        v_shape = (
+            (u.shape[0],)
+            + (u.shape[1] // stride, u.shape[2] // stride)
+            + (w.shape[-1],)
+        )
+    else:
+        v_shape = (
+            (u.shape[0],) + (u.shape[1] * stride, u.shape[2] * stride) + (w.shape[-2],)
+        )
+
+    # build _u and _v
+    _norm_u = tf.norm(u)
+    _u = tf.math.l2_normalize(u)
+    _u += tf.random.uniform(_u.shape, minval=-eps, maxval=eps)
+    _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
+
+    # create a fake old_w that doesn't pass the loop condition
+    # it won't affect computation as the first action done in the loop overwrites it.
+    _old_u = 10 * _u
+
+    # apply the loop
+    _u, _v, _old_u, _norm_u = tf.while_loop(
+        cond,
+        body,
+        (_u, _v, _old_u, _norm_u),
+        parallel_iterations=1,
+        maximum_iterations=maxiter,
+        swap_memory=SWAP_MEMORY,
+    )
+    if STOP_GRAD_SPECTRAL:
+        _u = tf.stop_gradient(_u)
+        _v = tf.stop_gradient(_v)
+
+    return _u, _v, _norm_u
