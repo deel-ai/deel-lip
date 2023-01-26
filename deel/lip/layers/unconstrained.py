@@ -1,8 +1,8 @@
 import tensorflow as tf
 from tensorflow.keras.utils import register_keras_serializable
 
-from .layers import Condensable
-from .utils import _padding_circular
+from ..utils import _padding_circular
+from .base_layer import Condensable
 
 
 @register_keras_serializable("deel-lip", "PadConv2D")
