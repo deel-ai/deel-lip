@@ -1050,9 +1050,10 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
         np.testing.assert_allclose(y1, y2, atol=1e-6)
 
         # Test saving/loading model
-        with tempfile.TemporaryDirectory():
-            model.save("model.h5")
-            tf.keras.models.load_model("model.h5")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = os.path.join(tmpdir, "model.h5")
+            model.save(model_path)
+            tf.keras.models.load_model(model_path)
 
 
 if __name__ == "__main__":
