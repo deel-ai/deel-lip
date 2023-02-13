@@ -50,6 +50,16 @@ def set_stop_grad_spectral(value: bool):
     STOP_GRAD_SPECTRAL = value
 
 
+def _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck):
+    """Assert that the RKO hyper-parameters are supported values."""
+    if eps_spectral <= 0:
+        raise ValueError("eps_spectral has to be > 0")
+    if (eps_bjorck is not None) and (eps_bjorck <= 0.0):
+        raise ValueError("eps_bjorck must be > 0")
+    if (beta_bjorck is not None) and not (0.0 < beta_bjorck <= 0.5):
+        raise ValueError("beta_bjorck must be in ]0, 0.5]")
+
+
 def reshaped_kernel_orthogonalization(
     kernel,
     u,

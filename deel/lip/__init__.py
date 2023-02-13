@@ -13,7 +13,6 @@ from . import callbacks
 from . import constraints
 from . import initializers
 from . import layers
-from . import unconstrained_layers
 from . import losses
 from . import metrics
 from .model import Sequential, Model, vanillaModel

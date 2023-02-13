@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 import tensorflow as tf
-from deel.lip.unconstrained_layers import PadConv2D
+from deel.lip.layers.unconstrained import PadConv2D
 from deel.lip.model import vanillaModel
 from deel.lip.utils import _padding_circular
 
