@@ -3,6 +3,7 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 import unittest
+from functools import partial
 
 import numpy as np
 import tensorflow as tf
@@ -10,7 +11,9 @@ from deel.lip.normalizers import (
     bjorck_normalization,
     reshaped_kernel_orthogonalization,
     spectral_normalization,
+    spectral_normalization_conv,
 )
+from deel.lip.utils import _padding_circular
 
 np.random.seed(42)
 
@@ -56,6 +59,112 @@ class TestSpectralNorm(unittest.TestCase):
         # Test if kernel is normalized by sigma
         np.testing.assert_allclose(
             np.reshape(W_bar, kernel.shape), kernel / sigmas_svd[0], 1e-2, 0
+        )
+
+
+class TestSpectralNormConv(unittest.TestCase):
+    """Test of conv spectral normalization (power iteration conv) on Conv2D kernels.
+
+    Padding is circular.
+    TODO : ajouter tests avec padding valid ou same, mais attention au calcul du
+    sigma_max (pas de fft+svd pour padding same)
+    """
+
+    def test_spectral_normalization_conv(self):
+        # CO case (stride^2*C < M)
+        kernel_shape = (5, 5, 32, 64)
+        kernel = np.random.normal(size=kernel_shape).astype("float32")
+        self.strides = [1, 1]
+        self.set_spectral_input_shape(kernel)
+        self._test_kernel(kernel)
+
+        # RO case (stride^2*C > M)
+        kernel_shape = (3, 3, 12, 8)
+        kernel = np.random.normal(size=kernel_shape).astype("float32")
+        self.strides = [1, 1]
+        self.set_spectral_input_shape(kernel)
+        self._test_kernel(kernel)
+
+        # Square case (stride^2*C == M)
+        kernel_shape = (3, 3, 24, 24)
+        kernel = np.random.normal(size=kernel_shape).astype("float32")
+        self.strides = [1, 1]
+        self.set_spectral_input_shape(kernel)
+        self._test_kernel(kernel)
+
+    def set_spectral_input_shape(self, kernel):
+        """Set spectral input shape and RO_case, depending on kernel shape and
+        strides."""
+        (kh, kw, c_in, c_out) = kernel.shape
+        self.cPad = [kh // 2, kw // 2]
+        stride = self.strides[0]
+
+        # Compute minimal N
+        r = kh // 2
+        if r < 1:
+            N = 5
+        else:
+            N = 4 * r + 1
+            if stride > 1:
+                N = int(0.5 + N / stride)
+
+        if c_in * stride**2 > c_out:
+            self.spectral_input_shape = (N, N, c_out)
+            self.RO_case = True
+        else:
+            self.spectral_input_shape = (stride * N, stride * N, c_in)
+            self.RO_case = False
+
+    def _test_kernel(self, kernel):
+        """Compare power iteration conv against SVD."""
+
+        # Compute max singular value using FFT2 and SVD
+        kernel_n = kernel.astype(dtype="float32")
+        transforms = np.fft.fft2(
+            kernel_n,
+            (self.spectral_input_shape[0], self.spectral_input_shape[1]),
+            axes=[0, 1],
+        )
+        svd = np.linalg.svd(transforms, compute_uv=False)
+        SVmax = np.max(svd)
+
+        # Compute max singular value using power iteration conv
+        _u = np.random.normal(size=(1,) + self.spectral_input_shape).astype("float32")
+        fPad = partial(_padding_circular, circular_paddings=self.cPad)
+
+        W_bar, _u, sigma = spectral_normalization_conv(
+            kernel,
+            u=_u,
+            stride=self.strides[0],
+            conv_first=not self.RO_case,
+            pad_func=fPad,
+            eps=1e-6,
+            maxiter=30,
+        )
+        # Test if sigma is close to the one computed with svd first run @ 1e-1
+        np.testing.assert_approx_equal(
+            sigma, SVmax, 1, "test failed with kernel_shape " + str(kernel.shape)
+        )
+
+        # Run a second time power iteration conv with last _u from first run
+        W_bar, _u, sigma = spectral_normalization_conv(
+            kernel,
+            u=_u,
+            stride=self.strides[0],
+            conv_first=not self.RO_case,
+            pad_func=fPad,
+            eps=1e-6,
+            maxiter=30,
+        )
+        # Test if W_bar is reshaped correctly
+        np.testing.assert_equal(W_bar.shape, kernel.shape)
+        # Test if sigma is close to the one computed with svd, second run
+        np.testing.assert_approx_equal(
+            sigma, SVmax, 2, "test failed with kernel_shape " + str(kernel.shape)
+        )
+        # Test if kernel is normalized by sigma
+        np.testing.assert_allclose(
+            np.reshape(W_bar, kernel.shape), kernel / SVmax, 1e-2, 0
         )
 
 

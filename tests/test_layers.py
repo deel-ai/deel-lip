@@ -1002,7 +1002,6 @@ class LipschitzLayersTest(unittest.TestCase):
 
 class TestSpectralConv2DTranspose(unittest.TestCase):
     def test_instantiation(self):
-
         # Supported cases
         cases = (
             dict(filters=5, kernel_size=3),
