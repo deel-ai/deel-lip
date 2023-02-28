@@ -44,7 +44,7 @@ def _kr_multi_gpu(y_true, y_pred):
     (batch_size, # classes).
 
     When using this loss function, the labels `y_true` must be pre-processed with the
-    :func:`process_labels_for_multi_gpu()` function.
+    `process_labels_for_multi_gpu()` function.
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     # Since the information of batch size was included in `y_true` by
@@ -74,11 +74,11 @@ class KR(Loss):
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
@@ -127,11 +127,11 @@ class HKR(Loss):
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             alpha: regularization factor
@@ -179,7 +179,7 @@ def hinge_margin(y_true, y_pred, min_margin):
     Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
     (batch_size, C) for multilabel classification (with C categories).
     `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+    `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
         min_margin: positive float, margin to enforce.
@@ -209,7 +209,7 @@ class HingeMargin(Loss):
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
@@ -241,11 +241,11 @@ class MulticlassKR(Loss):
         class and then averaged.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
@@ -276,7 +276,7 @@ def multiclass_hinge(y_true, y_pred, min_margin):
 
     `y_true` and `y_pred` must be of shape (batch_size, # classes).
     Note that `y_true` should be one-hot encoded or pre-processed with the
-    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+    `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
         y_true: tensor of true targets of shape (batch_size, # classes)
@@ -309,7 +309,7 @@ class MulticlassHinge(Loss):
         classification loss used in a multiclass fashion.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
@@ -347,11 +347,11 @@ class MulticlassHKR(Loss):
         class and averaging the results.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             alpha: regularization factor
@@ -398,7 +398,7 @@ class MultiMargin(Loss):
         multi_margin_loss)
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin to enforce.
@@ -439,7 +439,7 @@ class CategoricalHinge(Loss):
 
         `y_true` and `y_pred` must be of shape (batch_size, # classes).
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             min_margin: positive float, margin parameter.
