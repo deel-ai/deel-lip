@@ -61,12 +61,12 @@ class KR(Loss):
         Loss to estimate Wasserstein-1 distance using Kantorovich-Rubinstein duality.
         The Kantorovich-Rubinstein duality is formulated as following:
 
-        .. math::
-            W_1(\mu, \nu) =
-            \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
-            \left[f(\textbf{x} )\right] -
-            \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
-
+        $$
+        W_1(\mu, \nu) =
+        \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] -
+        \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
+        $$
 
         Where mu and nu stands for the two distributions, the distribution where the
         label is 1 and the rest.
@@ -117,12 +117,13 @@ class HKR(Loss):
         r"""
         Wasserstein loss with a regularization parameter based on the hinge margin loss.
 
-        .. math::
-            \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
-            \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
-            {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
-            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-            -Yf(\textbf{x})\right)_+
+        $$
+        \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+        {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
+        $$
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
@@ -202,9 +203,10 @@ class HingeMargin(Loss):
         r"""
         Compute the hinge margin loss.
 
-        .. math::
-            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-            -Yf(\textbf{x})\right)_+
+        $$
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
+        $$
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
