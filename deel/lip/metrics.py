@@ -4,7 +4,8 @@
 # =====================================================================================
 """
 This module contains metrics applicable in provable robustness. See
-https://arxiv.org/abs/2006.06520 and https://arxiv.org/abs/2108.04062 for more
+[https://arxiv.org/abs/2006.06520](https://arxiv.org/abs/2006.06520)
+and [https://arxiv.org/abs/2108.04062](https://arxiv.org/abs/2108.04062) for more
 information.
 """
 import math

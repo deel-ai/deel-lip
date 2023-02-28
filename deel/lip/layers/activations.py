@@ -224,8 +224,9 @@ class Householder(Layer, LipschitzLayer):
         **kwargs,
     ):
         """
-        Householder activation: https://openreview.net/pdf?id=tD7eCtaSkR
-        From https://github.com/singlasahil14/SOC
+        Householder activation:
+        [this review](https://openreview.net/pdf?id=tD7eCtaSkR)
+        From [this repository](https://github.com/singlasahil14/SOC)
 
         Args:
             data_format: either channels_first or channels_last. Only channels_last is

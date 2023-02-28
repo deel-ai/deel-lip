@@ -3,8 +3,8 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains losses used in wasserstein distance estimation. See
-https://arxiv.org/abs/2006.06520 for more information.
+This module contains losses used in Wasserstein distance estimation. See
+[this paper](https://arxiv.org/abs/2006.06520) for more information.
 """
 from functools import partial
 import numpy as np
