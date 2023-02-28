@@ -1,0 +1,80 @@
+site_name: DEEL-LIP
+
+google_analytics:
+  - UA-132343476-2
+  - auto
+
+nav:
+  - Home: index.md
+  - API Reference:
+    - deel.lip.activations: api/activations.md
+    - deel.lip.callbacks: api/callbacks.md
+    - deel.lip.constraints: api/constraints.md
+    - deel.lip.initializers: api/initializers.md
+    - deel.lip.layers: api/layers.md
+    - deel.lip.losses: api/losses.md
+    - deel.lip.metrics: api/metrics.md
+    - deel.lip.model: api/model.md
+    - deel.lip.normalizers: api/normalizers.md
+    - deel.lip.utils: api/utils.md
+  - Tutorials:
+    - "Demo 0: Example & Usage": notebooks/demo0.ipynb
+    - "Demo 1: Wasserstein distance estimation on toy example": notebooks/demo1.ipynb
+    - "Demo 2: HKR Classifier on toy dataset": notebooks/demo2.ipynb
+    - "Demo 3: HKR Classifier on MNIST dataset": notebooks/demo3.ipynb
+    - "Demo 4: HKR Multiclass and fooling": notebooks/demo4.ipynb
+
+theme:
+  name: "material"
+  logo: assets/lip_logo.png
+  favicon: assets/lip_logo.png
+  palette:
+    - scheme: default
+      primary: dark
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings
+  - mknotebooks
+
+markdown_extensions:
+  - footnotes
+  - extra
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - codehilite
+  - toc:
+      baselevel: 1
+      permalink: true
+      toc_depth: 1-4
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+      clickable_checkbox: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+extra_css:
+  - css/custom.css
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - js/custom.js
+
+repo_name: "deel-ai/deel-lip"
+repo_url: "https://github.com/deel-ai/deel-lip"
