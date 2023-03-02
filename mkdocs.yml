@@ -1,9 +1,5 @@
 site_name: DEEL-LIP
 
-google_analytics:
-  - UA-132343476-2
-  - auto
-
 nav:
   - Home: index.md
   - API Reference:
