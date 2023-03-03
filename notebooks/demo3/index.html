@@ -1,0 +1,1072 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../demo2/">
+      
+      
+        <link rel="next" href="../demo4/">
+      
+      <link rel="icon" href="../../assets/lip_logo.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.15">
+    
+    
+      
+        <title>Demo 3: HKR Classifier on MNIST dataset - DEEL-LIP</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.113286f1.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.a0c5b2b5.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../css/custom.css">
+    
+      <link rel="stylesheet" href="../../css/ansi-colours.css">
+    
+      <link rel="stylesheet" href="../../css/jupyter-cells.css">
+    
+      <link rel="stylesheet" href="../../css/pandas-dataframe.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#demo-3-hkr-classifier-on-mnist-dataset" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="DEEL-LIP" class="md-header__button md-logo" aria-label="DEEL-LIP" data-md-component="logo">
+      
+  <img src="../../assets/lip_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DEEL-LIP
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Demo 3: HKR Classifier on MNIST dataset
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      <form class="md-header__option" data-md-component="palette">
+        
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+          
+            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </label>
+          
+        
+          
+          <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+          
+            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+            </label>
+          
+        
+      </form>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/deel-ai/deel-lip" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/deel-lip
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="DEEL-LIP" class="md-nav__button md-logo" aria-label="DEEL-LIP" data-md-component="logo">
+      
+  <img src="../../assets/lip_logo.png" alt="logo">
+
+    </a>
+    DEEL-LIP
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/deel-ai/deel-lip" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.3.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/deel-lip
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          API Reference
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          API Reference
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/activations/" class="md-nav__link">
+        deel.lip.activations module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/callbacks/" class="md-nav__link">
+        deel.lip.callbacks module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/constraints/" class="md-nav__link">
+        deel.lip.constraints module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/initializers/" class="md-nav__link">
+        deel.lip.initializers module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/layers/" class="md-nav__link">
+        deel.lip.layers module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/losses/" class="md-nav__link">
+        deel.lip.losses module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/metrics/" class="md-nav__link">
+        deel.lip.metrics module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/model/" class="md-nav__link">
+        deel.lip.model module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/normalizers/" class="md-nav__link">
+        deel.lip.normalizers module
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/utils/" class="md-nav__link">
+        deel.lip.utils module
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          Tutorials
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <label class="md-nav__title" for="__nav_3">
+          <span class="md-nav__icon md-icon"></span>
+          Tutorials
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo0/" class="md-nav__link">
+        Demo 0: Example & Usage
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo1/" class="md-nav__link">
+        Demo 1: Wasserstein distance estimation on toy example
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo2/" class="md-nav__link">
+        Demo 2: HKR Classifier on toy dataset
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Demo 3: HKR Classifier on MNIST dataset
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Demo 3: HKR Classifier on MNIST dataset
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#demo-3-hkr-classifier-on-mnist-dataset" class="md-nav__link">
+    Demo 3: HKR classifier on MNIST dataset
+  </a>
+  
+    <nav class="md-nav" aria-label="Demo 3: HKR classifier on MNIST dataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-preparation" class="md-nav__link">
+    data preparation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-lipschitz-model" class="md-nav__link">
+    Build lipschitz Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#learn-classification-on-mnist" class="md-nav__link">
+    Learn classification on MNIST
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo4/" class="md-nav__link">
+        Demo 4: HKR Multiclass and fooling
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#demo-3-hkr-classifier-on-mnist-dataset" class="md-nav__link">
+    Demo 3: HKR classifier on MNIST dataset
+  </a>
+  
+    <nav class="md-nav" aria-label="Demo 3: HKR classifier on MNIST dataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-preparation" class="md-nav__link">
+    data preparation
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build-lipschitz-model" class="md-nav__link">
+    Build lipschitz Model
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#learn-classification-on-mnist" class="md-nav__link">
+    Learn classification on MNIST
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Demo 3: HKR Classifier on MNIST dataset</h1>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>
+(function() {
+  function addWidgetsRenderer() {
+    var requireJsScript = document.createElement('script');
+    requireJsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js';
+
+    var mimeElement = document.querySelector('script[type="application/vnd.jupyter.widget-view+json"]');
+    var jupyterWidgetsScript = document.createElement('script');
+    var widgetRendererSrc = 'https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js';
+    var widgetState;
+
+    // Fallback for older version:
+    try {
+      widgetState = mimeElement && JSON.parse(mimeElement.innerHTML);
+
+      if (widgetState && (widgetState.version_major < 2 || !widgetState.version_major)) {
+        widgetRendererSrc = 'jupyter-js-widgets@*/dist/embed.js';
+      }
+    } catch(e) {}
+
+    jupyterWidgetsScript.src = widgetRendererSrc;
+
+    document.body.appendChild(requireJsScript);
+    document.body.appendChild(jupyterWidgetsScript);
+  }
+
+  document.addEventListener('DOMContentLoaded', addWidgetsRenderer);
+}());
+</script>
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="demo-3-hkr-classifier-on-mnist-dataset">Demo 3: HKR classifier on MNIST dataset<a class="headerlink" href="#demo-3-hkr-classifier-on-mnist-dataset" title="Permanent link">&para;</a></h2>
+<p><a href="https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/demo3.ipynb"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<p>This notebook will demonstrate learning a binary task on the MNIST0-8 dataset.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="c1"># pip install deel-lip -qqq</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">backend</span> <span class="k">as</span> <span class="n">K</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.keras.layers</span> <span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Flatten</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.optimizers</span> <span class="kn">import</span> <span class="n">Adam</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.metrics</span> <span class="kn">import</span> <span class="n">binary_accuracy</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras.models</span> <span class="kn">import</span> <span class="n">Sequential</span>
+
+<span class="kn">from</span> <span class="nn">deel.lip.layers</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SpectralConv2D</span><span class="p">,</span>
+    <span class="n">SpectralDense</span><span class="p">,</span>
+    <span class="n">FrobeniusDense</span><span class="p">,</span>
+    <span class="n">ScaledL2NormPooling2D</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">deel.lip.activations</span> <span class="kn">import</span> <span class="n">MaxMin</span><span class="p">,</span> <span class="n">GroupSort</span><span class="p">,</span> <span class="n">GroupSort2</span><span class="p">,</span> <span class="n">FullSort</span>
+<span class="kn">from</span> <span class="nn">deel.lip.losses</span> <span class="kn">import</span> <span class="n">HKR</span><span class="p">,</span> <span class="n">KR</span><span class="p">,</span> <span class="n">HingeMargin</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>
+<code>2021-09-08 18:34:34.803681: I tensorflow/stream_executor/platform/default/dso_loader.cc:49] Successfully opened dynamic library libcudart.so.11.0
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="data-preparation">data preparation<a class="headerlink" href="#data-preparation" title="Permanent link">&para;</a></h3>
+<p>For this task we will select two classes: 0 and 8. Labels are changed to {-1,1}, wich is compatible
+with the Hinge term used in the loss.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">tensorflow.keras.datasets</span> <span class="kn">import</span> <span class="n">mnist</span>
+
+<span class="c1"># first we select the two classes</span>
+<span class="n">selected_classes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>  <span class="c1"># must be two classes as we perform binary classification</span>
+
+
+<span class="k">def</span> <span class="nf">prepare_data</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">class_a</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">class_b</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This function convert the MNIST data to make it suitable for our binary classification</span>
+<span class="sd">    setup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># select items from the two selected classes</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">class_a</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span>
+        <span class="n">y</span> <span class="o">==</span> <span class="n">class_b</span>
+    <span class="p">)</span>  <span class="c1"># mask to select only items from class_a or class_b</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
+    <span class="c1"># convert from range int[0,255] to float32[-1,1]</span>
+    <span class="n">x</span> <span class="o">/=</span> <span class="mi">255</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># change label to binary classification {-1,1}</span>
+    <span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">class_a</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">==</span> <span class="n">class_b</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+
+<span class="c1"># now we load the dataset</span>
+<span class="p">(</span><span class="n">x_train</span><span class="p">,</span> <span class="n">y_train_ord</span><span class="p">),</span> <span class="p">(</span><span class="n">x_test</span><span class="p">,</span> <span class="n">y_test_ord</span><span class="p">)</span> <span class="o">=</span> <span class="n">mnist</span><span class="o">.</span><span class="n">load_data</span><span class="p">()</span>
+
+<span class="c1"># prepare the data</span>
+<span class="n">x_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span>
+    <span class="n">x_train</span><span class="p">,</span> <span class="n">y_train_ord</span><span class="p">,</span> <span class="n">selected_classes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">selected_classes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">x_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">prepare_data</span><span class="p">(</span>
+    <span class="n">x_test</span><span class="p">,</span> <span class="n">y_test_ord</span><span class="p">,</span> <span class="n">selected_classes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">selected_classes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="p">)</span>
+
+<span class="c1"># display infos about dataset</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;train set size: </span><span class="si">%i</span><span class="s2"> samples, classes proportions: </span><span class="si">%.3f</span><span class="s2"> percent&quot;</span>
+    <span class="o">%</span> <span class="p">(</span><span class="n">y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">y_train</span><span class="p">[</span><span class="n">y_train</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span>
+    <span class="s2">&quot;test set size: </span><span class="si">%i</span><span class="s2"> samples, classes proportions: </span><span class="si">%.3f</span><span class="s2"> percent&quot;</span>
+    <span class="o">%</span> <span class="p">(</span><span class="n">y_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">y_test</span><span class="p">[</span><span class="n">y_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">y_test</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>train set size: 11774 samples, classes proportions: 50.306 percent
+test set size: 1954 samples, classes proportions: 50.154 percent
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="build-lipschitz-model">Build lipschitz Model<a class="headerlink" href="#build-lipschitz-model" title="Permanent link">&para;</a></h3>
+<p>Let's first explicit the paremeters of this experiment</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="c1"># training parameters</span>
+<span class="n">epochs</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">batch_size</span> <span class="o">=</span> <span class="mi">128</span>
+
+<span class="c1"># network parameters</span>
+<span class="n">activation</span> <span class="o">=</span> <span class="n">GroupSort</span>  <span class="c1"># ReLU, MaxMin, GroupSort2</span>
+
+<span class="c1"># loss parameters</span>
+<span class="n">min_margin</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">alpha</span> <span class="o">=</span> <span class="mf">10.0</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now we can build the network.
+Here the experiment is done with a MLP. But <code>Deel-lip</code> also provide state of the art 1-Lipschitz convolutions.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">K</span><span class="o">.</span><span class="n">clear_session</span><span class="p">()</span>
+<span class="c1"># helper function to build the 1-lipschitz MLP</span>
+<span class="n">wass</span> <span class="o">=</span> <span class="n">Sequential</span><span class="p">(</span>
+    <span class="n">layers</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">Input</span><span class="p">((</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+        <span class="n">Flatten</span><span class="p">(),</span>
+        <span class="n">SpectralDense</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">GroupSort2</span><span class="p">(),</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">SpectralDense</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="n">GroupSort2</span><span class="p">(),</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="n">FrobeniusDense</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;lipModel&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">wass</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Model: &#34;lipModel&#34;
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+flatten (Flatten)            (None, 784)               0         
+_________________________________________________________________
+spectral_dense (SpectralDens (None, 32)                50241     
+_________________________________________________________________
+spectral_dense_1 (SpectralDe (None, 16)                1057      
+_________________________________________________________________
+frobenius_dense (FrobeniusDe (None, 1)                 32        
+=================================================================
+Total params: 51,330
+Trainable params: 25,664
+Non-trainable params: 25,666
+_________________________________________________________________
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">optimizer</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="c1"># as the output of our classifier is in the real range [-1, 1], binary accuracy must be redefined</span>
+<span class="k">def</span> <span class="nf">HKR_binary_accuracy</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">):</span>
+    <span class="n">S_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">y_true</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">S_pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">y_pred</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">binary_accuracy</span><span class="p">(</span><span class="n">S_true</span><span class="p">,</span> <span class="n">S_pred</span><span class="p">)</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">wass</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="n">loss</span><span class="o">=</span><span class="n">HKR</span><span class="p">(</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">min_margin</span><span class="o">=</span><span class="n">min_margin</span>
+    <span class="p">),</span>  <span class="c1"># HKR stands for the hinge regularized KR loss</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">KR</span><span class="p">,</span>  <span class="c1"># shows the KR term of the loss</span>
+        <span class="n">HingeMargin</span><span class="p">(</span><span class="n">min_margin</span><span class="o">=</span><span class="n">min_margin</span><span class="p">),</span>  <span class="c1"># shows the hinge term of the loss</span>
+        <span class="n">HKR_binary_accuracy</span><span class="p">,</span>  <span class="c1"># shows the classification accuracy</span>
+    <span class="p">],</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="learn-classification-on-mnist">Learn classification on MNIST<a class="headerlink" href="#learn-classification-on-mnist" title="Permanent link">&para;</a></h3>
+<p>Now the model is build, we can learn the task.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">wass</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">x</span><span class="o">=</span><span class="n">x_train</span><span class="p">,</span>
+    <span class="n">y</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
+    <span class="n">validation_data</span><span class="o">=</span><span class="p">(</span><span class="n">x_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">),</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Epoch 1/10
+92/92 [==============================] - 2s 10ms/step - loss: -1.6675 - KR: 3.7144 - HingeMargin: 0.2047 - HKR_binary_accuracy: 0.9382 - val_loss: -5.0961 - val_KR: 5.5990 - val_HingeMargin: 0.0519 - val_HKR_binary_accuracy: 0.9786
+Epoch 2/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.0297 - KR: 5.5716 - HingeMargin: 0.0542 - HKR_binary_accuracy: 0.9793 - val_loss: -5.4469 - val_KR: 5.7710 - val_HingeMargin: 0.0354 - val_HKR_binary_accuracy: 0.9879
+Epoch 3/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.3788 - KR: 5.7838 - HingeMargin: 0.0405 - HKR_binary_accuracy: 0.9858 - val_loss: -5.6435 - val_KR: 5.9555 - val_HingeMargin: 0.0334 - val_HKR_binary_accuracy: 0.9860
+Epoch 4/10
+92/92 [==============================] - 1s 8ms/step - loss: -5.6172 - KR: 5.9671 - HingeMargin: 0.0350 - HKR_binary_accuracy: 0.9874 - val_loss: -5.7918 - val_KR: 6.0764 - val_HingeMargin: 0.0308 - val_HKR_binary_accuracy: 0.9879
+Epoch 5/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.7598 - KR: 6.0676 - HingeMargin: 0.0308 - HKR_binary_accuracy: 0.9891 - val_loss: -5.8711 - val_KR: 6.1062 - val_HingeMargin: 0.0264 - val_HKR_binary_accuracy: 0.9899
+Epoch 6/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.7647 - KR: 6.0829 - HingeMargin: 0.0318 - HKR_binary_accuracy: 0.9879 - val_loss: -5.8503 - val_KR: 6.1463 - val_HingeMargin: 0.0315 - val_HKR_binary_accuracy: 0.9879
+Epoch 7/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.8007 - KR: 6.1082 - HingeMargin: 0.0307 - HKR_binary_accuracy: 0.9884 - val_loss: -5.8470 - val_KR: 6.1179 - val_HingeMargin: 0.0296 - val_HKR_binary_accuracy: 0.9879
+Epoch 8/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.8268 - KR: 6.1185 - HingeMargin: 0.0292 - HKR_binary_accuracy: 0.9897 - val_loss: -5.8439 - val_KR: 6.1153 - val_HingeMargin: 0.0294 - val_HKR_binary_accuracy: 0.9889
+Epoch 9/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.8865 - KR: 6.1548 - HingeMargin: 0.0268 - HKR_binary_accuracy: 0.9910 - val_loss: -5.8800 - val_KR: 6.1668 - val_HingeMargin: 0.0312 - val_HKR_binary_accuracy: 0.9874
+Epoch 10/10
+92/92 [==============================] - 1s 7ms/step - loss: -5.8578 - KR: 6.1453 - HingeMargin: 0.0288 - HKR_binary_accuracy: 0.9892 - val_loss: -5.9233 - val_KR: 6.1783 - val_HingeMargin: 0.0282 - val_HKR_binary_accuracy: 0.9889
+</code>
+</pre>
+</div>
+</div>
+<div class="output_area">
+<div class="output_text output_subarea output_execute_result">
+<pre>
+<code>&lt;tensorflow.python.keras.callbacks.History at 0x7fce2c6635d0&gt;</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>As we can see the model reach a very decent accuracy on this task.</p>
+</div>
+</div>
+</div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.2a6f1dda.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../js/custom.js"></script>
+      
+    
+  </body>
+</html>
