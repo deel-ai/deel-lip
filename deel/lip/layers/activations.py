@@ -23,8 +23,8 @@ class MaxMin(Layer, LipschitzLayer):
         MaxMin activation [Relu(x),reLU(-x)]
 
         Args:
-            data_format: either channels_first or channels_last
-            k_coef_lip: the lipschitz coefficient to be enforced
+            data_format (str): either channels_first or channels_last
+            k_coef_lip (float): the lipschitz coefficient to be enforced
             *args: params passed to Layers
             **kwargs: params passed to layers (named fashion)
 
@@ -90,10 +90,10 @@ class GroupSort(Layer, LipschitzLayer):
         GroupSort activation
 
         Args:
-            n: group size used when sorting. When None group size is set to input
+            n (int): group size used when sorting. When None group size is set to input
                 size (fullSort behavior)
-            data_format: either channels_first or channels_last
-            k_coef_lip: the lipschitz coefficient to be enforced
+            data_format (str): either channels_first or channels_last
+            k_coef_lip (float): the lipschitz coefficient to be enforced
             *args: params passed to Layers
             **kwargs: params passed to layers (named fashion)
 
@@ -207,7 +207,7 @@ def PReLUlip(k_coef_lip=1.0):
     PreLu activation, with Lipschitz constraint.
 
     Args:
-        k_coef_lip: lipschitz coefficient to be enforced
+        k_coef_lip (float): lipschitz coefficient to be enforced
     """
     return PReLU(
         alpha_constraint=MinMaxNorm(min_value=-k_coef_lip, max_value=k_coef_lip)
@@ -229,9 +229,9 @@ class Householder(Layer, LipschitzLayer):
         From [this repository](https://github.com/singlasahil14/SOC)
 
         Args:
-            data_format: either channels_first or channels_last. Only channels_last is
-                supported.
-            k_coef_lip: The lipschitz coefficient to be enforced.
+            data_format (str): either channels_first or channels_last. Only
+                channels_last is supported.
+            k_coef_lip (str): The lipschitz coefficient to be enforced.
             theta_initializer: initializer for the angle theta of reflection. Defaults
                 to pi/2, which corresponds to GroupSort2.
             **kwargs: parameters passed to the `tf.keras.layers.Layer`.

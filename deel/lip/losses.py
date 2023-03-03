@@ -83,7 +83,7 @@ class KR(Loss):
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -135,14 +135,14 @@ class HKR(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            alpha: regularization factor
-            min_margin: minimal margin ( see hinge_margin_loss )
+            alpha (float): regularization factor
+            min_margin (float): minimal margin ( see hinge_margin_loss )
                 Kantorovich-Rubinstein term of the loss. In order to be consistent
                 between hinge and KR, the first label must yield the positive class
                 while the second yields negative class.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
@@ -183,10 +183,10 @@ def hinge_margin(y_true, y_pred, min_margin):
     `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
-        min_margin: positive float, margin to enforce.
+        min_margin (float): margin to enforce.
 
     Returns:
-        Element-wise hinge margin loss value.
+        tf.Tensor: Element-wise hinge margin loss value.
 
     """
     sign = tf.where(y_true > 0, 1, -1)
@@ -214,9 +214,9 @@ class HingeMargin(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -252,7 +252,7 @@ class MulticlassKR(Loss):
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -281,12 +281,12 @@ def multiclass_hinge(y_true, y_pred, min_margin):
     `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
-        y_true: tensor of true targets of shape (batch_size, # classes)
-        y_pred: tensor of predicted targets of shape (batch_size, # classes)
-        min_margin: positive float, margin to enforce.
+        y_true (tf.Tensor): tensor of true targets of shape (batch_size, # classes)
+        y_pred (tf.Tensor): tensor of predicted targets of shape (batch_size, # classes)
+        min_margin (float): margin to enforce.
 
     Returns:
-        Element-wise multi-class hinge margin loss value.
+        tf.Tensor: Element-wise multi-class hinge margin loss value.
     """
     sign = tf.where(y_true > 0, 1, -1)
     sign = tf.cast(sign, y_pred.dtype)
@@ -314,9 +314,9 @@ class MulticlassHinge(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -356,11 +356,11 @@ class MulticlassHKR(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            alpha: regularization factor
-            min_margin: positive float, margin to enforce.
+            alpha (float): regularization factor
+            min_margin (float): margin to enforce.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
@@ -403,9 +403,9 @@ class MultiMargin(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -444,9 +444,9 @@ class CategoricalHinge(Loss):
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin parameter.
+            min_margin (float): margin parameter.
             reduction: reduction of the loss, passed to original loss.
-            name: name of the loss
+            name (str): name of the loss
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
@@ -474,9 +474,9 @@ class TauCategoricalCrossentropy(Loss):
         parameter.
 
         Args:
-            tau: temperature parameter.
+            tau (float): temperature parameter.
             reduction: reduction of the loss, passed to original loss.
-            name: name of the loss
+            name (str): name of the loss
         """
         self.tau = tf.Variable(tau, dtype=tf.float32)
         super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)

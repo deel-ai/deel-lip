@@ -46,7 +46,7 @@ class LipschitzLayer(abc.ABC):
         """
         Allow to set the Lipschitz factor of a layer.
         Args:
-            klip_factor: the Lipschitz factor the user want to ensure.
+            klip_factor (float): the Lipschitz factor the user want to ensure.
         Returns:
             None
         """

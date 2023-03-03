@@ -78,14 +78,14 @@ class CategoricalProvableRobustAccuracy(Loss):
         The accuracy that can be proved at a given epsilon.
 
         Args:
-            epsilon: the metric will return the guaranteed accuracy for the radius
-                epsilon
-            lip_const: lipschitz constant of the network
-            disjoint_neurons: must be set to True if your model ends with a
+            epsilon (float): the metric will return the guaranteed accuracy for the
+                radius epsilon.
+            lip_const (float): lipschitz constant of the network
+            disjoint_neurons (bool): must be set to True if your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.epsilon = epsilon
@@ -128,11 +128,11 @@ class BinaryProvableRobustAccuracy(Loss):
         The accuracy that can be proved at a given epsilon.
 
         Args:
-            epsilon: the metric will return the guaranteed accuracy for the radius
-                epsilon
-            lip_const: lipschitz constant of the network
+            epsilon (float): the metric will return the guaranteed accuracy for the
+                radius epsilon.
+            lip_const (float): lipschitz constant of the network
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.epsilon = epsilon
@@ -196,12 +196,12 @@ class CategoricalProvableAvgRobustness(Loss):
         This metric works for labels both in {1,0} and {1,-1}.
 
         Args:
-            lip_const: lipschitz constant of the network
-            disjoint_neurons: must be set to True is your model ends with a
+            lip_const (float): lipschitz constant of the network
+            disjoint_neurons (bool): must be set to True is your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.disjoint_neurons = disjoint_neurons
@@ -272,9 +272,9 @@ class BinaryProvableAvgRobustness(Loss):
         This metric works for labels both in {1,0} and {1,-1}.
 
         Args:
-            lip_const: lipschitz constant of the network
+            lip_const (float): lipschitz constant of the network
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.negative_robustness = negative_robustness

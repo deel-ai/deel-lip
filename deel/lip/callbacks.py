@@ -177,7 +177,7 @@ class LossParamScheduler(Callback):
                 tf.Variable.
             fp (list): values of the loss parameter as steps given by the xp.
             xp (list): step where the parameter equals fp.
-            step: step value, for serialization/deserialization purposes.
+            step (int): step value, for serialization/deserialization purposes.
         """
         self.xp = xp
         self.fp = fp

@@ -79,17 +79,18 @@ def reshaped_kernel_orthogonalization(
     speed convergence of the bjorck algorithm.
 
     Args:
-        kernel: the kernel to orthogonalize
-        u: the vector used to do the power iteration method
-        adjustment_coef: the adjustment coefficient as used in convolution
-        eps_spectral: stopping criterion in spectral algorithm
-        eps_bjorck: stopping criterion in bjorck algorithm
-        beta: the beta used in the bjorck algorithm
-        maxiter_spectral: maximum number of iterations for the power iteration
-        maxiter_bjorck: maximum number of iterations for bjorck algorithm
+        kernel (tf.Tensor): the kernel to orthogonalize
+        u (tf.Tensor): the vector used to do the power iteration method
+        adjustment_coef (float): the adjustment coefficient as used in convolution
+        eps_spectral (float): stopping criterion in spectral algorithm
+        eps_bjorck (float): stopping criterion in bjorck algorithm
+        beta (float): the beta used in the bjorck algorithm
+        maxiter_spectral (int): maximum number of iterations for the power iteration
+        maxiter_bjorck (int): maximum number of iterations for bjorck algorithm
 
-    Returns: the orthogonalized kernel, the new u, and sigma which is the largest
-        singular value
+    Returns:
+        tf.Tensor: the orthogonalized kernel, the new u, and sigma which is the largest
+            singular value
 
     """
     W_shape = kernel.shape
@@ -121,14 +122,14 @@ def bjorck_normalization(
     apply Bjorck normalization on w.
 
     Args:
-        w: weight to normalize, in order to work properly, we must have
+        w (tf.Tensor): weight to normalize, in order to work properly, we must have
             max_eigenval(w) ~= 1
-        eps: epsilon stopping criterion: norm(wt - wt-1) must be less than eps
-        beta: beta used in each iteration, must be in the interval ]0, 0.5]
-        maxiter: maximum number of iterations for the algorithm
+        eps (float): epsilon stopping criterion: norm(wt - wt-1) must be less than eps
+        beta (float): beta used in each iteration, must be in the interval ]0, 0.5]
+        maxiter (int): maximum number of iterations for the algorithm
 
     Returns:
-        the orthonormal weights
+        tf.Tensor: the orthonormal weights
 
     """
     # create a fake old_w that does'nt pass the loop condition
@@ -219,14 +220,14 @@ def spectral_normalization(
     Normalize the kernel to have it's max eigenvalue == 1.
 
     Args:
-        kernel: the kernel to normalize, assuming a 2D kernel
-        u: initialization for the max eigen vector
-        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
-        maxiter: maximum number of iterations for the algorithm
+        kernel (tf.Tensor): the kernel to normalize, assuming a 2D kernel
+        u (tf.Tensor): initialization for the max eigen vector
+        eps (float): epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter (int): maximum number of iterations for the algorithm
 
     Returns:
-        the normalized kernel w_bar, it's shape, the maximum eigen vector, and the
-        maximum singular value
+        the normalized kernel w_bar, the maximum eigen vector, and the maximum singular
+            value.
 
     """
     _u, _v = _power_iteration(kernel, u, eps, maxiter)
@@ -369,17 +370,17 @@ def spectral_normalization_conv(
     Normalize the convolution kernel to have its max eigenvalue == 1.
 
     Args:
-        kernel: the convolution kernel to normalize
-        u: initialization for the max eigen vector (as a 4d tensor)
-        stride: stride parameter of convolutions
-        conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
-        circular_paddings: Circular padding (k//2,k//2)
-        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
-        maxiter: maximum number of iterations for the power iteration algorithm.
+        kernel (tf.Tensor): the convolution kernel to normalize
+        u (tf.Tensor): initialization for the max eigen vector (as a 4d tensor)
+        stride (int): stride parameter of convolutions
+        conv_first (bool): RO or CO case , should be True in CO case (stride^2*C<M)
+        pad_func (Callable): function for applying padding (None is padding same)
+        eps (float): epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter (int): maximum number of iterations for the power iteration algorithm.
 
     Returns:
         the normalized kernel w_bar, the maximum eigen vector, and the maximum eigen
-        value
+            value
     """
 
     if eps < 0:

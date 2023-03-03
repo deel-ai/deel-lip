@@ -28,11 +28,11 @@ class SpectralInitializer(Initializer):
         normalization.
 
         Args:
-            eps_spectral: stopping criterion of iterative power method
-            eps_bjorck: float greater than 0, stopping criterion of
+            eps_spectral (float): stopping criterion of iterative power method
+            eps_bjorck (float): float greater than 0, stopping criterion of
                 bjorck algorithm, setting it to None disable orthogonalization
-            beta_bjorck: beta parameter of bjorck algorithm
-            base_initializer: method used to generate weights before applying the
+            beta_bjorck (float): beta parameter of bjorck algorithm
+            base_initializer (str): method used to generate weights before applying the
                 orthonormalization
         """
         self.eps_spectral = eps_spectral
