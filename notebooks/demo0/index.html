@@ -81,7 +81,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#how-to-use-it" class="md-skip">
+        <a href="#demo-0-example-and-usage" class="md-skip">
           Skip to content
         </a>
       
@@ -467,6 +467,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           Demo 0: Example & Usage
@@ -483,6 +485,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -491,9 +495,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#which-layers-are-safe-to-use" class="md-nav__link">
+    Which layers are safe to use?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-tips" class="md-nav__link">
+    Design tips
+  </a>
+  
+    <nav class="md-nav" aria-label="Design tips">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#how-to-use-it" class="md-nav__link">
     How to use it ?
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -585,6 +609,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -593,9 +619,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#which-layers-are-safe-to-use" class="md-nav__link">
+    Which layers are safe to use?
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-tips" class="md-nav__link">
+    Design tips
+  </a>
+  
+    <nav class="md-nav" aria-label="Design tips">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#how-to-use-it" class="md-nav__link">
     How to use it ?
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -616,8 +662,6 @@
   
   
 
-
-  <h1>Demo 0: Example & Usage</h1>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
 <script>
@@ -650,6 +694,139 @@
 }());
 </script>
 
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="demo-0-example-and-usage">Demo 0: Example and usage<a class="headerlink" href="#demo-0-example-and-usage" title="Permanent link">&para;</a></h1>
+<p>In order to make things simple the following rules have been followed
+during development:</p>
+<ul>
+<li><code>deel-lip</code> follows the <code>keras</code> package structure.</li>
+<li>All elements (layers, activations, initializers, ...) are compatible
+    with standard the <code>keras</code> elements.</li>
+<li>When a k-Lipschitz layer overrides a standard keras layer, it uses
+    the same interface and the same parameters. The only difference is a
+    new parameter to control the Lipschitz constant of a layer.</li>
+</ul>
+<h2 id="which-layers-are-safe-to-use">Which layers are safe to use?<a class="headerlink" href="#which-layers-are-safe-to-use" title="Permanent link">&para;</a></h2>
+<p>The following table indicates which layers are safe to use in a Lipshitz
+network, and which are not.</p>
+<table>
+<thead>
+<tr>
+<th>layer</th>
+<th>1-lip?</th>
+<th>deel-lip equivalent</th>
+<th>comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Dense</code></td>
+<td>no</td>
+<td><code>SpectralDense</code><br><code>FrobeniusDense</code></td>
+<td><code>SpectralDense</code> and <code>FrobeniusDense</code> are similar when there is a single output.</td>
+</tr>
+<tr>
+<td><code>Conv2D</code></td>
+<td>no</td>
+<td><code>SpectralConv2D</code><br><code>FrobeniusConv2D</code></td>
+<td><code>SpectralConv2D</code> also implements Björck normalization.</td>
+</tr>
+<tr>
+<td><code>MaxPooling</code><br><code>GlobalMaxPooling</code></td>
+<td>yes</td>
+<td>n/a</td>
+<td></td>
+</tr>
+<tr>
+<td><code>AveragePooling2D</code><br><code>GlobalAveragePooling2D</code></td>
+<td>no</td>
+<td><code>ScaledAveragePooling2D</code><br><code>ScaledGlobalAveragePooling2D</code></td>
+<td>The lipschitz constant is bounded by <code>sqrt(pool_h * pool_h)</code>.</td>
+</tr>
+<tr>
+<td><code>Flatten</code></td>
+<td>yes</td>
+<td>n/a</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Dropout</code></td>
+<td>no</td>
+<td>None</td>
+<td>The lipschitz constant is bounded by the dropout factor.</td>
+</tr>
+<tr>
+<td><code>BatchNormalization</code></td>
+<td>no</td>
+<td>None</td>
+<td>We suspect that layer normalization already limits internal covariate shift.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="design-tips">Design tips<a class="headerlink" href="#design-tips" title="Permanent link">&para;</a></h2>
+<p>Designing lipschitz networks requires a careful design in order to avoid
+vanishing/exploding gradient problems.</p>
+<p>Choosing pooling layers:</p>
+<table>
+<thead>
+<tr>
+<th>layer</th>
+<th>advantages</th>
+<th>disadvantages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ScaledAveragePooling2D</code> and <code>MaxPooling2D</code></td>
+<td>very similar to original implementation (just add a scaling factor for avg).</td>
+<td>not norm preserving nor gradient norm preserving.</td>
+</tr>
+<tr>
+<td><code>InvertibleDownSampling</code></td>
+<td>norm preserving and gradient norm preserving.</td>
+<td>increases the number of channels (and the number of parameters of the next layer).</td>
+</tr>
+<tr>
+<td><code>ScaledL2NormPooling2D</code> (<em>sqrt(avgpool(x**2))</em>)</td>
+<td>norm preserving.</td>
+<td>lower numerical stability of the gradient when inputs are close to zero.</td>
+</tr>
+</tbody>
+</table>
+<p>Choosing activations:</p>
+<table>
+<thead>
+<tr>
+<th>layer</th>
+<th>advantages</th>
+<th>disadvantages</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReLU</code></td>
+<td></td>
+<td>create a strong vanishing gradient effect. If you manage to learn with it, please call 911.</td>
+</tr>
+<tr>
+<td><code>MaxMin</code> (<em>stack([ReLU(x), ReLU(-x)])</em>)</td>
+<td>have similar properties to ReLU, but is norm and gradient norm preserving</td>
+<td>double the number of outputs</td>
+</tr>
+<tr>
+<td><code>GroupSort</code></td>
+<td>Input and GradientNorm preserving. Also limit the need of biases (as it is shift invariant).</td>
+<td>more computationally expensive, (when its parameter <em>n</em> is large)</td>
+</tr>
+</tbody>
+</table>
+<p>Please note that when learning with the <code>HKR_loss</code> and <code>HKR_multiclass_loss</code>, no
+activation is required on the last layer.</p>
+</div>
+</div>
+</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
