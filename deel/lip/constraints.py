@@ -25,7 +25,7 @@ class WeightClipConstraint(Constraint):
         Clips the weights incident to each hidden unit to be inside the range `[-c,+c]`.
 
         Args:
-            c: clipping parameter.
+            c (float): clipping parameter.
         """
         self.c = c
 
@@ -44,7 +44,7 @@ class AutoWeightClipConstraint(Constraint):
         With c = 1/sqrt(size(kernel)).
 
         Args:
-            scale: scaling factor to increase/decrease clipping value.
+            scale (float): scaling factor to increase/decrease clipping value.
         """
         self.scale = scale
 
@@ -91,12 +91,12 @@ class SpectralConstraint(Constraint):
         2. increase other singular values to k_coef_lip, using bjorck algorithm.
 
         Args:
-            k_coef_lip: lipschitz coefficient of the weight matrix
-            eps_spectral: stopping criterion for the iterative power algorithm.
-            eps_bjorck: stopping criterion Bjorck algorithm.
-            beta_bjorck: beta parameter in bjorck algorithm.
-            u: vector used for iterated power method, can be set to None (used for
-                serialization/deserialization purposes).
+            k_coef_lip (float): lipschitz coefficient of the weight matrix
+            eps_spectral (float): stopping criterion for the iterative power algorithm.
+            eps_bjorck (float): stopping criterion Bjorck algorithm.
+            beta_bjorck (float): beta parameter in bjorck algorithm.
+            u (tf.Tensor): vector used for iterated power method, can be set to None
+                (used for serialization/deserialization purposes).
         """
         self.eps_spectral = eps_spectral
         self.eps_bjorck = eps_bjorck

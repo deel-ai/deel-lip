@@ -23,11 +23,11 @@ dev_requires = [
 ]
 
 docs_requires = [
-    "sphinx",
-    "recommonmark",
-    "sphinx_rtd_theme",
-    "sphinx_markdown_builder",
-    "sphinxcontrib_katex",
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    "mknotebooks",
     "ipython",  # required for Pygments
 ]
 

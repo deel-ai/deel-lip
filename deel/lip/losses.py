@@ -3,8 +3,8 @@
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
 """
-This module contains losses used in wasserstein distance estimation. See
-https://arxiv.org/abs/2006.06520 for more information.
+This module contains losses used in Wasserstein distance estimation. See
+[this paper](https://arxiv.org/abs/2006.06520) for more information.
 """
 from functools import partial
 import numpy as np
@@ -44,7 +44,7 @@ def _kr_multi_gpu(y_true, y_pred):
     (batch_size, # classes).
 
     When using this loss function, the labels `y_true` must be pre-processed with the
-    :func:`process_labels_for_multi_gpu()` function.
+    `process_labels_for_multi_gpu()` function.
     """
     y_true = tf.cast(y_true, y_pred.dtype)
     # Since the information of batch size was included in `y_true` by
@@ -61,12 +61,12 @@ class KR(Loss):
         Loss to estimate Wasserstein-1 distance using Kantorovich-Rubinstein duality.
         The Kantorovich-Rubinstein duality is formulated as following:
 
-        .. math::
-            W_1(\mu, \nu) =
-            \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
-            \left[f(\textbf{x} )\right] -
-            \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
-
+        $$
+        W_1(\mu, \nu) =
+        \sup_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim \mu}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] -
+        \underset{\textbf{x}  \sim \nu}{\mathbb{E}} \left[f(\textbf{x} )\right]
+        $$
 
         Where mu and nu stands for the two distributions, the distribution where the
         label is 1 and the rest.
@@ -74,16 +74,16 @@ class KR(Loss):
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -117,31 +117,32 @@ class HKR(Loss):
         r"""
         Wasserstein loss with a regularization parameter based on the hinge margin loss.
 
-        .. math::
-            \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
-            \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
-            {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
-            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-            -Yf(\textbf{x})\right)_+
+        $$
+        \inf_{f \in Lip_1(\Omega)} \underset{\textbf{x} \sim P_-}{\mathbb{E}}
+        \left[f(\textbf{x} )\right] - \underset{\textbf{x}  \sim P_+}
+        {\mathbb{E}} \left[f(\textbf{x} )\right] + \alpha
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
+        $$
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            alpha: regularization factor
-            min_margin: minimal margin ( see hinge_margin_loss )
+            alpha (float): regularization factor
+            min_margin (float): minimal margin ( see hinge_margin_loss )
                 Kantorovich-Rubinstein term of the loss. In order to be consistent
                 between hinge and KR, the first label must yield the positive class
                 while the second yields negative class.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
@@ -179,13 +180,13 @@ def hinge_margin(y_true, y_pred, min_margin):
     Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
     (batch_size, C) for multilabel classification (with C categories).
     `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+    `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
-        min_margin: positive float, margin to enforce.
+        min_margin (float): margin to enforce.
 
     Returns:
-        Element-wise hinge margin loss value.
+        tf.Tensor: Element-wise hinge margin loss value.
 
     """
     sign = tf.where(y_true > 0, 1, -1)
@@ -202,19 +203,20 @@ class HingeMargin(Loss):
         r"""
         Compute the hinge margin loss.
 
-        .. math::
-            \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
-            -Yf(\textbf{x})\right)_+
+        $$
+        \underset{\textbf{x}}{\mathbb{E}} \left(\text{min_margin}
+        -Yf(\textbf{x})\right)_+
+        $$
 
         Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1) or
         (batch_size, C) for multilabel classification (with C categories).
         `y_true` accepts label values in (0, 1), (-1, 1), or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -241,16 +243,16 @@ class MulticlassKR(Loss):
         class and then averaged.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -276,15 +278,15 @@ def multiclass_hinge(y_true, y_pred, min_margin):
 
     `y_true` and `y_pred` must be of shape (batch_size, # classes).
     Note that `y_true` should be one-hot encoded or pre-processed with the
-    :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+    `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
-        y_true: tensor of true targets of shape (batch_size, # classes)
-        y_pred: tensor of predicted targets of shape (batch_size, # classes)
-        min_margin: positive float, margin to enforce.
+        y_true (tf.Tensor): tensor of true targets of shape (batch_size, # classes)
+        y_pred (tf.Tensor): tensor of predicted targets of shape (batch_size, # classes)
+        min_margin (float): margin to enforce.
 
     Returns:
-        Element-wise multi-class hinge margin loss value.
+        tf.Tensor: Element-wise multi-class hinge margin loss value.
     """
     sign = tf.where(y_true > 0, 1, -1)
     sign = tf.cast(sign, y_pred.dtype)
@@ -309,12 +311,12 @@ class MulticlassHinge(Loss):
         classification loss used in a multiclass fashion.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -347,18 +349,18 @@ class MulticlassHKR(Loss):
         class and averaging the results.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
         pre-process the labels `y_true` with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            alpha: regularization factor
-            min_margin: positive float, margin to enforce.
+            alpha (float): regularization factor
+            min_margin (float): margin to enforce.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
@@ -398,12 +400,12 @@ class MultiMargin(Loss):
         multi_margin_loss)
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin to enforce.
+            min_margin (float): margin to enforce.
             reduction: passed to tf.keras.Loss constructor
-            name: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
 
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
@@ -439,12 +441,12 @@ class CategoricalHinge(Loss):
 
         `y_true` and `y_pred` must be of shape (batch_size, # classes).
         Note that `y_true` should be one-hot encoded or pre-processed with the
-        :func:`deel.lip.utils.process_labels_for_multi_gpu()` function.
+        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
-            min_margin: positive float, margin parameter.
+            min_margin (float): margin parameter.
             reduction: reduction of the loss, passed to original loss.
-            name: name of the loss
+            name (str): name of the loss
         """
         self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
         super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
@@ -472,9 +474,9 @@ class TauCategoricalCrossentropy(Loss):
         parameter.
 
         Args:
-            tau: temperature parameter.
+            tau (float): temperature parameter.
             reduction: reduction of the loss, passed to original loss.
-            name: name of the loss
+            name (str): name of the loss
         """
         self.tau = tf.Variable(tau, dtype=tf.float32)
         super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)

@@ -1,9 +1,6 @@
 <div align="center">
-        <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo_white.svg">
-                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo.svg">
-                <img alt="Library Banner" src="./docs/assets/logo.svg">
-        </picture>
+    <img src="./assets/logo_white.svg#only-dark" width="75%" alt="DEEL-LIP" align="center" />
+    <img src="./assets/logo.svg#only-light" width="75%" alt="DEEL-LIP" align="center" />
 </div>
 <br>
 
@@ -119,13 +116,8 @@ More from the DEEL project:
 
 ## 🙏 Acknowledgments
 
-<div align="right">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://share.deel.ai/apps/theming/image/logo?useSvg=1&v=10"  width="25%" align="right">
-    <source media="(prefers-color-scheme: light)" srcset="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png"  width="25%" align="right">
-    <img alt="DEEL Logo" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png" width="25%" align="right">
-  </picture>
-</div>
+<img align="right" src="https://share.deel.ai/apps/theming/image/logo?useSvg=1&v=10#only-dark" width="25%" alt="DEEL Logo" />
+<img align="right" src="https://www.deel.ai/wp-content/uploads/2021/05/logo-DEEL.png#only-light" width="25%" alt="DEEL Logo" />
 This project received funding from the French ”Investing for the Future – PIA3” program within the Artificial and Natural Intelligence Toulouse Institute (ANITI). The authors gratefully acknowledge the support of the <a href="https://www.deel.ai/"> DEEL </a> project.
 
 ## 🗞️ Citation

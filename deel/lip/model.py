@@ -53,9 +53,10 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
         But in the future other repartition function may be implemented.
 
         Args:
-            layers: list of layers to add to the model.
-            name: name of the model, can be None
-            k_coef_lip: the Lipschitz coefficient to ensure globally on the model.
+            layers (list): list of layers to add to the model.
+            name (str): name of the model, can be None
+            k_coef_lip (float): the Lipschitz coefficient to ensure globally on the
+                model.
         """
         super(Sequential, self).__init__(layers, name)
         self.set_klip_factor(k_coef_lip)
@@ -134,8 +135,8 @@ class Model(KerasModel):
 
         Returns:
             A Keras model, identical to this model, but where condensable layers have
-            been replaced with their vanilla equivalent (e.g. SpectralConv2D with
-            Conv2D).
+                been replaced with their vanilla equivalent (e.g. SpectralConv2D with
+                Conv2D).
         """
         return vanillaModel(self)
 
@@ -153,7 +154,7 @@ def vanillaModel(model):
 
     Returns:
         A Keras model, identical to the input model where `Condensable` layers are
-        replaced with their vanilla counterparts.
+            replaced with their vanilla counterparts.
     """
 
     def _replace_condensable_layer(layer):

@@ -4,7 +4,8 @@
 # =====================================================================================
 """
 This module contains metrics applicable in provable robustness. See
-https://arxiv.org/abs/2006.06520 and https://arxiv.org/abs/2108.04062 for more
+[https://arxiv.org/abs/2006.06520](https://arxiv.org/abs/2006.06520)
+and [https://arxiv.org/abs/2108.04062](https://arxiv.org/abs/2108.04062) for more
 information.
 """
 import math
@@ -20,8 +21,9 @@ def _delta_multiclass(y_true, y_pred):
     to be adjusted with
     lipschitz constant.
 
-    .. math::
-            \Delta(x) = f_l(x) - \max_{i \neq l} f_i(x)
+    $$
+    \Delta(x) = f_l(x) - \max_{i \neq l} f_i(x)
+    $$
 
     Args:
         y_true: true labels must be in {1,0} or in {1,-1} (no label smoothing allowed)
@@ -46,8 +48,9 @@ def _delta_binary(y_true, y_pred):
     adjusted with
     lipschitz constant).
 
-    .. math::
-            \Delta(x) = f(x) \text{ if } l=1, -f(x) \text{ otherwise}
+    $$
+    \Delta(x) = f(x) \text{ if } l=1, -f(x) \text{ otherwise}
+    $$
 
     Args:
         y_true: true labels must be in {1,0} or in {1,-1} (no label smoothing allowed)
@@ -75,14 +78,14 @@ class CategoricalProvableRobustAccuracy(Loss):
         The accuracy that can be proved at a given epsilon.
 
         Args:
-            epsilon: the metric will return the guaranteed accuracy for the radius
-                epsilon
-            lip_const: lipschitz constant of the network
-            disjoint_neurons: must be set to True if your model ends with a
+            epsilon (float): the metric will return the guaranteed accuracy for the
+                radius epsilon.
+            lip_const (float): lipschitz constant of the network
+            disjoint_neurons (bool): must be set to True if your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.epsilon = epsilon
@@ -125,11 +128,11 @@ class BinaryProvableRobustAccuracy(Loss):
         The accuracy that can be proved at a given epsilon.
 
         Args:
-            epsilon: the metric will return the guaranteed accuracy for the radius
-                epsilon
-            lip_const: lipschitz constant of the network
+            epsilon (float): the metric will return the guaranteed accuracy for the
+                radius epsilon.
+            lip_const (float): lipschitz constant of the network
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.epsilon = epsilon
@@ -165,39 +168,40 @@ class CategoricalProvableAvgRobustness(Loss):
 
         Compute the average provable robustness radius on the dataset.
 
-        .. math::
-            \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{
-            L_f}\right]
+        $$
+        \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{L_f}\right]
+        $$
 
-        :math:`\mathcal{M}_f(x)` is a term that: is positive when x is correctly
+        $\mathcal{M}_f(x)$ is a term that: is positive when x is correctly
         classified and negative otherwise. In both case the value give the robustness
         radius around x.
 
         In the multiclass setup we have:
 
-        .. math::
-            \mathcal{M}_f(x) =f_l(x) - \max_{i \neq l} f_i(x)
+        $$
+        \mathcal{M}_f(x) =f_l(x) - \max_{i \neq l} f_i(x)
+        $$
 
-        Where :math:`D` is the dataset, :math:`l` is the correct label for x and
-        :math:`L_f` is the lipschitz constant of the network (:math:`L = 2 \times
-        \text{lip_const}` when `disjoint_neurons=True`, :math:`L = \sqrt{2} \times
-        \text{lip_const}` otherwise).
+        Where $D$ is the dataset, $l$ is the correct label for x and
+        $L_f$ is the lipschitz constant of the network ($L = 2 \times
+        \text{lip_const}$ when `disjoint_neurons=True`, $L = \sqrt{2} \times
+        \text{lip_const}$ otherwise).
 
         When `negative_robustness` is set to `True` misclassified elements count as
-        negative robustness (:math:`\phi` act as identity function), when set to
+        negative robustness ($\phi$ act as identity function), when set to
         `False`,
-        misclassified elements yield a robustness radius of 0 ( :math:`\phi(x)=relu(
-        x)` ). The elements are not ignored when computing the mean in both cases.
+        misclassified elements yield a robustness radius of 0 ( $\phi(x)=relu(
+        x)$ ). The elements are not ignored when computing the mean in both cases.
 
         This metric works for labels both in {1,0} and {1,-1}.
 
         Args:
-            lip_const: lipschitz constant of the network
-            disjoint_neurons: must be set to True is your model ends with a
+            lip_const (float): lipschitz constant of the network
+            disjoint_neurons (bool): must be set to True is your model ends with a
                 FrobeniusDense layer with `disjoint_neurons` set to True. Set to False
                 otherwise
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.disjoint_neurons = disjoint_neurons
@@ -242,34 +246,35 @@ class BinaryProvableAvgRobustness(Loss):
 
         Compute the average provable robustness radius on the dataset.
 
-        .. math::
-            \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{
-            L_f}\right]
+        $$
+        \mathbb{E}_{x \in D}\left[ \frac{\phi\left(\mathcal{M}_f(x)\right)}{L_f}\right]
+        $$
 
-        :math:`\mathcal{M}_f(x)` is a term that: is positive when x is correctly
+        $\mathcal{M}_f(x)$ is a term that: is positive when x is correctly
         classified and negative otherwise. In both case the value give the robustness
         radius around x.
 
         In the binary classification setup we have:
 
-        .. math::
-            \mathcal{M}_f(x) = f(x) \text{ if } l=1, -f(x) \text{otherwise}
+        $$
+        \mathcal{M}_f(x) = f(x) \text{ if } l=1, -f(x) \text{otherwise}
+        $$
 
-        Where :math:`D` is the dataset, :math:`l` is the correct label for x and
-        :math:`L_f` is the lipschitz constant of the network..
+        Where $D$ is the dataset, $l$ is the correct label for x and
+        $L_f$ is the lipschitz constant of the network..
 
         When `negative_robustness` is set to `True` misclassified elements count as
-        negative robustness (:math:`\phi` act as identity function), when set to
+        negative robustness ($\phi$ act as identity function), when set to
         `False`,
-        misclassified elements yield a robustness radius of 0 ( :math:`\phi(x)=relu(
-        x)` ). The elements are not ignored when computing the mean in both cases.
+        misclassified elements yield a robustness radius of 0 ( $\phi(x)=relu(
+        x)$ ). The elements are not ignored when computing the mean in both cases.
 
         This metric works for labels both in {1,0} and {1,-1}.
 
         Args:
-            lip_const: lipschitz constant of the network
+            lip_const (float): lipschitz constant of the network
             reduction: the recution method when training in a multi-gpu / TPU system
-            name: metrics name.
+            name (str): metrics name.
         """
         self.lip_const = lip_const
         self.negative_robustness = negative_robustness

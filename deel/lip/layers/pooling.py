@@ -383,7 +383,7 @@ class InvertibleDownSampling(keraslayers.Layer):
         increased.
 
         References:
-            Anil et al. https://arxiv.org/abs/1911.00937
+            Anil et al. [paper](https://arxiv.org/abs/1911.00937)
 
         Note:
             The image shape must be divisible by the pool shape.
@@ -450,7 +450,7 @@ class InvertibleUpSampling(keraslayers.Layer):
         channels is increased.
 
         References:
-            Anil et al. https://arxiv.org/abs/1911.00937
+            Anil et al. [paper](https://arxiv.org/abs/1911.00937)
 
         Note:
             The input number of channels must be divisible by the `p_w*p_h`.
