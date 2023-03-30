@@ -18,6 +18,7 @@ DEFAULT_MAXITER_BJORCK = 15
 DEFAULT_MAXITER_SPECTRAL = 10
 SWAP_MEMORY = True
 STOP_GRAD_SPECTRAL = True
+GRAD_PASSTHROUGH_BJORCK = False
 
 
 def set_swap_memory(value: bool):
@@ -50,6 +51,24 @@ def set_stop_grad_spectral(value: bool):
     """
     global STOP_GRAD_SPECTRAL
     STOP_GRAD_SPECTRAL = value
+
+
+def set_grad_passthrough_bjorck(value: bool):
+    """
+    Set the global GRAD_PASSTHROUGH_BJORCK to value. This function must be called before
+    constructing the model (first call of `reshaped_kernel_orthogonalization`) in
+    order to be accounted.
+
+    Args:
+        value: boolean, when set to True, only back-propagate through a single bjorck
+            iteration. In other words it will act with the usual variable number of
+            iterations during forward but will have bjorck_niter=1 during backward.
+            This allows to save time and memory. When set to False, back-propagate
+            through the bjorck loop.
+
+    """
+    global GRAD_PASSTHROUGH_BJORCK
+    GRAD_PASSTHROUGH_BJORCK = value
 
 
 def _check_RKO_params(eps_spectral, eps_bjorck, beta_bjorck):
@@ -134,7 +153,8 @@ def bjorck_normalization(
     """
     # create a fake old_w that does'nt pass the loop condition
     # it won't affect computation as the first action done in the loop overwrite it.
-    old_w = 10 * w
+    old_w = w
+    w = (1 + beta) * w - beta * _wwtw(w)
     # define the loop condition
 
     def cond(w, old_w):
@@ -147,14 +167,19 @@ def bjorck_normalization(
         return w, old_w
 
     # apply the loop
-    w, old_w = tf.while_loop(
+    def while_func(w, old_w):
+        return tf.while_loop(
         cond,
         body,
         (w, old_w),
         parallel_iterations=30,
         maximum_iterations=maxiter,
         swap_memory=SWAP_MEMORY,
-    )
+        )
+    if GRAD_PASSTHROUGH_BJORCK:
+        w, old_w = tf.grad_pass_through(while_func)(w, old_w)
+    else:
+        w, old_w = while_func(w, old_w)
     return w
 
 
