@@ -32,6 +32,7 @@ from deel.lip.layers import (
     SpectralDense,
     SpectralConv2D,
     SpectralConv2DTranspose,
+    SpectralDepthwiseConv2D,
     FrobeniusDense,
     FrobeniusConv2D,
     ScaledAveragePooling2D,
@@ -601,6 +602,46 @@ class LipschitzLayersTest(unittest.TestCase):
             ]
         )
 
+    def test_spectraldepthwiseconv2d(self):
+        # tests only checks that lip cons is enforced
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=SpectralDepthwiseConv2D,
+                    layer_params={"kernel_size": (3, 3)},
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 16),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralDepthwiseConv2D,
+                    layer_params={"kernel_size": (3, 3)},
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 16),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=SpectralDepthwiseConv2D,
+                    layer_params={"kernel_size": (3, 3)},
+                    batch_size=250,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 16),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
     def test_frobeniusconv2d(self):
         # tests only checks that lip cons is enforced
         self._apply_tests_bank(
@@ -1041,6 +1082,64 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
         model = Sequential([lay])
 
         x = tf.random.normal((5,) + (kwargs["input_shape"]))
+        y1 = model(x)
+
+        # Test vanilla export inference comparison
+        vanilla_model = model.vanilla_export()
+        y2 = vanilla_model(x)
+        np.testing.assert_allclose(y1, y2, atol=1e-6)
+
+        # Test saving/loading model
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = os.path.join(tmpdir, "model.h5")
+            model.save(model_path)
+            tf.keras.models.load_model(model_path)
+
+
+class TestSpectralDepthwiseConv2D(unittest.TestCase):
+    def test_instantiation(self):
+        # Supported cases
+        cases = (
+            dict(kernel_size=3),
+            dict(kernel_size=5, strides=2, use_bias=False),
+            dict(kernel_size=3, padding="same", dilation_rate=1),
+            dict(kernel_size=1, activation="relu"),
+            dict(kernel_size=3, data_format="channels_first"),
+        )
+
+        for i, kwargs in enumerate(cases):
+            with self.subTest(i=i):
+                SpectralDepthwiseConv2D(**kwargs)
+
+        # Unsupported cases
+        cases = (
+            {"msg": "Wrong depth multiplier", "kwarg": {"depth_multiplier": 2}},
+            {"msg": "Wrong dilation rate", "kwarg": {"dilation_rate": 2}},
+        )
+
+        for case in cases:
+            with self.subTest(case["msg"]):
+                with self.assertRaises(ValueError):
+                    SpectralDepthwiseConv2D(10, 3, **case["kwarg"])
+
+    def test_vanilla_export(self):
+        input_shape = (28, 28, 3)
+        kwargs = dict(
+            kernel_size=5,
+            strides=2,
+            activation="relu",
+            data_format="channels_last",
+        )
+
+        lay = SpectralDepthwiseConv2D(**kwargs)
+        model = Sequential(
+            [
+                Input(input_shape),
+                lay,
+            ]
+        )
+
+        x = tf.random.normal((5,) + (input_shape))
         y1 = model(x)
 
         # Test vanilla export inference comparison

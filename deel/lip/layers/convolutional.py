@@ -25,7 +25,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, DepthwiseConv2D
 from tensorflow.keras.utils import register_keras_serializable
 
 from ..constraints import SpectralConstraint
@@ -40,6 +40,7 @@ from ..normalizers import (
     reshaped_kernel_orthogonalization,
 )
 from .base_layer import Condensable, LipschitzLayer
+from ..utils import _padding_circular
 
 try:
     from keras.utils import conv_utils  # in Keras for TF >= 2.6
@@ -718,3 +719,262 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         self._kwargs["name"] = self.name
         # call the condense function from SpectralDense as if it was from this class
         return SpectralConv2D.vanilla_export(self)
+
+
+@register_keras_serializable("deel-lip", "SpectralDepthwiseConv2D")
+class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
+    def __init__(
+        self,
+        kernel_size,
+        strides=(1, 1),
+        padding="valid",
+        depth_multiplier=1,
+        data_format=None,
+        dilation_rate=(1, 1),
+        activation=None,
+        use_bias=True,
+        depthwise_initializer="glorot_uniform",
+        bias_initializer="zeros",
+        depthwise_regularizer=None,
+        bias_regularizer=None,
+        activity_regularizer=None,
+        depthwise_constraint=None,
+        bias_constraint=None,
+        k_coef_lip=1.0,
+        filterwise_normalisation=True,
+        **kwargs
+    ):
+        """
+        This class is a DepthwiseConv2D Layer constrained to be 1-lipschitz. This is
+        done by applying the power iteration algorithm for convolution.
+
+
+        Args:
+            kernel_size: An integer or tuple/list of 2 integers, specifying the height
+                and width of the 2D convolution window. Can be a single integer to
+                specify the same value for all spatial dimensions.
+            strides: An integer or tuple/list of 2 integers, specifying the strides of
+                the convolution along the height and width. Can be a single integer to
+                specify the same value for all spatial dimensions. Current
+                implementation only supports equal length strides in row and
+                column dimensions. Specifying any stride value != 1 is incompatible
+                with specifying any `dilation_rate` value !=1.
+            padding: one of `'valid'` or `'same'` (case-insensitive). `"valid"` means
+                no padding. `"same"` results in padding with zeros evenly to the
+                left/right or up/down of the input such that output has the same
+                height/width dimension as the input.
+            depth_multiplier: The number of depthwise convolution output channels for
+                each input channel. The total number of depthwise convolution output
+                channels will be equal to `filters_in * depth_multiplier`.
+            data_format: A string, one of `channels_last` (default) or
+                `channels_first`. The ordering of the dimensions in the inputs.
+                `channels_last` corresponds to inputs with shape `(batch_size, height,
+                width, channels)` while `channels_first` corresponds to inputs with
+                shape `(batch_size, channels, height, width)`. It defaults to the
+                `image_data_format` value found in your Keras config file at
+                `~/.keras/keras.json`. If you never set it, then it will be
+                'channels_last'.
+            dilation_rate: An integer or tuple/list of 2 integers, specifying the
+                dilation rate to use for dilated convolution. Currently, specifying any
+                `dilation_rate` value != 1 is incompatible with specifying any `strides`
+                value != 1.
+            activation: Activation function to use. If you don't specify anything, no
+                activation is applied (see `keras.activations`).
+            use_bias: Boolean, whether the layer uses a bias vector.
+            depthwise_initializer: Initializer for the depthwise kernel matrix (see
+                `keras.initializers`). If None, the default initializer
+                ('glorot_uniform') will be used.
+            bias_initializer: Initializer for the bias vector (see
+                `keras.initializers`). If None, the default initializer ('zeros') will
+                be used.
+            depthwise_regularizer: Regularizer function applied to the depthwise
+                kernel matrix (see `keras.regularizers`).
+            bias_regularizer: Regularizer function applied to the bias vector (see
+                `keras.regularizers`).
+            activity_regularizer: Regularizer function applied to the output of the
+                layer (its 'activation') (see `keras.regularizers`).
+            depthwise_constraint: Constraint function applied to the depthwise kernel
+                matrix (see `keras.constraints`).
+            bias_constraint: Constraint function applied to the bias vector (see
+                `keras.constraints`).
+            k_coef_lip: Lipschitz constant to ensure.
+            filterwise_normalisation: when True normalize each filter independently,
+                else normalise the filters globally. Both approaches yield k_coef_lip
+                convolutions.
+
+        Input shape:
+            4D tensor with shape: `[batch_size, channels, rows, cols]` if
+                data_format='channels_first'
+            or 4D tensor with shape: `[batch_size, rows, cols, channels]` if
+                data_format='channels_last'.
+
+        Output shape:
+            4D tensor with shape: `[batch_size, channels * depth_multiplier, new_rows,
+                new_cols]` if `data_format='channels_first'`
+                or 4D tensor with shape: `[batch_size,
+                new_rows, new_cols, channels * depth_multiplier]` if
+                `data_format='channels_last'`. `rows` and `cols` values might have
+                changed due to padding.
+
+        Returns:
+            A tensor of rank 4 representing
+            `activation(depthwiseconv2d(inputs, kernel) + bias)`.
+
+        Raises:
+            ValueError: if `padding` is "causal".
+            ValueError: when both `strides` > 1 and `dilation_rate` > 1.
+
+        """
+        self.filterwise_normalisation = filterwise_normalisation
+        if not (
+            (dilation_rate == (1, 1))
+            or (dilation_rate == [1, 1])
+            or (dilation_rate == 1)
+        ):
+            raise ValueError("SpectralDepthwiseConv2D does not support dilation rate")
+        if depth_multiplier != 1:
+            raise ValueError(
+                "SpectralDepthwiseConv2D does not support depth multiplier"
+            )
+        self.pad = lambda x: x
+        self.old_padding = padding
+        if padding.lower() in ["same", "valid"]:
+            self.pad = lambda x: x
+        elif padding.upper() in ["CONSTANT", "REFLECT", "SYMMETRIC"]:
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            paddings = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
+            mode = padding.upper()
+            self.pad = lambda t: tf.pad(t, paddings, mode)
+            padding = "valid"
+        elif padding.lower() in ["circular"]:
+            padding = "valid"
+            p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
+            self.pad = lambda t: _padding_circular(t, (p_vert, p_hor))
+        else:
+            raise RuntimeError(
+                "padding must be in same, valid, CONSTANT, REFLECT, "
+                "SYMMETRIC, circular"
+            )
+        super(SpectralDepthwiseConv2D, self).__init__(
+            kernel_size,
+            strides=strides,
+            padding=padding,
+            depth_multiplier=depth_multiplier,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            activation=activation,
+            use_bias=use_bias,
+            depthwise_initializer=depthwise_initializer,
+            bias_initializer=bias_initializer,
+            depthwise_regularizer=depthwise_regularizer,
+            bias_regularizer=bias_regularizer,
+            activity_regularizer=activity_regularizer,
+            depthwise_constraint=depthwise_constraint,
+            bias_constraint=bias_constraint,
+            **kwargs
+        )
+        self._kwargs = kwargs
+        self.set_klip_factor(k_coef_lip)
+
+    def build(self, input_shape):
+        super(SpectralDepthwiseConv2D, self).build(input_shape)
+        self._init_lip_coef(input_shape)
+        self._input_shape = input_shape
+        self.wbar = tf.Variable(
+            tf.cast(self.depthwise_kernel.read_value(), self.dtype),
+            dtype=self.dtype,
+            trainable=False,
+        )
+        self.wbar.assign(
+            tf.cast(self.normalize_kernel(self.depthwise_kernel), self.dtype)
+        )
+        self.built = True
+
+    def _compute_lip_coef(self, input_shape=None):
+        return 1.0
+
+    @tf.function
+    def normalize_kernel(self, kernel):
+        conv_tr = tf.cast(tf.transpose(kernel, perm=[2, 3, 0, 1]), tf.complex64)
+        conv_shape = kernel.get_shape().as_list()
+        pad_1 = self._input_shape[1] - conv_shape[0]
+        pad_2 = self._input_shape[2] - conv_shape[1]
+        padding = tf.constant(
+            [
+                [0, 0],
+                [0, 0],
+                [pad_1 // 2, pad_1 // 2],
+                [pad_2 // 2, pad_2 // 2],
+            ]
+        )
+        conv_tr_padded = tf.pad(conv_tr, padding)
+        # apply FFT
+        transform_coeff = tf.math.abs(tf.signal.fft2d(conv_tr_padded))
+        if self.filterwise_normalisation:
+            l = tf.reduce_max(transform_coeff, axis=[-2, -1], keepdims=True)
+        else:
+            l = tf.reduce_max(transform_coeff, axis=[0, 1, 2, 3], keepdims=True)
+        l = tf.transpose(l, perm=[2, 3, 0, 1])
+        return tf.cast(kernel, kernel.dtype) / tf.cast(l, kernel.dtype)
+
+    @tf.function
+    def call(self, x, training=True):
+        if training:
+            wbar = self.normalize_kernel(self.depthwise_kernel)
+            self.wbar.assign(wbar)
+        else:
+            wbar = self.wbar
+        x = self.pad(x)
+        outputs = K.depthwise_conv2d(
+            x,
+            wbar,
+            strides=self.strides,
+            padding=self.padding,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+        )
+        if self.use_bias:
+            outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
+        if self.activation is not None:
+            return self.activation(outputs)
+        return outputs
+
+    def get_config(self):
+        config = {
+            "k_coef_lip": self.k_coef_lip,
+            "filterwise_normalisation": self.filterwise_normalisation,
+        }
+        base_config = super(SpectralDepthwiseConv2D, self).get_config()
+        config = dict(list(base_config.items()) + list(config.items()))
+        config["padding"] = self.old_padding
+        return config
+
+    def condense(self):
+        wbar = self.normalize_kernel(self.depthwise_kernel)
+        self.depthwise_kernel.assign(wbar)
+
+    def vanilla_export(self):
+        self._kwargs["name"] = self.name
+        layer = DepthwiseConv2D(
+            self.kernel_size,
+            strides=self.strides,
+            padding=self.padding,
+            depth_multiplier=self.depth_multiplier,
+            data_format=self.data_format,
+            dilation_rate=self.dilation_rate,
+            activation=self.activation,
+            use_bias=self.use_bias,
+            depthwise_initializer=self.depthwise_initializer,
+            bias_initializer=self.bias_initializer,
+            depthwise_regularizer=self.depthwise_regularizer,
+            bias_regularizer=self.bias_regularizer,
+            activity_regularizer=self.activity_regularizer,
+            depthwise_constraint=self.depthwise_constraint,
+            bias_constraint=self.bias_constraint,
+            **self._kwargs
+        )
+        layer.build(self.input_shape)
+        layer.depthwise_kernel.assign(self.wbar * self._get_coef())
+        if self.use_bias:
+            layer.bias.assign(self.bias)
+        return layer
