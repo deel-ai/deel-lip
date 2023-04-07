@@ -357,6 +357,7 @@ def _power_iteration_conv(
     return _u, _v, _norm_u
 
 
+@tf.function
 def spectral_normalization_conv(
     kernel,
     u,
@@ -392,5 +393,152 @@ def spectral_normalization_conv(
 
     # Calculate Sigma
     sigma = tf.norm(_v)
+    W_bar = kernel / (sigma + eps)
+    return W_bar, _u, sigma
+
+
+def _power_iteration_dw_conv(
+    w,
+    u,
+    strides=(1, 1),
+    pad_func=None,
+    filterwise=False,
+    eps=DEFAULT_EPS_SPECTRAL,
+    maxiter=DEFAULT_MAXITER_SPECTRAL,
+    big_constant=-1,
+):
+    """
+    Internal function that performs the power iteration algorithm for convolution.
+
+    Args:
+        w: weights matrix that we want to find eigen vector
+        u: initialization of the eigen matrix should be ||u||=1 for L2_norm
+        stride: strides parameter of the convolution
+        conv_first: RO or CO case , should be True in CO case (strides^2*C<M)
+        pad_func: function for applying padding (None is padding same)
+        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter: maximum number of iterations for the algorithm
+        big_constant: only for computing the minimum singular value (otherwise -1)
+    Returns:
+         u and v corresponding to the maximum eigenvalue
+
+    """
+
+    def identity(x):
+        return x
+
+    norm_axes = (0, 1) if filterwise else None
+
+    # If pad_func is None, standard convolution with SAME padding
+    # Else, pad_func padding function (externally defined)
+    #       + standard convolution with VALID padding.
+    if pad_func is None:
+        pad_type = "SAME"
+        _pad_func = identity
+    else:
+        pad_type = "VALID"
+        _pad_func = pad_func
+
+    def _dw_conv(u, w, strides):
+        u_pad = _pad_func(u)
+        # non working with channels_first format when stride != 1
+        return tf.nn.depthwise_conv2d(
+            u_pad, w, (1, strides[0], strides[1], 1), pad_type
+        )
+
+    def _dw_conv_transpose(u, w, strides):
+        u_upscale = _zero_upscale2D(u, strides)
+        w_adj = w[::-1, ::-1, :]
+        return _dw_conv(u_upscale, w_adj, strides=(1, 1))
+
+    def body(_u, _v, _old_u, _norm_u):
+        # _u is supposed to be normalized when entering in the body function
+        _old_u = _u
+        u = _u
+
+        v = _dw_conv(u, w, strides)
+        unew = _dw_conv_transpose(v, w, strides)
+
+        if big_constant > 0:
+            unew = big_constant * u - unew
+
+        _norm_unew = tf.norm(unew)
+        unew = tf.math.l2_normalize(unew, axis=norm_axes)
+        return unew, v, _old_u, _norm_unew
+
+    # define the loop condition
+
+    def cond(_u, _v, old_u, _norm_u):
+        return tf.linalg.norm(_u - old_u) >= eps
+
+    # v shape
+    v_shape = (
+        (u.shape[0],)
+        + (u.shape[1] // strides[0], u.shape[2] // strides[1])
+        + (u.shape[-1],)
+    )
+
+    # build _u and _v
+    _norm_u = tf.norm(u)
+    _u = tf.math.l2_normalize(u, axis=norm_axes)
+    _u += tf.random.uniform(_u.shape, minval=-eps, maxval=eps)
+    _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
+
+    # create a fake old_w that doesn't pass the loop condition
+    # it won't affect computation as the first action done in the loop overwrites it.
+    _old_u = 10 * _u
+
+    # apply the loop
+    _u, _v, _old_u, _norm_u = tf.while_loop(
+        cond,
+        body,
+        (_u, _v, _old_u, _norm_u),
+        parallel_iterations=1,
+        maximum_iterations=maxiter,
+        swap_memory=SWAP_MEMORY,
+    )
+    if STOP_GRAD_SPECTRAL:
+        _u = tf.stop_gradient(_u)
+        _v = tf.stop_gradient(_v)
+
+    return _u, _v, _norm_u
+
+
+@tf.function
+def spectral_normalization_dw_conv(
+    kernel,
+    u,
+    stride=1.0,
+    pad_func=None,
+    filterwise=False,
+    eps=DEFAULT_EPS_SPECTRAL,
+    maxiter=DEFAULT_MAXITER_SPECTRAL,
+):
+    """
+    Normalize the convolution kernel to have its max eigenvalue == 1.
+
+    Args:
+        kernel (tf.Tensor): the convolution kernel to normalize
+        u (tf.Tensor): initialization for the max eigen vector (as a 4d tensor)
+        stride (int): stride parameter of convolutions
+        pad_func (Callable): function for applying padding (None is padding same)
+        eps (float): epsilon stopping criterion: norm(ut - ut-1) must be less than eps
+        maxiter (int): maximum number of iterations for the power iteration algorithm.
+
+    Returns:
+        the normalized kernel w_bar, the maximum eigen vector, and the maximum eigen
+            value
+    """
+
+    if eps < 0:
+        return kernel, u, 1.0
+
+    _u, _v, _ = _power_iteration_dw_conv(
+        kernel, u, stride, pad_func, filterwise, eps, maxiter
+    )
+
+    # Calculate Sigma
+    axes = (0, 1, 2) if filterwise else None
+    sigma = tf.reshape(tf.sqrt(tf.reduce_sum(tf.square(u), axis=axes)), (1, 1, -1, 1))
     W_bar = kernel / (sigma + eps)
     return W_bar, _u, sigma

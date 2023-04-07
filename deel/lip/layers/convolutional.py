@@ -38,6 +38,7 @@ from ..normalizers import (
     DEFAULT_MAXITER_SPECTRAL,
     _check_RKO_params,
     reshaped_kernel_orthogonalization,
+    spectral_normalization_dw_conv,
 )
 from .base_layer import Condensable, LipschitzLayer
 from ..utils import _padding_circular
@@ -727,7 +728,7 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         self,
         kernel_size,
         strides=(1, 1),
-        padding="valid",
+        padding="same",
         depth_multiplier=1,
         data_format=None,
         dilation_rate=(1, 1),
@@ -742,6 +743,8 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         bias_constraint=None,
         k_coef_lip=1.0,
         filterwise_normalisation=True,
+        eps_spectral=DEFAULT_EPS_SPECTRAL,
+        maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
         **kwargs
     ):
         """
@@ -825,6 +828,16 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
             ValueError: when both `strides` > 1 and `dilation_rate` > 1.
 
         """
+        if eps_spectral <= 0:
+            raise ValueError("eps_spectral has to be > 0")
+        if maxiter_spectral <= 0:
+            raise ValueError("maxiter_spectral has to be > 0")
+        self.eps_spectral = eps_spectral
+        self.maxiter_spectral = maxiter_spectral
+        if data_format == "channels_first":
+            raise ValueError(
+                "channels first data format is not supported for depthwise conv"
+            )
         self.filterwise_normalisation = filterwise_normalisation
         if not (
             (dilation_rate == (1, 1))
@@ -880,54 +893,81 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         super(SpectralDepthwiseConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self._input_shape = input_shape
+        if self.data_format == "channels_first":
+            c, w, h = input_shape[-3], input_shape[-2], input_shape[-1]
+            u_shape = (
+                1,
+                c,
+                min(w, 3 * self.kernel_size[0] + 1),
+                min(h, 3 * self.kernel_size[1] + 1),
+            )
+        else:
+            w, h, c = input_shape[-3], input_shape[-2], input_shape[-1]
+            u_shape = (
+                1,
+                min(w, 3 * self.kernel_size[0] + 1),
+                min(h, 3 * self.kernel_size[1] + 1),
+                c,
+            )
+        self.u = self.add_weight(
+            shape=u_shape,
+            initializer=RandomNormal(0, 1),
+            name="u",
+            trainable=False,
+            dtype=self.dtype,
+        )
+        sig_shape = (1, 1, c, 1) if self.filterwise_normalisation else (1, 1, 1, 1)
+        self.sig = self.add_weight(
+            shape=sig_shape,  # maximum spectral  value
+            name="sigma",
+            trainable=False,
+            dtype=self.dtype,
+            initializer="ones",
+        )
         self.wbar = tf.Variable(
             tf.cast(self.depthwise_kernel.read_value(), self.dtype),
             dtype=self.dtype,
+            name="wbar",
             trainable=False,
         )
-        self.wbar.assign(
-            tf.cast(self.normalize_kernel(self.depthwise_kernel), self.dtype)
+        wbar, u, sig = spectral_normalization_dw_conv(
+            self.depthwise_kernel,
+            self.u,
+            self.strides,
+            None if self.old_padding == "same" else self.pad,
+            self.filterwise_normalisation,
+            self.eps_spectral,
+            self.maxiter_spectral,
         )
+        self.wbar.assign(wbar)
+        self.u.assign(u)
+        self.sig.assign(sig)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
     @tf.function
-    def normalize_kernel(self, kernel):
-        conv_tr = tf.cast(tf.transpose(kernel, perm=[2, 3, 0, 1]), tf.complex64)
-        conv_shape = kernel.get_shape().as_list()
-        pad_1 = self._input_shape[1] - conv_shape[0]
-        pad_2 = self._input_shape[2] - conv_shape[1]
-        padding = tf.constant(
-            [
-                [0, 0],
-                [0, 0],
-                [pad_1 // 2, pad_1 // 2],
-                [pad_2 // 2, pad_2 // 2],
-            ]
-        )
-        conv_tr_padded = tf.pad(conv_tr, padding)
-        # apply FFT
-        transform_coeff = tf.math.abs(tf.signal.fft2d(conv_tr_padded))
-        if self.filterwise_normalisation:
-            l = tf.reduce_max(transform_coeff, axis=[-2, -1], keepdims=True)
-        else:
-            l = tf.reduce_max(transform_coeff, axis=[0, 1, 2, 3], keepdims=True)
-        l = tf.transpose(l, perm=[2, 3, 0, 1])
-        return tf.cast(kernel, kernel.dtype) / tf.cast(l, kernel.dtype)
-
-    @tf.function
     def call(self, x, training=True):
         if training:
-            wbar = self.normalize_kernel(self.depthwise_kernel)
+            wbar, u, sig = spectral_normalization_dw_conv(
+                self.depthwise_kernel,
+                self.u,
+                self.strides,
+                None if self.old_padding == "same" else self.pad,
+                self.filterwise_normalisation,
+                self.eps_spectral,
+                self.maxiter_spectral,
+            )
             self.wbar.assign(wbar)
+            self.u.assign(u)
+            self.sig.assign(sig)
         else:
             wbar = self.wbar
         x = self.pad(x)
         outputs = K.depthwise_conv2d(
             x,
-            wbar,
+            wbar * self._get_coef(),
             strides=self.strides,
             padding=self.padding,
             data_format=self.data_format,
@@ -943,6 +983,8 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         config = {
             "k_coef_lip": self.k_coef_lip,
             "filterwise_normalisation": self.filterwise_normalisation,
+            "eps_spectral": self.eps_spectral,
+            "maxiter_spectral": self.maxiter_spectral,
         }
         base_config = super(SpectralDepthwiseConv2D, self).get_config()
         config = dict(list(base_config.items()) + list(config.items()))
@@ -950,8 +992,17 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         return config
 
     def condense(self):
-        wbar = self.normalize_kernel(self.depthwise_kernel)
-        self.depthwise_kernel.assign(wbar)
+        wbar, u, sigma = spectral_normalization_dw_conv(
+            self.depthwise_kernel,
+            self.u,
+            self.strides[-1],
+            None if self.old_padding == "same" else self.pad,
+            self.eps_spectral,
+            self.maxiter_spectral,
+        )
+        self.kernel.assign(wbar)
+        self.u.assign(u)
+        self.sig.assign(sigma)
 
     def vanilla_export(self):
         self._kwargs["name"] = self.name

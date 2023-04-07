@@ -1102,6 +1102,10 @@ class TestSpectralDepthwiseConv2D(unittest.TestCase):
         cases = (
             dict(kernel_size=3),
             dict(kernel_size=5, strides=2, use_bias=False),
+            dict(kernel_size=3, filterwise_normalisation=True),
+            dict(
+                kernel_size=5, filterwise_normalisation=True, strides=2, use_bias=False
+            ),
             dict(kernel_size=3, padding="same", dilation_rate=1),
             dict(kernel_size=1, activation="relu"),
             dict(kernel_size=3, data_format="channels_first"),
