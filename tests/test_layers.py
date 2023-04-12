@@ -42,6 +42,7 @@ from deel.lip.layers import (
     InvertibleUpSampling,
     ScaledGlobalL2NormPooling2D,
 )
+from deel.lip.regularizers import OrthDenseRegularizer
 from deel.lip.model import Sequential
 from deel.lip.utils import evaluate_lip_const
 
@@ -635,6 +636,57 @@ class LipschitzLayersTest(unittest.TestCase):
                     steps_per_epoch=125,
                     epochs=5,
                     input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_orthRegul_dense(self):
+        """
+        Tests for a standard Dense layer, for result comparison.
+        """
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 6,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 2,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=Dense,
+                    layer_params={
+                        "units": 4,
+                        "kernel_regularizer": OrthDenseRegularizer(100.0),
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(4,),
                     k_lip_data=1.0,
                     k_lip_model=5.0,
                     callbacks=[],
