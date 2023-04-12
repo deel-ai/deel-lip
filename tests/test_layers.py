@@ -34,6 +34,7 @@ from deel.lip.layers import (
     SpectralConv2DTranspose,
     FrobeniusDense,
     FrobeniusConv2D,
+    OrthoConv2D,
     ScaledAveragePooling2D,
     ScaledGlobalAveragePooling2D,
     ScaledL2NormPooling2D,
@@ -636,6 +637,77 @@ class LipschitzLayersTest(unittest.TestCase):
                     input_shape=(5, 5, 1),
                     k_lip_data=1.0,
                     k_lip_model=5.0,
+                    callbacks=[],
+                ),
+            ]
+        )
+
+    def test_Orthoconv2d(self):
+        # tests only checks that lip cons is enforced
+        self._apply_tests_bank(
+            [
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regul_lorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regul_lorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=5.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+                dict(
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regul_lorth": 1000.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=5.0,
+                    k_lip_tolerance_factor=1.2,
+                    callbacks=[],
+                ),
+                dict(  # No Regul only spectral norm
+                    layer_type=OrthoConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "regul_lorth": 0.0,
+                    },
+                    batch_size=1000,
+                    steps_per_epoch=125,
+                    epochs=10,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.2,
                     callbacks=[],
                 ),
             ]
