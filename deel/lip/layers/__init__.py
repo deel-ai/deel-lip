@@ -3,6 +3,7 @@ from .activations import FullSort, GroupSort, GroupSort2, Householder, MaxMin, P
 from .base_layer import Condensable, LipschitzLayer
 from .convolutional import FrobeniusConv2D, SpectralConv2D, SpectralConv2DTranspose
 from .dense import FrobeniusDense, SpectralDense
+from .orthoconv2D import OrthoConv2D
 from .pooling import (
     InvertibleDownSampling,
     InvertibleUpSampling,
