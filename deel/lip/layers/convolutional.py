@@ -743,6 +743,8 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
         bias_constraint=None,
         k_coef_lip=1.0,
         filterwise_normalisation=True,
+        orthogonal=False,
+        ortho_niter=-1,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
         maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
         **kwargs
@@ -828,6 +830,13 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
             ValueError: when both `strides` > 1 and `dilation_rate` > 1.
 
         """
+        self.ortho_niter = ortho_niter
+        self.orthogonal = orthogonal
+        if orthogonal and not filterwise_normalisation:
+            raise ValueError(
+                "filterwise_normalisation must be True when "
+                "orthogonalization is enabled"
+            )
         if eps_spectral <= 0:
             raise ValueError("eps_spectral has to be > 0")
         if maxiter_spectral <= 0:
@@ -950,8 +959,14 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
     @tf.function
     def call(self, x, training=True):
         if training:
+            if self.orthogonal:
+                dw_kernel = 0.5 * (
+                    self.depthwise_kernel - self.depthwise_kernel[::-1, ::-1, :]
+                )
+            else:
+                dw_kernel = self.depthwise_kernel
             wbar, u, sig = spectral_normalization_dw_conv(
-                self.depthwise_kernel,
+                dw_kernel,
                 self.u,
                 self.strides,
                 None if self.old_padding == "same" else self.pad,
@@ -964,15 +979,31 @@ class SpectralDepthwiseConv2D(DepthwiseConv2D, LipschitzLayer, Condensable):
             self.sig.assign(sig)
         else:
             wbar = self.wbar
-        x = self.pad(x)
-        outputs = K.depthwise_conv2d(
-            x,
-            wbar * self._get_coef(),
-            strides=self.strides,
-            padding=self.padding,
-            data_format=self.data_format,
-            dilation_rate=self.dilation_rate,
-        )
+
+        if self.orthogonal:
+            outputs = x
+            for i in range(1, self.ortho_niter):
+                x = self.pad(x)
+                x = K.depthwise_conv2d(
+                    x,
+                    wbar * self._get_coef(),
+                    strides=self.strides,
+                    padding=self.padding,
+                    data_format=self.data_format,
+                    dilation_rate=self.dilation_rate,
+                )
+                x = x / i
+                outputs += x
+        else:
+            x = self.pad(x)
+            outputs = K.depthwise_conv2d(
+                x,
+                wbar * self._get_coef(),
+                strides=self.strides,
+                padding=self.padding,
+                data_format=self.data_format,
+                dilation_rate=self.dilation_rate,
+            )
         if self.use_bias:
             outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
         if self.activation is not None:
