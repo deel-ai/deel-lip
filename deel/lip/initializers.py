@@ -79,6 +79,7 @@ class LorthInitializer(Initializer):
         niter_newton=DEFAULT_NITER_INITIALIZER_LORTHGRAD,
         lambda_step=DEFAULT_LAMBDA_LORTHGRAD,
         base_initializer="glorot_uniform",
+        stride=1.0,
         k_coef_lip=1.0,
     ) -> None:
         """
@@ -94,15 +95,19 @@ class LorthInitializer(Initializer):
         self.niter_newton = niter_newton
         self.lambda_step = lambda_step
         self.k_coef_lip = k_coef_lip
+        self.stride = stride
         assert k_coef_lip == 1.0, "Not implemented"
         self.base_initializer = initializers.get(base_initializer)
         super(LorthInitializer, self).__init__()
 
-    def __call__(self, shape, stride=1.0, dtype=None, partition_info=None):
+    def set_stride(self, stride=1.0):
+        self.stride = stride
+
+    def __call__(self, shape, dtype=None, partition_info=None):
         w = self.base_initializer(shape=shape, dtype=dtype)
         lorthg = Lorth2Dgrad(
             kernel_shape=shape,
-            stride=stride,
+            stride=self.stride,
             niter_newton=self.niter_newton,
             lambda_step=self.lambda_step,
         )
@@ -115,5 +120,6 @@ class LorthInitializer(Initializer):
             "niter_newton": self.niter_newton,
             "lambda_step": self.lambda_step,
             "k_coef_lip": self.k_coef_lip,
+            "stride": self.stride,
             "base_initializer": initializers.serialize(self.base_initializer),
         }

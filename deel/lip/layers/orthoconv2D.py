@@ -461,6 +461,8 @@ class OrthoConv2DProj(PadConv2D, LipschitzLayer, Condensable):
         self.sig.assign([[1.0]])
 
     def build(self, input_shape):
+        if hasattr(self.kernel_initializer, "set_stride"):
+            self.kernel_initializer.set_stride(self.strides[0])
         super(OrthoConv2DProj, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)

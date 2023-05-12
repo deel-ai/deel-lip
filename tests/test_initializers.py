@@ -72,8 +72,6 @@ class MyTestCase(unittest.TestCase):
         self.set_spectral_input_shape(kernel)
         self._test_kernel(kernel)"""
 
-        """ERROR no stride in intializer 
-        TOD O 
         # CO case (stride^2*C < M)
         self.kernel_shape = (5, 5, 32, 256)
         self.strides = [2, 2]
@@ -91,7 +89,6 @@ class MyTestCase(unittest.TestCase):
         self.strides = [2, 2]
         self.set_spectral_input_shape()
         self._test_kernel()
-        """
 
     def set_spectral_input_shape(self):
         """Set spectral input shape and RO_case, depending on kernel shape and
@@ -118,14 +115,14 @@ class MyTestCase(unittest.TestCase):
 
     def _test_kernel(self):
         """Apply lorth gradient descent and compute svMax and SVmin."""
-        input_shape = (5,)
+        LorthInit = LorthInitializer(stride=self.strides[0])
         model = Sequential(
             [
                 Input(shape=(1, 64, 64, self.kernel_shape[-2])),
                 Conv2D(
                     self.kernel_shape[-1],
                     kernel_size=self.kernel_shape[:2],
-                    kernel_initializer=LorthInitializer,
+                    kernel_initializer=LorthInit,
                     strides=self.strides,
                 ),
             ]
