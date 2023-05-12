@@ -50,7 +50,7 @@ class Lorth(ABC):
         """
         super(Lorth, self).__init__()
         self.dim = dim
-        self.stride = stride
+        self.stride = int(stride)
         self.conv_transpose = conv_transpose
         self.set_kernel_shape(kernel_shape)
 
