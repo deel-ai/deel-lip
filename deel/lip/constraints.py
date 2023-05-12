@@ -15,6 +15,13 @@ from .normalizers import (
     DEFAULT_EPS_BJORCK,
     DEFAULT_BETA_BJORCK,
 )
+
+from .utils_lorth import (
+    Lorth2Dgrad,
+    DEFAULT_LAMBDA_LORTHGRAD,
+    DEFAULT_NITER_CONSTRAINT_LORTHGRAD,
+)
+
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -127,4 +134,65 @@ class SpectralConstraint(Constraint):
             "u": None if self.u is None else self.u.numpy(),
         }
         base_config = super(SpectralConstraint, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "LorthConstraint")
+class LorthConstraint(Constraint):
+    def __init__(
+        self,
+        kernel_shape=None,
+        stride=1,
+        k_coef_lip=1.0,
+        niter_newton=DEFAULT_NITER_CONSTRAINT_LORTHGRAD,
+        lambda_step=DEFAULT_LAMBDA_LORTHGRAD,
+        u=None,
+    ) -> None:
+        """
+        Initialize a kernel to be 1-lipschitz orthogonal using bjorck
+        normalization.
+
+        Args:
+            kernel_shape: the shape of the kernel (can be set to None
+            for later call to set_kernel_shape)
+            stride (int): stride used in the associated convolution
+            niter_newton: iteration steps for newton
+            lambda_step: float greater than 0, max step size for newton
+            base_initializer: method used to generate weights before applying the
+                orthonormalization
+        """
+        self.kernel_shape = kernel_shape
+        self.stride = stride
+        self.niter_newton = niter_newton
+        self.lambda_step = lambda_step
+        self.k_coef_lip = k_coef_lip
+        assert k_coef_lip == 1.0, "Not implemented"
+
+        self.dim = 2
+        self.conv_transpose = False
+        self.lorth = Lorth2Dgrad(self.kernel_shape, self.stride, self.conv_transpose)
+
+        if not (isinstance(u, tf.Tensor) or (u is None)):
+            u = tf.convert_to_tensor(u)
+        self.u = u
+        super(LorthConstraint, self).__init__()
+
+    def set_kernel_shape(self, shape):
+        self.kernel_shape = shape
+        self.lorth.set_kernel_shape(shape)
+
+    def __call__(self, w):
+        wbar = self.lorth.lorthGradient_orthogonalization(w, verbose=False)
+        return wbar
+
+    def get_config(self):
+        config = {
+            "kernel_shape": self.kernel_shape,
+            "stride": self.stride,
+            "niter_newton": self.niter_newton,
+            "lambda_step": self.lambda_step,
+            "k_coef_lip": self.k_coef_lip,
+            "u": None if self.u is None else self.u.numpy(),
+        }
+        base_config = super(LorthConstraint, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
