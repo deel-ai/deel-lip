@@ -227,30 +227,43 @@ def spectral_normalization(
     kernel, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPECTRAL
 ):
     """
-    Normalize the kernel to have it's max eigenvalue == 1.
+    Normalize the kernel to have its maximum singular value equal to 1.
 
     Args:
-        kernel (tf.Tensor): the kernel to normalize, assuming a 2D kernel
-        u (tf.Tensor): initialization for the max eigen vector
-        eps (float): epsilon stopping criterion: norm(ut - ut-1) must be less than eps
-        maxiter (int): maximum number of iterations for the algorithm
+        kernel (tf.Tensor): the kernel to normalize, assuming a 2D kernel.
+        u (tf.Tensor): initialization of the maximum singular vector.
+        eps (float, optional): stopping criterion of the algorithm, when
+            norm(u[t] - u[t-1]) is less than eps. Defaults to DEFAULT_EPS_SPECTRAL.
+        maxiter (int, optional): maximum number of iterations for the algorithm.
+            Defaults to DEFAULT_MAXITER_SPECTRAL.
 
     Returns:
-        the normalized kernel w_bar, the maximum eigen vector, and the maximum singular
+        the normalized kernel, the maximum singular vector, and the maximum singular
             value.
-
     """
-    _u, _v = _power_iteration(kernel, u, eps, maxiter)
-    # compute Sigma
-    sigma = _v @ kernel
-    sigma = sigma @ tf.transpose(_u)
-    # normalize it
-    # we assume that in the worst case we converged to sigma + eps (as u and v are
+
+    if u is None:
+        u = tf.random.uniform(
+            shape=(1, kernel.shape[-1]), minval=0.0, maxval=1.0, dtype=kernel.dtype
+        )
+
+    def linear_op(u):
+        return u @ tf.transpose(kernel)
+
+    def adjoint_op(v):
+        return v @ kernel
+
+    u = _power_iteration(linear_op, adjoint_op, u, eps, maxiter)
+
+    # Compute the largest singular value and the normalized kernel.
+    # We assume that in the worst case we converged to sigma + eps (as u and v are
     # normalized after each iteration)
-    # in order to be sure that operator norm of W_bar is strictly less than one we
-    # use sigma + eps, which ensure stability of the bjorck even when beta=0.5
-    W_bar = kernel / (sigma + eps)
-    return W_bar, _u, sigma
+    # In order to be sure that operator norm of normalized kernel is strictly less than
+    # one we use sigma + eps, which ensures stability of Björck algorithm even when
+    # beta=0.5
+    sigma = tf.reshape(tf.norm(linear_op(u)), (1, 1))
+    normalized_kernel = kernel / (sigma + eps)
+    return normalized_kernel, u, sigma
 
 
 def _power_iteration_conv(
