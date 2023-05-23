@@ -158,59 +158,69 @@ def bjorck_normalization(
     return w
 
 
-def _power_iteration(w, u, eps=DEFAULT_EPS_SPECTRAL, maxiter=DEFAULT_MAXITER_SPECTRAL):
-    """
-    Internal function that performs the power iteration algorithm.
+def _power_iteration(
+    linear_operator,
+    adjoint_operator,
+    u,
+    eps=DEFAULT_EPS_SPECTRAL,
+    maxiter=DEFAULT_MAXITER_SPECTRAL,
+    big_constant=-1,
+):
+    """Internal function that performs the power iteration algorithm to estimate the
+    largest singular vector of a linear operator.
 
     Args:
-        w: weights matrix that we want to find eigen vector
-        u: initialization of the eigen vector
-        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
-        maxiter: maximum number of iterations for the algorithm
+        linear_operator (Callable): a callable object that maps a linear operation.
+        adjoint_operator (Callable): a callable object that maps the adjoint of the
+            linear operator.
+        u (tf.Tensor): initialization of the singular vector.
+        eps (float, optional): stopping criterion of the algorithm, when
+            norm(u[t] - u[t-1]) is less than eps. Defaults to DEFAULT_EPS_SPECTRAL.
+        maxiter (int, optional): maximum number of iterations for the algorithm.
+            Defaults to DEFAULT_MAXITER_SPECTRAL.
+        big_constant (int, optional): Set to a large value to compute the minimum
+            singular value. Defaults to -1, to compute the maximum singular value.
 
     Returns:
-         u and v corresponding to the maximum eigenvalue
-
+        tf.Tensor: the maximum singular vector.
     """
-    # build _u and _v (_v is size of _u@tf.transpose(w), will be set on the first body
-    # iteration)
-    if u is None:
-        u = tf.linalg.l2_normalize(
-            tf.random.uniform(
-                shape=(1, w.shape[-1]), minval=0.0, maxval=1.0, dtype=w.dtype
-            )
-        )
-    _u = u
-    _v = tf.zeros((1,) + (w.shape[0],), dtype=w.dtype)
 
-    # create a fake old_w that doesn't pass the loop condition
-    # it won't affect computation as the first action done in the loop overwrite it.
-    _old_u = 10 * _u
+    # Prepare while loop variables
+    u = tf.math.l2_normalize(u)
+    # create a fake old_w that doesn't pass the loop condition, it will be overwritten
+    old_u = u + 2 * eps
 
-    # define the loop condition
-    def cond(_u, _v, old_u):
-        return tf.linalg.norm(_u - old_u) >= eps
+    # Loop body
+    def body(u, old_u):
+        old_u = u
+        v = linear_operator(u)
+        u = adjoint_operator(v)
 
-    # define the loop body
-    def body(_u, _v, _old_u):
-        _old_u = _u
-        _v = tf.math.l2_normalize(_u @ tf.transpose(w))
-        _u = tf.math.l2_normalize(_v @ w)
-        return _u, _v, _old_u
+        if big_constant > 0:
+            u = big_constant * old_u - u
 
-    # apply the loop
-    _u, _v, _old_u = tf.while_loop(
+        u = tf.math.l2_normalize(u)
+
+        return u, old_u
+
+    # Loop stopping condition
+    def cond(u, old_u):
+        return tf.linalg.norm(u - old_u) >= eps
+
+    # Run the while loop
+    u, _ = tf.while_loop(
         cond,
         body,
-        (_u, _v, _old_u),
-        parallel_iterations=30,
+        (u, old_u),
         maximum_iterations=maxiter,
         swap_memory=SWAP_MEMORY,
     )
+
+    # Prevent gradient to back-propagate into the while loop
     if STOP_GRAD_SPECTRAL:
-        _u = tf.stop_gradient(_u)
-        _v = tf.stop_gradient(_v)
-    return _u, _v
+        u = tf.stop_gradient(u)
+
+    return u
 
 
 def spectral_normalization(
