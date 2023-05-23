@@ -266,31 +266,23 @@ def spectral_normalization(
     return normalized_kernel, u, sigma
 
 
-def _power_iteration_conv(
-    w,
-    u,
-    stride=1.0,
-    conv_first=True,
-    pad_func=None,
-    eps=DEFAULT_EPS_SPECTRAL,
-    maxiter=DEFAULT_MAXITER_SPECTRAL,
-    big_constant=-1,
-):
+def get_conv_operators(kernel, u_shape, stride=1.0, conv_first=True, pad_func=None):
     """
-    Internal function that performs the power iteration algorithm for convolution.
+    Return two functions corresponding to the linear convolution operator and its
+    adjoint.
 
     Args:
-        w: weights matrix that we want to find eigen vector
-        u: initialization of the eigen matrix should be ||u||=1 for L2_norm
-        stride: stride parameter of the convolution
-        conv_first: RO or CO case , should be True in CO case (stride^2*C<M)
-        pad_func: function for applying padding (None is padding same)
-        eps: epsilon stopping criterion: norm(ut - ut-1) must be less than eps
-        maxiter: maximum number of iterations for the algorithm
-        big_constant: only for computing the minimum singular value (otherwise -1)
-    Returns:
-         u and v corresponding to the maximum eigenvalue
+        kernel (tf.Tensor): the convolution kernel to normalize
+        u_shape (tuple): shape of a singular vector (as a 4D tensor).
+        stride (int, optional): stride parameter of convolutions. Defaults to 1.
+        conv_first (bool, optional): RO or CO case , should be True in CO case
+            (stride^2*C<M). Defaults to True.
+        pad_func (Callable, optional): function for applying padding (None is padding
+            same). Defaults to None.
 
+    Returns:
+        tuple: two functions for the linear convolution operator and its adjoint
+            operator.
     """
 
     def identity(x):
@@ -318,66 +310,28 @@ def _power_iteration_conv(
             w_adj = _maybe_transpose_kernel(w, True)
             return _conv(u_upscale, w_adj, stride=1)
 
-    def body(_u, _v, _old_u, _norm_u):
-        # _u is supposed to be normalized when entering in the body function
-        _old_u = _u
-        u = _u
-
-        if conv_first:  # Conv, then transposed conv
-            v = _conv(u, w, stride)
-            unew = _conv_transpose(v, w, u.shape, stride)
-        else:  # Transposed conv, then conv
-            v = _conv_transpose(u, w, _v.shape, stride)
-            unew = _conv(v, w, stride)
-
-        if big_constant > 0:
-            unew = big_constant * u - unew
-
-        _norm_unew = tf.norm(unew)
-        unew = tf.math.l2_normalize(unew)
-        return unew, v, _old_u, _norm_unew
-
-    # define the loop condition
-
-    def cond(_u, _v, old_u, _norm_u):
-        return tf.linalg.norm(_u - old_u) >= eps
-
-    # v shape
     if conv_first:
-        v_shape = (
-            (u.shape[0],)
-            + (u.shape[1] // stride, u.shape[2] // stride)
-            + (w.shape[-1],)
-        )
+
+        def linear_op(u):
+            return _conv(u, kernel, stride)
+
+        def adjoint_op(v):
+            return _conv_transpose(v, kernel, u_shape, stride)
+
     else:
         v_shape = (
-            (u.shape[0],) + (u.shape[1] * stride, u.shape[2] * stride) + (w.shape[-2],)
+            (u_shape[0],)
+            + (u_shape[1] * stride, u_shape[2] * stride)
+            + (kernel.shape[-2],)
         )
 
-    # build _u and _v
-    _norm_u = tf.norm(u)
-    _u = tf.math.l2_normalize(u)
-    _u += tf.random.uniform(_u.shape, minval=-eps, maxval=eps)
-    _v = tf.zeros(v_shape)  # _v will be set on the first body iteration
+        def linear_op(u):
+            return _conv_transpose(u, kernel, v_shape, stride)
 
-    # create a fake old_w that doesn't pass the loop condition
-    # it won't affect computation as the first action done in the loop overwrites it.
-    _old_u = 10 * _u
+        def adjoint_op(v):
+            return _conv(v, kernel, stride)
 
-    # apply the loop
-    _u, _v, _old_u, _norm_u = tf.while_loop(
-        cond,
-        body,
-        (_u, _v, _old_u, _norm_u),
-        parallel_iterations=1,
-        maximum_iterations=maxiter,
-        swap_memory=SWAP_MEMORY,
-    )
-    if STOP_GRAD_SPECTRAL:
-        _u = tf.stop_gradient(_u)
-        _v = tf.stop_gradient(_v)
-
-    return _u, _v, _norm_u
+    return linear_op, adjoint_op
 
 
 def spectral_normalization_conv(
@@ -409,11 +363,14 @@ def spectral_normalization_conv(
     if eps < 0:
         return kernel, u, 1.0
 
-    _u, _v, _ = _power_iteration_conv(
-        kernel, u, stride, conv_first, pad_func, eps, maxiter
+    linear_op, adjoint_op = get_conv_operators(
+        kernel, u.shape, stride, conv_first, pad_func
     )
 
-    # Calculate Sigma
-    sigma = tf.norm(_v)
-    W_bar = kernel / (sigma + eps)
-    return W_bar, _u, sigma
+    u = tf.math.l2_normalize(u) + tf.random.uniform(u.shape, minval=-eps, maxval=eps)
+    u = _power_iteration(linear_op, adjoint_op, u, eps, maxiter)
+
+    # Compute the largest singular value and the normalized kernel
+    sigma = tf.norm(linear_op(u))
+    normalized_kernel = kernel / (sigma + eps)
+    return normalized_kernel, u, sigma
