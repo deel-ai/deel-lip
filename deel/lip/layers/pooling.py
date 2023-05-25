@@ -475,13 +475,10 @@ class InvertibleUpSampling(keraslayers.Layer):
             # convert to channels_first
             inputs = tf.transpose(inputs, [0, 2, 3, 1])
         # from shape (bs, w, h, c*pw*ph) to (bs, w, h, pw, ph, c)
-        bs, w, h = inputs.shape[:-1]
-        (
-            pw,
-            ph,
-        ) = self.pool_size
-        c = inputs.shape[-1] // (pw * ph)
-        print(c)
+        input_shape = tf.shape(inputs)
+        w, h, c_in = input_shape[1], input_shape[2], input_shape[3]
+        pw, ph = self.pool_size
+        c = c_in // (pw * ph)
         inputs = tf.reshape(inputs, (-1, w, h, pw, ph, c))
         inputs = tf.transpose(
             tf.reshape(
