@@ -164,6 +164,7 @@ def _power_iteration(
     u,
     eps=DEFAULT_EPS_SPECTRAL,
     maxiter=DEFAULT_MAXITER_SPECTRAL,
+    axis=None,
     big_constant=-1,
 ):
     """Internal function that performs the power iteration algorithm to estimate the
@@ -178,6 +179,8 @@ def _power_iteration(
             norm(u[t] - u[t-1]) is less than eps. Defaults to DEFAULT_EPS_SPECTRAL.
         maxiter (int, optional): maximum number of iterations for the algorithm.
             Defaults to DEFAULT_MAXITER_SPECTRAL.
+        axis (int/list, optional): dimension along which to normalize. Can be set for
+            depthwise convolution for example. Defaults to None.
         big_constant (int, optional): Set to a large value to compute the minimum
             singular value. Defaults to -1, to compute the maximum singular value.
 
@@ -186,7 +189,7 @@ def _power_iteration(
     """
 
     # Prepare while loop variables
-    u = tf.math.l2_normalize(u)
+    u = tf.math.l2_normalize(u, axis=axis)
     # create a fake old_w that doesn't pass the loop condition, it will be overwritten
     old_u = u + 2 * eps
 
@@ -199,7 +202,7 @@ def _power_iteration(
         if big_constant > 0:
             u = big_constant * old_u - u
 
-        u = tf.math.l2_normalize(u)
+        u = tf.math.l2_normalize(u, axis=axis)
 
         return u, old_u
 
