@@ -43,7 +43,7 @@ from .base_layer import Condensable, LipschitzLayer
 
 try:
     from keras.utils import conv_utils  # in Keras for TF >= 2.6
-except ModuleNotFoundError:
+except ImportError or ModuleNotFoundError:
     from tensorflow.python.keras.utils import conv_utils  # in TF.python for TF <= 2.5
 
 
