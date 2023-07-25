@@ -15,7 +15,7 @@ from deel.lip.normalizers import (
 )
 from deel.lip.utils import _padding_circular
 
-np.random.seed(42)
+rng = np.random.default_rng(42)
 
 
 class TestSpectralNorm(unittest.TestCase):
@@ -24,11 +24,11 @@ class TestSpectralNorm(unittest.TestCase):
     def test_spectral_normalization(self):
         # Dense kernel
         kernel_shape = (15, 32)
-        kernel = np.random.normal(size=kernel_shape).astype("float32")
+        kernel = rng.normal(size=kernel_shape).astype("float32")
         self._test_kernel(kernel)
         # Dense kernel projection
         kernel_shape = (32, 15)
-        kernel = np.random.normal(size=kernel_shape).astype("float32")
+        kernel = rng.normal(size=kernel_shape).astype("float32")
         self._test_kernel(kernel)
 
     def _test_kernel(self, kernel):
@@ -40,7 +40,8 @@ class TestSpectralNorm(unittest.TestCase):
         ).numpy()
         SVmax = np.max(sigmas_svd)
 
-        W_bar, _u, sigma = spectral_normalization(kernel, u=None, eps=1e-6)
+        u = rng.normal(size=(1, kernel.shape[-1]))
+        W_bar, _u, sigma = spectral_normalization(kernel, u=u, eps=1e-6)
         # Test sigma is close to the one computed with svd first run @ 1e-1
         np.testing.assert_approx_equal(
             sigma, SVmax, 1, "test failed with kernel_shape " + str(kernel.shape)
