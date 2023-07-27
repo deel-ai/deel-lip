@@ -14,6 +14,7 @@ from deel.lip.losses import (
     MulticlassHKR,
     MultiMargin,
     TauCategoricalCrossentropy,
+    TauSparseCategoricalCrossentropy,
     CategoricalHinge,
 )
 from deel.lip.utils import process_labels_for_multi_gpu
@@ -218,6 +219,21 @@ class Test(TestCase):
         )
         check_serialization(1, taucatcrossent_loss)
 
+    def test_tau_sparse_catcrossent(self):
+        tau_sparse_catcrossent_loss = TauSparseCategoricalCrossentropy(1.0)
+        n_class = 10
+        n_items = 10000
+        y_true = np.random.randint(0, n_class, n_items)
+        y_pred = tf.random.normal((n_items, n_class))
+        loss_val = tau_sparse_catcrossent_loss(y_true, y_pred).numpy()
+        loss_val_2 = tau_sparse_catcrossent_loss(
+            tf.cast(y_true, dtype=tf.int32), y_pred
+        ).numpy()
+        np.testing.assert_almost_equal(
+            loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
+        )
+        check_serialization(n_class, tau_sparse_catcrossent_loss)
+
     def test_no_reduction_binary_losses(self):
         """
         Assert binary losses without reduction. Three losses are tested on hardcoded
@@ -275,6 +291,7 @@ class Test(TestCase):
             MulticlassHKR(alpha=2.5, min_margin=1.0, reduction="none"),
             CategoricalHinge(1.1, reduction="none"),
             TauCategoricalCrossentropy(2.0, reduction="none"),
+            TauSparseCategoricalCrossentropy(2.0, reduction="none"),
         )
 
         expected_loss_values = (
@@ -295,10 +312,25 @@ class Test(TestCase):
                     0.076357,
                 ]
             ),
+            np.float64(
+                [
+                    0.044275,
+                    0.115109,
+                    1.243572,
+                    0.084923,
+                    0.010887,
+                    2.802300,
+                    0.114224,
+                    0.076357,
+                ]
+            )
         )
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
-            loss_val = loss(y_true, y_pred)
+            if isinstance(loss, TauSparseCategoricalCrossentropy):
+                loss_val = loss(tf.argmax(y_true, axis=-1), y_pred)
+            else:
+                loss_val = loss(y_true, y_pred)
             np.testing.assert_allclose(
                 loss_val,
                 expected_loss_val,
