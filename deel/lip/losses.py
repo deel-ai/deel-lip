@@ -527,3 +527,37 @@ class TauSparseCategoricalCrossentropy(Loss):
         config = {"tau": self.tau.numpy()}
         base_config = super().get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "TauBinaryCrossentropy")
+class TauBinaryCrossentropy(Loss):
+    def __init__(self, tau, reduction=Reduction.AUTO, name="TauBinaryCrossentropy"):
+        """
+        Similar to the original binary crossentropy, but with a settable temperature
+        parameter. y_pred must be a logits tensor (before sigmoid) and not
+        probabilities.
+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1). `y_true`
+        accepts label values in (0, 1) or (-1, 1).
+
+        Args:
+            tau: temperature parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.tau = tf.Variable(tau, dtype=tf.float32)
+        super().__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred):
+        y_true = tf.cast(y_true > 0, y_pred.dtype)
+        return (
+            tf.keras.losses.binary_crossentropy(
+                y_true, self.tau * y_pred, from_logits=True
+            )
+            / self.tau
+        )
+
+    def get_config(self):
+        config = {"tau": self.tau.numpy()}
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
