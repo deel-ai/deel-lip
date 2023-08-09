@@ -12,6 +12,7 @@ from deel.lip.losses import (
     MulticlassKR,
     MulticlassHinge,
     MulticlassHKR,
+    MulticlassSoftHKR,
     MultiMargin,
     TauCategoricalCrossentropy,
     CategoricalHinge,
@@ -171,6 +172,50 @@ class Test(TestCase):
             "test failed when y_true has dtype int32",
         )
         check_serialization(1, multiclass_hkr)
+
+    def test_softhkrmulticlass_loss(self):
+        multiclass_softhkr = MulticlassSoftHKR(5.0, 0.2,one_hot_ytrue=True)
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_pred = np.float32(
+            [
+                [2, 0.2, -0.5],
+                [-1, -1.2, 0.3],
+                [0.8, 2, 0],
+                [0, 1, -0.5],
+                [2.4, -0.4, -1.1],
+                [-0.1, -1.7, 0.6],
+            ]
+        )
+        loss_val = multiclass_softhkr(y_true, y_pred).numpy()
+        np.testing.assert_allclose(loss_val, np.float32(1.0897621))
+        #moving mean should change and thus loss value
+        loss_val_bis = multiclass_softhkr(y_true, y_pred).numpy()  
+        np.testing.assert_allclose(loss_val_bis, np.float32(1.0834466))
+
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        # recreate loss to reset means
+        multiclass_softhkr = MulticlassSoftHKR(5.0, 0.2,one_hot_ytrue=True)
+        loss_val = multiclass_softhkr(y_true, y_pred).numpy()
+        multiclass_softhkr2 = MulticlassSoftHKR(5.0, 0.2,one_hot_ytrue=True)
+        loss_val_2 = multiclass_softhkr2(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        self.assertEqual(
+            loss_val_2,
+            loss_val,
+            "test failed when y_true has dtype int32",
+        )
+        # test with y_true as +/-1
+        multiclass_softhkr3 = MulticlassSoftHKR(5.0, 2.0,one_hot_ytrue=False)
+        loss_val_3 = multiclass_softhkr3(2*y_true-1, y_pred).numpy()
+        self.assertEqual(
+            loss_val_3,
+            loss_val,
+            "test failed when y_true has dtype int32",
+        )
+
+        check_serialization(1, multiclass_softhkr)
 
     def test_multi_margin_loss(self):
         multimargin_loss = MultiMargin(1.0)
