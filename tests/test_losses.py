@@ -210,7 +210,7 @@ class Test(TestCase):
             "test failed when y_true has dtype int32",
         )
         # test with y_true as +/-1
-        multiclass_softhkr3 = MulticlassSoftHKR(5.0, 2.0, one_hot_ytrue=False)
+        multiclass_softhkr3 = MulticlassSoftHKR(5.0, 0.2, one_hot_ytrue=False)
         loss_val_3 = multiclass_softhkr3(2 * y_true - 1, y_pred).numpy()
         self.assertEqual(
             loss_val_3,
