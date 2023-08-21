@@ -226,8 +226,8 @@ def train_k_lip_model(
     )
     empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
     # save the model
-    model_checkpoint_path = os.path.join(logdir, "model.h5")
-    model.save(model_checkpoint_path, overwrite=True, save_format="h5")
+    model_checkpoint_path = os.path.join(logdir, "model.keras")
+    model.save(model_checkpoint_path, overwrite=True)
     del model
     K.clear_session()
     model = load_model(model_checkpoint_path)
@@ -1050,7 +1050,7 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
 
         # Test saving/loading model
         with tempfile.TemporaryDirectory() as tmpdir:
-            model_path = os.path.join(tmpdir, "model.h5")
+            model_path = os.path.join(tmpdir, "model.keras")
             model.save(model_path)
             tf.keras.models.load_model(model_path)
 
