@@ -410,8 +410,8 @@ class MulticlassSoftHKR(Loss):
         name="MulticlassSoftHKR",
     ):
         """
-        The multiclass version of HKR with softmax. This is done by computing the HKR term over each
-        class and averaging the results.
+        The multiclass version of HKR with softmax. This is done by computing
+        the HKR term over each class and averaging the results.
 
         Note that `y_true` should be one-hot encoded or pre-processed with the
         `deel.lip.utils.process_labels_for_multi_gpu()` function.
@@ -423,7 +423,11 @@ class MulticlassSoftHKR(Loss):
         Args:
             alpha (float): regularization factor
             min_margin (float): margin to enforce.
-            one_hot_ytrue (bool): set to True when y_true are one hot encoded (0 or 1), and False when y_true already signed bases (for instance +/-1)
+            temperature (float): factor for softmax  temperature
+                (higher value increases the weight of the highestnon y_true logits)
+            alpha_mean (float): geometric mean factor
+            one_hot_ytrue (bool): set to True when y_true are one hot encoded (0 or 1),
+                and False when y_true already signed bases (for instance +/-1)
             reduction: passed to tf.keras.Loss constructor
             name (str): passed to tf.keras.Loss constructor
 
@@ -442,7 +446,6 @@ class MulticlassSoftHKR(Loss):
 
         self.temperature = temperature * self.min_margin_v
         self.one_hot_ytrue = one_hot_ytrue
-        # self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=Reduction.NONE, name=name)
         if alpha == np.inf:  # alpha = inf => hinge only
             self.fct = self.multiclass_hinge_soft
         else:
@@ -461,9 +464,6 @@ class MulticlassSoftHKR(Loss):
                 )
                 # self.trainable_vars.append(self.margins)
 
-    """    pass
-    """
-
     @tf.function
     def _update_mean(self, y_pred):
         current_global_mean = tf.cast(
@@ -475,10 +475,6 @@ class MulticlassSoftHKR(Loss):
         )
         self.current_mean.assign(current_global_mean)
         total_mean = current_global_mean
-        """current_mean = tf.cast(tf.reduce_mean(tf.abs(y_pred),axis = 0), self.moving_mean.dtype)
-        current_mean = self.alpha_mean*self.moving_mean + (1-self.alpha_mean)*current_mean
-        self.moving_mean.assign(current_mean)
-        total_mean=  tf.reduce_mean(current_mean)"""
         total_mean = tf.clip_by_value(total_mean, self.min_margin_v, 20000)
         return total_mean
 
@@ -556,9 +552,9 @@ class MulticlassSoftHKR(Loss):
     def get_config(self):
         config = {
             "alpha": self.alpha.numpy(),
-            "min_margin": self.min_margin.numpy(),
-            "alpha_mean": self.alpha_mean.numpy(),
-            "temperature": self.temperature.numpy(),
+            "min_margin": self.min_margin_v,
+            "alpha_mean": self.alpha_mean,
+            "temperature": self.temperature,
             "one_hot_ytrue": self.one_hot_ytrue,
         }
         base_config = super(MulticlassSoftHKR, self).get_config()
