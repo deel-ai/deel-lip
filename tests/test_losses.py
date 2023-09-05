@@ -176,16 +176,19 @@ class Test(TestCase):
     def test_softhkrmulticlass_loss(self):
         multiclass_softhkr = MulticlassSoftHKR(5.0, 0.2, one_hot_ytrue=True)
         y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
-        y_pred = tf.convert_to_tensor(np.float32(
-            [
-                [2, 0.2, -0.5],
-                [-1, -1.2, 0.3],
-                [0.8, 2, 0],
-                [0, 1, -0.5],
-                [2.4, -0.4, -1.1],
-                [-0.1, -1.7, 0.6],
-            ]
-        ),dtype=tf.float32)
+        y_pred = tf.convert_to_tensor(
+            np.float32(
+                [
+                    [2, 0.2, -0.5],
+                    [-1, -1.2, 0.3],
+                    [0.8, 2, 0],
+                    [0, 1, -0.5],
+                    [2.4, -0.4, -1.1],
+                    [-0.1, -1.7, 0.6],
+                ]
+            ),
+            dtype=tf.float32,
+        )
 
         loss_val = multiclass_softhkr(y_true, y_pred).numpy()
         np.testing.assert_allclose(loss_val, np.float32(1.0897621))
