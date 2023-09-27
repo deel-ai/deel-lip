@@ -44,7 +44,7 @@ class SpectralInitializer(Initializer):
 
     def __call__(self, shape, dtype=None, partition_info=None):
         w = self.base_initializer(shape=shape, dtype=dtype)
-        wbar, u, sigma = reshaped_kernel_orthogonalization(
+        wbar, _, _ = reshaped_kernel_orthogonalization(
             w,
             None,
             self.k_coef_lip,
