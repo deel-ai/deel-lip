@@ -114,7 +114,6 @@ class GroupSort(Layer, LipschitzLayer):
             raise RuntimeError(
                 "channels_first not implemented for GroupSort activation"
             )
-            self.channel_axis = 1
         else:
             raise RuntimeError("data format not understood")
         self.n = n
