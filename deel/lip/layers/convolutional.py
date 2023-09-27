@@ -63,7 +63,7 @@ def _compute_conv_lip_factor(kernel_size, strides, input_shape, data_format):
     elif data_format == "channels_first":
         h, w = input_shape[-2], input_shape[-1]
     else:
-        raise RuntimeError("data_format not understood: " % data_format)
+        raise RuntimeError(f"data_format not understood: {data_format}")
 
     if stride == 1:
         return np.sqrt(
