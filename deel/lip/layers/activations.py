@@ -18,14 +18,13 @@ from tensorflow.keras.utils import register_keras_serializable
 
 @register_keras_serializable("deel-lip", "MaxMin")
 class MaxMin(Layer, LipschitzLayer):
-    def __init__(self, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs):
+    def __init__(self, data_format="channels_last", k_coef_lip=1.0, **kwargs):
         """
         MaxMin activation [Relu(x),reLU(-x)]
 
         Args:
             data_format (str): either channels_first or channels_last
             k_coef_lip (float): the lipschitz coefficient to be enforced
-            *args: params passed to Layers
             **kwargs: params passed to layers (named fashion)
 
         Input shape:
@@ -43,7 +42,7 @@ class MaxMin(Layer, LipschitzLayer):
 
         """
         self.set_klip_factor(k_coef_lip)
-        super(MaxMin, self).__init__(*args, **kwargs)
+        super(MaxMin, self).__init__(**kwargs)
         if data_format == "channels_last":
             self.channel_axis = -1
         elif data_format == "channels_first":
@@ -83,9 +82,7 @@ class MaxMin(Layer, LipschitzLayer):
 
 @register_keras_serializable("deel-lip", "GroupSort")
 class GroupSort(Layer, LipschitzLayer):
-    def __init__(
-        self, n=None, data_format="channels_last", k_coef_lip=1.0, *args, **kwargs
-    ):
+    def __init__(self, n=None, data_format="channels_last", k_coef_lip=1.0, **kwargs):
         """
         GroupSort activation
 
@@ -94,7 +91,6 @@ class GroupSort(Layer, LipschitzLayer):
                 size (fullSort behavior)
             data_format (str): either channels_first or channels_last
             k_coef_lip (float): the lipschitz coefficient to be enforced
-            *args: params passed to Layers
             **kwargs: params passed to layers (named fashion)
 
         Input shape:
@@ -107,7 +103,7 @@ class GroupSort(Layer, LipschitzLayer):
 
         """
         self.set_klip_factor(k_coef_lip)
-        super(GroupSort, self).__init__(*args, **kwargs)
+        super(GroupSort, self).__init__(**kwargs)
         if data_format == "channels_last":
             self.channel_axis = -1
         elif data_format == "channels_first":
