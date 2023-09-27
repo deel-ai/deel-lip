@@ -399,9 +399,6 @@ class InvertibleDownSampling(keraslayers.Layer):
         self.pool_size = pool_size
         self.data_format = data_format
 
-    def build(self, input_shape):
-        return super(InvertibleDownSampling, self).build(input_shape)
-
     def call(self, inputs, **kwargs):
         # inputs = super(InvertibleDownSampling, self).call(inputs, **kwargs)
         if self.data_format == "channels_last":
@@ -466,9 +463,6 @@ class InvertibleUpSampling(keraslayers.Layer):
         super(InvertibleUpSampling, self).__init__(name=name, dtype=dtype, **kwargs)
         self.pool_size = pool_size
         self.data_format = data_format
-
-    def build(self, input_shape):
-        return super(InvertibleUpSampling, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         if self.data_format == "channels_first":
