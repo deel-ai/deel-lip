@@ -58,7 +58,7 @@ class MaxMin(Layer, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    def call(self, x, **kwargs):
+    def call(self, x):
         return (
             K.concatenate(
                 (K.relu(x, alpha=0), K.relu(-x, alpha=0)), axis=self.channel_axis
@@ -133,7 +133,7 @@ class GroupSort(Layer, LipschitzLayer):
         return 1.0
 
     @tf.function
-    def call(self, x, **kwargs):
+    def call(self, x):
         fv = tf.reshape(x, self.flat_shape)
         if self.n == 2:
             b, c = tf.split(fv, 2, -1)

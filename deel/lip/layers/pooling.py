@@ -102,7 +102,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    def call(self, x, training=True):
+    def call(self, x):
         return super(keraslayers.AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -206,7 +206,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
 
         return sqrt_op
 
-    def call(self, x, training=True):
+    def call(self, x):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 super(ScaledL2NormPooling2D, self).call(tf.square(x))
@@ -293,7 +293,7 @@ class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzL
 
         return sqrt_op
 
-    def call(self, x, training=True):
+    def call(self, x):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 tf.reduce_sum(tf.square(x), axis=self.axes)
@@ -358,7 +358,7 @@ class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, Lipschitz
             raise RuntimeError("data format not understood: %s" % self.data_format)
         return lip_coef
 
-    def call(self, x, training=True):
+    def call(self, x):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -399,8 +399,7 @@ class InvertibleDownSampling(keraslayers.Layer):
         self.pool_size = pool_size
         self.data_format = data_format
 
-    def call(self, inputs, **kwargs):
-        # inputs = super(InvertibleDownSampling, self).call(inputs, **kwargs)
+    def call(self, inputs):
         if self.data_format == "channels_last":
             return tf.concat(
                 [
@@ -464,7 +463,7 @@ class InvertibleUpSampling(keraslayers.Layer):
         self.pool_size = pool_size
         self.data_format = data_format
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs):
         if self.data_format == "channels_first":
             # convert to channels_first
             inputs = tf.transpose(inputs, [0, 2, 3, 1])
