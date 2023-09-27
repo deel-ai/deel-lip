@@ -120,7 +120,7 @@ class MonitorCallback(Callback):
                 ).numpy()
                 sig = sigmas[0]
             else:
-                RuntimeWarning(
+                raise RuntimeWarning(
                     f"[MonitorCallback] layer {layer_name} has no "
                     f"attribute {self.target}"
                 )
@@ -141,7 +141,7 @@ class MonitorCallback(Callback):
                         % layer_name,
                     )
             if not result:
-                RuntimeWarning(
+                raise RuntimeWarning(
                     "[MonitorCallback] unable to find filewriter, no logs were written,"
                 )
 
