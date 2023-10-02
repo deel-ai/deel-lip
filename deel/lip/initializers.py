@@ -2,6 +2,11 @@
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
+"""
+This module contains extra Keras initializers, e.g. SpectralInitializer for 1-Lipschitz
+matrix initialization.
+They can be used as kernel initializers in any Keras layer.
+"""
 from tensorflow.keras.initializers import Initializer
 from tensorflow.keras import initializers
 from .normalizers import (

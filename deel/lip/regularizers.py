@@ -24,7 +24,10 @@
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
-
+"""
+This module contains custom Keras regularizers. They can be used as kernel regularizer
+in any Keras layer.
+"""
 import warnings
 from abc import ABC, abstractmethod
 
