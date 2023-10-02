@@ -355,7 +355,7 @@ class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, Lipschitz
         elif self.data_format == "channels_first":
             lip_coef = np.sqrt(input_shape[-2] * input_shape[-1])
         else:
-            raise RuntimeError("data format not understood: %s" % self.data_format)
+            raise RuntimeError(f"data format not understood: {self.data_format}")
         return lip_coef
 
     def call(self, x):

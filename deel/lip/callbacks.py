@@ -137,8 +137,10 @@ class MonitorCallback(Callback):
                         sigmas,
                         step=step,
                         buckets=None,
-                        description="distribution of singular values for layer %s"
-                        % layer_name,
+                        description=(
+                            f"distribution of singular values for layer "
+                            f"{layer_name}"
+                        ),
                     )
             if not result:
                 raise RuntimeWarning(
