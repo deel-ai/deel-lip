@@ -124,6 +124,10 @@ class Model(KerasModel):
     """
 
     def condense(self):
+        """
+        The condense operation allows to overwrite the kernel with constrained kernel
+        and ensure that other variables are still consistent.
+        """
         for layer in self.layers:
             if isinstance(layer, Condensable):
                 layer.condense()

@@ -102,6 +102,11 @@ class Lorth(ABC):
             )
 
     def set_kernel_shape(self, shape):
+        """Set class attributes: kernel shape, padding, delta and alpha.
+
+        Args:
+            shape: shape of the convolution kernel to regularize.
+        """
         if shape is None:
             self.kernel_shape, self.padding, self.delta = None, None, None
             return
@@ -125,6 +130,14 @@ class Lorth(ABC):
         raise NotImplementedError()
 
     def compute_lorth(self, w):
+        """Compute regularization term based on Lorth.
+
+        Args:
+            w (tf.Tensor): the convolutional kernel.
+
+        Returns:
+            tf.Tensor: value of the regularization term.
+        """
         output = self._compute_conv_kk(w)
         target = self._compute_target(w, output.shape)
         return tf.reduce_sum(tf.square(output - target)) - self.delta
@@ -214,6 +227,11 @@ class LorthRegularizer(Regularizer):
             raise NotImplementedError("Only 2D convolutions are supported for Lorth.")
 
     def set_kernel_shape(self, shape):
+        """Set kernel shape.
+
+        Args:
+            shape: shape of the convolution kernel to regularize.
+        """
         self.kernel_shape = shape
         self.lorth.set_kernel_shape(shape)
 

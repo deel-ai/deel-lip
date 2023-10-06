@@ -112,7 +112,7 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
             self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2]
             self.pad = lambda t: _padding_circular(t, self.padding_size)
 
-    def compute_padded_shape(self, input_shape, padding_size):
+    def _compute_padded_shape(self, input_shape, padding_size):
         if isinstance(input_shape, tf.TensorShape):
             internal_input_shape = input_shape.as_list()
         else:
@@ -124,7 +124,7 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
         return tf.TensorShape(internal_input_shape)
 
     def build(self, input_shape):
-        self.internal_input_shape = self.compute_padded_shape(
+        self.internal_input_shape = self._compute_padded_shape(
             input_shape, self.padding_size
         )
         super(PadConv2D, self).build(self.internal_input_shape)
