@@ -9,7 +9,12 @@ This module contains losses used in Wasserstein distance estimation. See
 from functools import partial
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import categorical_crossentropy, Loss, Reduction
+from tensorflow.keras.losses import (
+    categorical_crossentropy,
+    sparse_categorical_crossentropy,
+    Loss,
+    Reduction,
+)
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -492,4 +497,67 @@ class TauCategoricalCrossentropy(Loss):
     def get_config(self):
         config = {"tau": self.tau.numpy()}
         base_config = super(TauCategoricalCrossentropy, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "TauSparseCategoricalCrossentropy")
+class TauSparseCategoricalCrossentropy(Loss):
+    def __init__(
+        self, tau, reduction=Reduction.AUTO, name="TauSparseCategoricalCrossentropy"
+    ):
+        """
+        Similar to original sparse categorical crossentropy, but with a settable
+        temperature parameter.
+
+        Args:
+            tau (float): temperature parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name (str): name of the loss
+        """
+        self.tau = tf.Variable(tau, dtype=tf.float32)
+        super().__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred):
+        return (
+            sparse_categorical_crossentropy(y_true, self.tau * y_pred, from_logits=True)
+            / self.tau
+        )
+
+    def get_config(self):
+        config = {"tau": self.tau.numpy()}
+        base_config = super().get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+@register_keras_serializable("deel-lip", "TauBinaryCrossentropy")
+class TauBinaryCrossentropy(Loss):
+    def __init__(self, tau, reduction=Reduction.AUTO, name="TauBinaryCrossentropy"):
+        """
+        Similar to the original binary crossentropy, but with a settable temperature
+        parameter. y_pred must be a logits tensor (before sigmoid) and not
+        probabilities.
+
+        Note that `y_true` and `y_pred` must be of rank 2: (batch_size, 1). `y_true`
+        accepts label values in (0, 1) or (-1, 1).
+
+        Args:
+            tau: temperature parameter.
+            reduction: reduction of the loss, passed to original loss.
+            name: name of the loss
+        """
+        self.tau = tf.Variable(tau, dtype=tf.float32)
+        super().__init__(name=name, reduction=reduction)
+
+    def call(self, y_true, y_pred):
+        y_true = tf.cast(y_true > 0, y_pred.dtype)
+        return (
+            tf.keras.losses.binary_crossentropy(
+                y_true, self.tau * y_pred, from_logits=True
+            )
+            / self.tau
+        )
+
+    def get_config(self):
+        config = {"tau": self.tau.numpy()}
+        base_config = super().get_config()
         return dict(list(base_config.items()) + list(config.items()))
