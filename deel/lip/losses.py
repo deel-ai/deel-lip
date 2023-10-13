@@ -512,8 +512,58 @@ class TauCategoricalCrossentropy(Loss):
 
 from deel.lip.layers.base_layer import LipschitzLayer
 
+@register_keras_serializable("deel-lip", "Certificate_Binary")
+class Certificate_Binary(Loss): 
+    def __init__(self, model, K=None, reduction=Reduction.AUTO,name="Certificate_Binary"):
+        r"""
+        Certificate-based loss in the context of binary classification, 
+        which is inspired from the paper 'Improved deterministic l2 robustness on CIFAR-10 and CIFAR-100' 
+        (https://openreview.net/forum?id=tD7eCtaSkR).
+
+        Our formula is as follow:
+
+        
+        $$\text{certificate} = |\hat{y}|/K$$
+        
+        where $\hat{y}$ is the single logit predicted by our model, 
+        and $K$ is the Lipschitz constant associated with the model.
+
+        Note that `y_true` and `y_pred` must be of rank 2: 
+        (batch_size, C) for multilabel classification with C categories
+
+
+        Args:
+            model: A tensorflow multi-layered model.
+            K : The Lipschitz constant of the model. 
+            It is calculated using the model if not provided by a user upon instanciation.
+            reduction: passed to tf.keras.Loss constructor
+            name (str): passed to tf.keras.Loss constructor
+
+        """
+        self.model=model
+        
+        if K is None:
+            self.K = tf.constant(get_K_(get_layers(self.model)), dtype=tf.float32)
+            
+        else:
+            self.K = tf.constant(K, dtype=tf.float32)
+        
+        super(Certificate_Binary, self).__init__(reduction=reduction, name=name)
+  
+    @tf.function
+    def call(self, y_true, y_pred):
+
+        
+        return tf.abs(y_pred[:, 0]) / self.K
+
+    def get_config(self):
+        config = {"model":self.model, "K": self.K.numpy()}
+        base_config = super(Certificate_Binary, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 @register_keras_serializable("deel-lip", "Certificate_Multiclass")
-class Certificate_Multiclass(Loss): #_tf for tensorflow
+class Certificate_Multiclass(Loss): 
     def __init__(self, model, K_n_minus_1=None, reduction=Reduction.AUTO,name="Certificate_Multiclass"):
         r"""
         Certificate-based loss, which is inspired from the paper 'Improved deterministic l2 robustness on CIFAR-10 and CIFAR-100' 
