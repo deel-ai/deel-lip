@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 
-from .layers import GroupSort, MaxMin
+from .layers import Condensable, GroupSort, MaxMin
+from .layers.unconstrained import PadConv2D
 
 
 def _compute_sv_dense(layer, input_sizes=None):
@@ -115,3 +116,44 @@ def _compute_sv_bn(layer, input_sizes=None):
         layer.gamma.numpy() / np.sqrt(layer.moving_variance.numpy() + layer.epsilon)
     )
     return (np.min(values), np.max(values))
+
+
+def compute_layer_sv(layer, supplementary_type2sv={}):
+    """
+    Compute the largest and lowest singular values (or upper and lower bounds)
+    of a given layer.
+
+    In case of Condensable layers, a vanilla_export is applied to the layer
+    to get the weights.
+    Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization,
+    ReLU, Activation, and deel-lip layers)
+
+    Args:
+        layer (tf.keras.layers.Layer): a single tf.keras.layer
+        supplementary_type2sv (dict, optional): a dictionary linking new layer type with
+            user-defined function to compute the singular values. Defaults to {}.
+    Returns:
+        tuple: a 2-tuple with lowest and largest singular values.
+    """
+    default_type2sv = {
+        tf.keras.layers.Conv2D: _compute_sv_conv2d_layer,
+        tf.keras.layers.Conv2DTranspose: _compute_sv_conv2d_layer,
+        PadConv2D: _compute_sv_conv2d_layer,
+        tf.keras.layers.Dense: _compute_sv_dense,
+        tf.keras.layers.ReLU: _compute_sv_activation,
+        tf.keras.layers.Activation: _compute_sv_activation,
+        GroupSort: _compute_sv_activation,
+        MaxMin: _compute_sv_activation,
+        tf.keras.layers.Add: _compute_sv_add,
+        tf.keras.layers.BatchNormalization: _compute_sv_bn,
+    }
+    input_shape = layer.input_shape
+    if isinstance(layer, Condensable):
+        layer.condense()
+        layer = layer.vanilla_export()
+    if type(layer) in default_type2sv.keys():
+        return default_type2sv[type(layer)](layer, input_shape)
+    elif type(layer) in supplementary_type2sv.keys():
+        return supplementary_type2sv[type(layer)](layer, input_shape)
+    else:
+        return (None, None)
