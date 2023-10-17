@@ -157,3 +157,24 @@ def compute_layer_sv(layer, supplementary_type2sv={}):
         return supplementary_type2sv[type(layer)](layer, input_shape)
     else:
         return (None, None)
+
+
+def compute_model_sv(model, supplementary_type2sv={}):
+    """Compute the largest and lowest singular values of all layers in a model.
+
+    Args:
+        model (tf.keras.Model): a tf.keras Model or Sequential.
+        supplementary_type2sv (dict, optional): a dictionary linking new layer type
+            with user defined function to compute the min and max singular values.
+
+    Returns:
+        dict: A dictionary indicating for each layer name a tuple (min sv, max sv)
+    """
+    list_sv = []
+    for layer in model.layers:
+        if isinstance(layer, tf.keras.Model):
+            list_sv.append((layer.name, (None, None)))
+            list_sv += compute_model_sv(layer, supplementary_type2sv)
+        else:
+            list_sv.append((layer.name, compute_layer_sv(layer, supplementary_type2sv)))
+    return list_sv
