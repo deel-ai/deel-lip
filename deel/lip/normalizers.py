@@ -165,7 +165,6 @@ def _power_iteration(
     eps=DEFAULT_EPS_SPECTRAL,
     maxiter=DEFAULT_MAXITER_SPECTRAL,
     axis=None,
-    big_constant=-1,
 ):
     """Internal function that performs the power iteration algorithm to estimate the
     largest singular vector of a linear operator.
@@ -181,8 +180,6 @@ def _power_iteration(
             Defaults to DEFAULT_MAXITER_SPECTRAL.
         axis (int/list, optional): dimension along which to normalize. Can be set for
             depthwise convolution for example. Defaults to None.
-        big_constant (int, optional): Set to a large value to compute the minimum
-            singular value. Defaults to -1, to compute the maximum singular value.
 
     Returns:
         tf.Tensor: the maximum singular vector.
@@ -198,9 +195,6 @@ def _power_iteration(
         old_u = u
         v = linear_operator(u)
         u = adjoint_operator(v)
-
-        if big_constant > 0:
-            u = big_constant * old_u - u
 
         u = tf.math.l2_normalize(u, axis=axis)
 
