@@ -1,6 +1,9 @@
 import numpy as np
 import tensorflow as tf
 
+from .layers import GroupSort, MaxMin
+
+
 def _compute_sv_dense(layer, input_sizes=None):
     """Compute max and min singular values for a Dense layer.
 
@@ -76,3 +79,39 @@ def _compute_sv_conv2d_layer(layer, input_sizes):
     w_eqmatrix = _generate_conv_matrix(layer, input_sizes)
     svd = np.linalg.svd(w_eqmatrix, compute_uv=False)
     return (np.min(svd), np.max(svd))
+
+
+def _compute_sv_activation(layer, input_sizes=None):
+    """Compute min and max gradient norm for activation.
+
+    Warning: This is not singular values for non-linear functions but gradient norm.
+    """
+    if isinstance(layer, tf.keras.layers.Activation):
+        function2SV = {tf.keras.activations.relu: (0, 1)}
+        if layer.activation in function2SV.keys():
+            return function2SV[layer.activation]
+        else:
+            return (None, None)
+    layer2SV = {
+        tf.keras.layers.ReLU: (0, 1),
+        GroupSort: (1, 1),
+        MaxMin: (1, 1),
+    }
+    if layer in layer2SV.keys():
+        return layer2SV[layer.activation]
+    else:
+        return (None, None)
+
+
+def _compute_sv_add(layer, input_sizes):
+    """Compute min and max singular values of Add layer."""
+    assert isinstance(input_sizes, list)
+    return (len(input_sizes) * 1.0, len(input_sizes) * 1.0)
+
+
+def _compute_sv_bn(layer, input_sizes=None):
+    """Compute min and max singular values of BatchNormalization layer."""
+    values = np.abs(
+        layer.gamma.numpy() / np.sqrt(layer.moving_variance.numpy() + layer.epsilon)
+    )
+    return (np.min(values), np.max(values))
