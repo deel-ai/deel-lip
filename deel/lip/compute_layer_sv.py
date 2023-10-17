@@ -1,3 +1,19 @@
+"""Compute the largest and lowest singular values of a layer or network.
+
+The singular values are computed using the SVD decomposition of the weight matrix.
+For convolutional layers, the equivalent matrix is computed and the SVD is applied on
+it.
+
+The `compute_layer_sv()` function is the main function to compute the singular values of
+a given layer. It supports by default several kinds of layers (Conv2D, Dense, Add,
+BatchNormalization, ReLU, Activation, and deel-lip layers). For other layers, the
+user can provide a supplementary_type2sv dictionary linking a new layer type with a
+user-defined function to compute the singular values.
+
+The function `compute_model_sv()` computes the singular values of all layers in a model.
+It returns a dictionary indicating for each layer name a tuple (min sv, max sv).
+"""
+
 import numpy as np
 import tensorflow as tf
 
