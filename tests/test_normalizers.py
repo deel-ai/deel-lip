@@ -40,7 +40,7 @@ class TestSpectralNorm(unittest.TestCase):
         ).numpy()
         SVmax = np.max(sigmas_svd)
 
-        u = rng.normal(size=(1, kernel.shape[-1]))
+        u = rng.normal(size=(1, kernel.shape[-1])).astype("float32")
         W_bar, _u, sigma = spectral_normalization(kernel, u=u, eps=1e-6)
         # Test sigma is close to the one computed with svd first run @ 1e-1
         np.testing.assert_approx_equal(
