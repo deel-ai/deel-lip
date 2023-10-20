@@ -14,6 +14,7 @@ nav:
     - deel.lip.normalizers: api/normalizers.md
     - deel.lip.utils: api/utils.md
   - Tutorials:
+    - "Getting started 1 - Creating a 1-Lipschitz neural network": notebooks/Getting_started_1.ipynb
     - "Demo 0: Example & Usage": notebooks/demo0.ipynb
     - "Demo 1: Wasserstein distance estimation on toy example": notebooks/demo1.ipynb
     - "Demo 2: HKR Classifier on toy dataset": notebooks/demo2.ipynb
