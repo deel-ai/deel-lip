@@ -29,6 +29,7 @@ docs_requires = [
     "mkdocstrings-python",
     "mknotebooks",
     "ipython",  # required for Pygments
+    "black",  # required for mkdocs signature rendering
 ]
 
 setuptools.setup(
