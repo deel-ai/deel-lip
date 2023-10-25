@@ -38,7 +38,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         padding="valid",
         data_format=None,
         k_coef_lip=1.0,
-        **kwargs
+        **kwargs,
     ):
         """
         Average pooling operation for spatial data, but with a lipschitz bound.
@@ -89,7 +89,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
             strides=pool_size,
             padding=padding,
             data_format=data_format,
-            **kwargs
+            **kwargs,
         )
         self.set_klip_factor(k_coef_lip)
         self._kwargs = kwargs
@@ -123,7 +123,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         data_format=None,
         k_coef_lip=1.0,
         eps_grad_sqrt=1e-6,
-        **kwargs
+        **kwargs,
     ):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This
@@ -179,7 +179,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
             strides=pool_size,
             padding=padding,
             data_format=data_format,
-            **kwargs
+            **kwargs,
         )
         self.set_klip_factor(k_coef_lip)
         self.eps_grad_sqrt = eps_grad_sqrt
