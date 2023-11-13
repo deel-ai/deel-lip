@@ -120,7 +120,7 @@ class MonitorCallback(Callback):
                 ).numpy()
                 sig = sigmas[0]
             else:
-                RuntimeWarning(
+                raise RuntimeWarning(
                     f"[MonitorCallback] layer {layer_name} has no "
                     f"attribute {self.target}"
                 )
@@ -137,11 +137,13 @@ class MonitorCallback(Callback):
                         sigmas,
                         step=step,
                         buckets=None,
-                        description="distribution of singular values for layer %s"
-                        % layer_name,
+                        description=(
+                            f"distribution of singular values for layer "
+                            f"{layer_name}"
+                        ),
                     )
             if not result:
-                RuntimeWarning(
+                raise RuntimeWarning(
                     "[MonitorCallback] unable to find filewriter, no logs were written,"
                 )
 

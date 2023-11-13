@@ -28,12 +28,12 @@ def _is_supported_1lip_layer(layer):
     if isinstance(layer, supported_1lip_layers):
         return True
     elif isinstance(layer, kl.MaxPool2D):
-        return True if layer.pool_size <= layer.strides else False
+        return layer.pool_size <= layer.strides
     elif isinstance(layer, kl.ReLU):
-        return True if (layer.threshold == 0 and layer.negative_slope <= 1) else False
+        return bool(layer.threshold == 0 and layer.negative_slope <= 1)
     elif isinstance(layer, kl.Activation):
         supported_activations = (ka.linear, ka.relu, ka.sigmoid, ka.tanh)
-        return True if layer.activation in supported_activations else False
+        return layer.activation in supported_activations
     return False
 
 
@@ -124,6 +124,10 @@ class Model(KerasModel):
     """
 
     def condense(self):
+        """
+        The condense operation allows to overwrite the kernel with constrained kernel
+        and ensure that other variables are still consistent.
+        """
         for layer in self.layers:
             if isinstance(layer, Condensable):
                 layer.condense()

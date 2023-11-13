@@ -63,7 +63,7 @@ def _compute_conv_lip_factor(kernel_size, strides, input_shape, data_format):
     elif data_format == "channels_first":
         h, w = input_shape[-2], input_shape[-1]
     else:
-        raise RuntimeError("data_format not understood: " % data_format)
+        raise RuntimeError(f"data_format not understood: {data_format}")
 
     if stride == 1:
         return np.sqrt(
@@ -99,7 +99,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         beta_bjorck=DEFAULT_BETA_BJORCK,
         maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
         maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
-        **kwargs
+        **kwargs,
     ):
         """
         This class is a Conv2D Layer constrained such that all singular of it's kernel
@@ -164,11 +164,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
 
         This documentation reuse the body of the original keras.layers.Conv2D doc.
         """
-        if not (
-            (dilation_rate == (1, 1))
-            or (dilation_rate == [1, 1])
-            or (dilation_rate == 1)
-        ):
+        if dilation_rate not in ((1, 1), [1, 1], 1):
             raise RuntimeError("SpectralConv2D does not support dilation rate")
         if padding != "same":
             raise RuntimeError("SpectralConv2D only supports padding='same'")
@@ -188,7 +184,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
-            **kwargs
+            **kwargs,
         )
         self._kwargs = kwargs
         self.set_klip_factor(k_coef_lip)
@@ -299,7 +295,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             use_bias=self.use_bias,
             kernel_initializer="glorot_uniform",
             bias_initializer="zeros",
-            **self._kwargs
+            **self._kwargs,
         )
         layer.build(self.input_shape)
         layer.kernel.assign(self.wbar)
@@ -334,7 +330,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         beta_bjorck=DEFAULT_BETA_BJORCK,
         maxiter_spectral=DEFAULT_MAXITER_SPECTRAL,
         maxiter_bjorck=DEFAULT_MAXITER_BJORCK,
-        **kwargs
+        **kwargs,
     ):
         """
         This class is a Conv2DTranspose layer constrained such that all singular values
@@ -419,7 +415,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             activity_regularizer,
             kernel_constraint,
             bias_constraint,
-            **kwargs
+            **kwargs,
         )
 
         if self.dilation_rate != (1, 1):
@@ -598,7 +594,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             data_format=self.data_format,
             activation=self.activation,
             use_bias=self.use_bias,
-            **self._kwargs
+            **self._kwargs,
         )
         layer.build(self.input_shape)
         layer.kernel.assign(self.wbar)
@@ -631,15 +627,11 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         kernel_constraint=None,
         bias_constraint=None,
         k_coef_lip=1.0,
-        **kwargs
+        **kwargs,
     ):
-        if not ((strides == (1, 1)) or (strides == [1, 1]) or (strides == 1)):
+        if strides not in ((1, 1), [1, 1], 1):
             raise RuntimeError("FrobeniusConv2D does not support strides")
-        if not (
-            (dilation_rate == (1, 1))
-            or (dilation_rate == [1, 1])
-            or (dilation_rate == 1)
-        ):
+        if dilation_rate not in ((1, 1), [1, 1], 1):
             raise RuntimeError("FrobeniusConv2D does not support dilation rate")
         if padding != "same":
             raise RuntimeError("FrobeniusConv2D only supports padding='same'")
@@ -667,7 +659,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
-            **kwargs
+            **kwargs,
         )
         self.set_klip_factor(k_coef_lip)
         self.wbar = None

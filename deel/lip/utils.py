@@ -36,7 +36,7 @@ def evaluate_lip_const_gen(
         float: the empirically evaluated lipschitz constant.
 
     """
-    x, y = generator.send(None)
+    x, _ = generator.send(None)
     return evaluate_lip_const(model, x, eps, seed=seed)
 
 
@@ -69,7 +69,7 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     ndx = K.sqrt(K.sum(K.square(dx), axis=range(1, len(x.shape))))
     ndfx = K.sqrt(K.sum(K.square(dfx), axis=range(1, len(y_pred.shape))))
     lip_cst = K.max(ndfx / ndx)
-    print("lip cst: %.3f" % lip_cst)
+    print(f"lip cst: {lip_cst:.3f}")
     return lip_cst
 
 

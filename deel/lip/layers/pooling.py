@@ -38,7 +38,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         padding="valid",
         data_format=None,
         k_coef_lip=1.0,
-        **kwargs
+        **kwargs,
     ):
         """
         Average pooling operation for spatial data, but with a lipschitz bound.
@@ -89,7 +89,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
             strides=pool_size,
             padding=padding,
             data_format=data_format,
-            **kwargs
+            **kwargs,
         )
         self.set_klip_factor(k_coef_lip)
         self._kwargs = kwargs
@@ -102,7 +102,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    def call(self, x, training=True):
+    def call(self, x):
         return super(keraslayers.AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -123,7 +123,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         data_format=None,
         k_coef_lip=1.0,
         eps_grad_sqrt=1e-6,
-        **kwargs
+        **kwargs,
     ):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This
@@ -179,7 +179,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
             strides=pool_size,
             padding=padding,
             data_format=data_format,
-            **kwargs
+            **kwargs,
         )
         self.set_klip_factor(k_coef_lip)
         self.eps_grad_sqrt = eps_grad_sqrt
@@ -206,7 +206,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
 
         return sqrt_op
 
-    def call(self, x, training=True):
+    def call(self, x):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 super(ScaledL2NormPooling2D, self).call(tf.square(x))
@@ -293,7 +293,7 @@ class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzL
 
         return sqrt_op
 
-    def call(self, x, training=True):
+    def call(self, x):
         return (
             ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
                 tf.reduce_sum(tf.square(x), axis=self.axes)
@@ -355,10 +355,10 @@ class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, Lipschitz
         elif self.data_format == "channels_first":
             lip_coef = np.sqrt(input_shape[-2] * input_shape[-1])
         else:
-            raise RuntimeError("data format not understood: %s" % self.data_format)
+            raise RuntimeError(f"data format not understood: {self.data_format}")
         return lip_coef
 
-    def call(self, x, training=True):
+    def call(self, x):
         return super(ScaledGlobalAveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
@@ -399,11 +399,7 @@ class InvertibleDownSampling(keraslayers.Layer):
         self.pool_size = pool_size
         self.data_format = data_format
 
-    def build(self, input_shape):
-        return super(InvertibleDownSampling, self).build(input_shape)
-
-    def call(self, inputs, **kwargs):
-        # inputs = super(InvertibleDownSampling, self).call(inputs, **kwargs)
+    def call(self, inputs):
         if self.data_format == "channels_last":
             return tf.concat(
                 [
@@ -467,10 +463,7 @@ class InvertibleUpSampling(keraslayers.Layer):
         self.pool_size = pool_size
         self.data_format = data_format
 
-    def build(self, input_shape):
-        return super(InvertibleUpSampling, self).build(input_shape)
-
-    def call(self, inputs, **kwargs):
+    def call(self, inputs):
         if self.data_format == "channels_first":
             # convert to channels_first
             inputs = tf.transpose(inputs, [0, 2, 3, 1])

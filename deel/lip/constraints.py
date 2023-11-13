@@ -108,7 +108,7 @@ class SpectralConstraint(Constraint):
         super(SpectralConstraint, self).__init__()
 
     def __call__(self, w):
-        wbar, u, sigma = reshaped_kernel_orthogonalization(
+        wbar, _, _ = reshaped_kernel_orthogonalization(
             w,
             self.u,
             self.k_coef_lip,
