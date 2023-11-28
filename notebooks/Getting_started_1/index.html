@@ -1,0 +1,1319 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../api/utils/">
+      
+      
+        <link rel="next" href="../demo0/">
+      
+      
+      <link rel="icon" href="../../assets/lip_logo.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.6">
+    
+    
+      
+        <title>Getting started 1 - Creating a 1-Lipschitz neural network - DEEL-LIP</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.35e1ed30.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../../css/custom.css">
+    
+      <link rel="stylesheet" href="../../css/ansi-colours.css">
+    
+      <link rel="stylesheet" href="../../css/jupyter-cells.css">
+    
+      <link rel="stylesheet" href="../../css/pandas-dataframe.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getting-started-1-creating-a-1-lipschitz-neural-network" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="DEEL-LIP" class="md-header__button md-logo" aria-label="DEEL-LIP" data-md-component="logo">
+      
+  <img src="../../assets/lip_logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DEEL-LIP
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Getting started 1 - Creating a 1-Lipschitz neural network
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="dark" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/deel-ai/deel-lip" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/deel-lip
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="DEEL-LIP" class="md-nav__button md-logo" aria-label="DEEL-LIP" data-md-component="logo">
+      
+  <img src="../../assets/lip_logo.png" alt="logo">
+
+    </a>
+    DEEL-LIP
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/deel-ai/deel-lip" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    deel-ai/deel-lip
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/activations/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.activations
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/callbacks/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.callbacks
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/constraints/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.constraints
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/initializers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.initializers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/layers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.layers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/losses/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.losses
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/metrics/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.metrics
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/model/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.model
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/normalizers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.normalizers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    deel.lip.utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Getting started 1 - Creating a 1-Lipschitz neural network
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Getting started 1 - Creating a 1-Lipschitz neural network
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#theoretical-background" class="md-nav__link">
+    📚 Theoretical background  
+  </a>
+  
+    <nav class="md-nav" aria-label="📚 Theoretical background">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-the-lipschitz-constant" class="md-nav__link">
+    What is the Lipschitz constant
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-simple-requirement-for-creating-1-lipschitz-neural-network" class="md-nav__link">
+    A simple requirement for creating 1-Lipschitz neural network
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-1-lipschitz-neural-network-with-deel-lip-and-keras" class="md-nav__link">
+    🧱 Creating a 1-Lipschitz neural network with deel-lip and keras  
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-rules-for-1-lipschitz-neural-networks-with-deel-lip" class="md-nav__link">
+    🔨 Design rules for 1-Lipschitz neural networks with deel-lip   
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#congratulations" class="md-nav__link">
+    🎉 Congratulations
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo0/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Demo 0: Example & Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo1/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Demo 1: Wasserstein distance estimation on toy example
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo2/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Demo 2: HKR Classifier on toy dataset
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo3/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Demo 3: HKR Classifier on MNIST dataset
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../demo4/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Demo 4: HKR Multiclass and fooling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#theoretical-background" class="md-nav__link">
+    📚 Theoretical background  
+  </a>
+  
+    <nav class="md-nav" aria-label="📚 Theoretical background">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-the-lipschitz-constant" class="md-nav__link">
+    What is the Lipschitz constant
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a-simple-requirement-for-creating-1-lipschitz-neural-network" class="md-nav__link">
+    A simple requirement for creating 1-Lipschitz neural network
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#creating-a-1-lipschitz-neural-network-with-deel-lip-and-keras" class="md-nav__link">
+    🧱 Creating a 1-Lipschitz neural network with deel-lip and keras  
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-rules-for-1-lipschitz-neural-networks-with-deel-lip" class="md-nav__link">
+    🔨 Design rules for 1-Lipschitz neural networks with deel-lip   
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#congratulations" class="md-nav__link">
+    🎉 Congratulations
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script>
+(function() {
+  function addWidgetsRenderer() {
+    var requireJsScript = document.createElement('script');
+    requireJsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js';
+
+    var mimeElement = document.querySelector('script[type="application/vnd.jupyter.widget-view+json"]');
+    var jupyterWidgetsScript = document.createElement('script');
+    var widgetRendererSrc = 'https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js';
+    var widgetState;
+
+    // Fallback for older version:
+    try {
+      widgetState = mimeElement && JSON.parse(mimeElement.innerHTML);
+
+      if (widgetState && (widgetState.version_major < 2 || !widgetState.version_major)) {
+        widgetRendererSrc = 'jupyter-js-widgets@*/dist/embed.js';
+      }
+    } catch(e) {}
+
+    jupyterWidgetsScript.src = widgetRendererSrc;
+
+    document.body.appendChild(requireJsScript);
+    document.body.appendChild(jupyterWidgetsScript);
+  }
+
+  document.addEventListener('DOMContentLoaded', addWidgetsRenderer);
+}());
+</script>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="getting-started-1-creating-a-1-lipschitz-neural-network">👋 Getting started 1: Creating a 1-Lipschitz neural network<a class="headerlink" href="#getting-started-1-creating-a-1-lipschitz-neural-network" title="Permanent link">&para;</a></h1>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>The goal of this series of tutorials is to show the different usages of <code>deel-lip</code>.</p>
+<p>In this first notebook, our objective is to show how to create 1-Lipschitz neural networks with <code>deel-lip</code>. </p>
+<p>In particular, we will cover the following: 
+1. <a href="#theoretical_background">📚 Theoretical background</a>  <br />
+A brief theoretical background on Lipschitz continuous functions. This section can be safely skipped if one is not interested in the theory.
+2. <a href="#deel_keras">🧱 Creating a 1-Lipschitz neural network with <code>deel-lip</code> and <code>keras</code></a>     <br />
+An example of how to create a 1-Lipschitz neural network with <code>deel-lip</code> and <code>keras</code>.
+3. <a href="#design">🔨 Design rules for 1-Lipschitz neural networks with <code>deel-lip</code></a> <br />
+A set of neural network design rules that one must respect in order to enforce the 1-Lipschitz constraint.</p>
+<h2 id="theoretical-background">📚 Theoretical background <a id="theoretical_background"></a> <a name="theoretical_background"></a><a class="headerlink" href="#theoretical-background" title="Permanent link">&para;</a></h2>
+<h3 id="what-is-the-lipschitz-constant">What is the Lipschitz constant<a class="headerlink" href="#what-is-the-lipschitz-constant" title="Permanent link">&para;</a></h3>
+<p>The <code>deel-lip</code> package allows to control the Lipschitz constant of a layer or of a whole neural network. The Lipschitz constant is a mathematical property of a function (in our context of work, a layer or a model) that characterizes how much the output of the function can change with respect to changes in its input. </p>
+<p>In mathematical terms, a function <span class="arithmatex">\(f\)</span> is Lipschitz continuous with a <strong>Lipschitz constant L</strong> or more simply <strong>L-Lipschitz</strong> if for any given pair of points <span class="arithmatex">\(x_1,x_2\)</span>, <span class="arithmatex">\(L\)</span> provides a bound on the rate of change of <span class="arithmatex">\(f\)</span>:  </p>
+<div class="arithmatex">\[||f(x_1)-f(x_2)||\leq L||x_1-x_2||.\]</div>
+<p>For instance, given a 1-Lipschitz dense layer (a.k.a fully connected layer) with a weight matrix <span class="arithmatex">\(W\)</span> and a bias vector <span class="arithmatex">\(b\)</span>, we have for any two inputs <span class="arithmatex">\(x_1\)</span> and <span class="arithmatex">\(x_2\)</span>: <span class="arithmatex">\(<span class="arithmatex">\(||(W.x_1+b)-(W.x_2+b)|| \leq 1||x_1-x_2||.\)</span>\)</span></p>
+<p>💡 The norm we refer to throughout our notebooks is the Euclidean norm (L2). This is because <code>deel-lip</code> operates with this norm. You will find more information about the role of the norm in the context of adversarially robust 1-Lipschitz deep learning models in the notebook titled 'Getting Started 2'.</p>
+<h3 id="a-simple-requirement-for-creating-1-lipschitz-neural-network">A simple requirement for creating 1-Lipschitz neural network<a class="headerlink" href="#a-simple-requirement-for-creating-1-lipschitz-neural-network" title="Permanent link">&para;</a></h3>
+<p>The composition property of Lipschitz continuous functions states that if you have a function f that is <span class="arithmatex">\(L_1\)</span>-Lipschitz and another function g that is <span class="arithmatex">\(L_2\)</span>-Lispchitz, then their composition function h = (f o g) which applies f after g is also Lipschitz continuous with a Lipschitz constant <span class="arithmatex">\(L \leq L_1\)</span> * <span class="arithmatex">\(L_2\)</span>.</p>
+<p>A feed-forward or sequential neural network is essentially a stack of layers, where each layer transforms the output of the previous layer(s) and feeds its output to the next ones. </p>
+<p>By the composition property of Lipschitz functions, <em>it suffices for each of the n individual layers of a neural network model to be 1-Lipschitz, for the whole model to be 1-Lipschitz</em>.</p>
+<p>For instance, given a 1-Lipschitz dense layer parametrized by <span class="arithmatex">\((W,b)\)</span>, and a ReLU (Rectified Linear Unit) activation layer which is naturally 1-Lipschitz, the combination of the two is also 1-Lispchitz. <br />
+This is shown in the equations below, where we have for any two inputs <span class="arithmatex">\(x_1\)</span> and <span class="arithmatex">\(x_2\)</span>:</p>
+<div class="arithmatex">\[||(W.x_1+b)-(W.x_2+b)||\leq 1||x_1-x_2||,$$
+$$||ReLU(x_1)-ReLU(x_2)||\leq 1||x_1-x_2||,$$
+and:
+$$||ReLU(W.x_1+b)-ReLU(W.x_2+b)||\leq 1||(W.x_1+b)-(W.x_2+b)||\leq 1^2||x_1-x_2||.\]</div>
+<p>The <code>deel-lip</code> package allows to create 1-Lipschitz neural networks, by providing the user with means to enforce the Lipschitz constant at one on a selected set of layers (such as dense layers). 
+It also ensures that 1-Lipschitz continuity is retained during training.</p>
+<h2 id="creating-a-1-lipschitz-neural-network-with-deel-lip-and-keras">🧱 Creating a 1-Lipschitz neural network with <code>deel-lip</code> and <code>keras</code> <a id="deel_keras"></a> <a name="deel_keras"></a><a class="headerlink" href="#creating-a-1-lipschitz-neural-network-with-deel-lip-and-keras" title="Permanent link">&para;</a></h2>
+<p><code>keras</code> is an open-source high-level deep learning API written in Python. It allows to build, train, and deploy deep learning models.</p>
+<p>One can produce a neural network architecture using keras with a few lines of code, as shown in the toy-example multi-layer perceptron (MLP) below:</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">tensorflow</span> <span class="kn">import</span> <span class="n">keras</span>
+<span class="kn">from</span> <span class="nn">tensorflow.keras</span> <span class="kn">import</span> <span class="n">layers</span><span class="p">,</span> <span class="n">Model</span>
+
+<span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">num_classes</span><span class="o">=</span><span class="mi">10</span>
+
+<span class="c1"># a basic model that does not follow any Lipschitz constraint</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">Sequential</span><span class="p">([</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">),</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="p">])</span>
+
+
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;adam&#39;</span><span class="p">,</span>
+          <span class="n">loss</span><span class="o">=</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span><span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+          <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ flatten (Flatten)           (None, 784)               0         
+
+ dense (Dense)               (None, 64)                50240     
+
+ activation (Activation)     (None, 64)                0         
+
+ dense_1 (Dense)             (None, 32)                2080      
+
+ activation_1 (Activation)   (None, 32)                0         
+
+ dense_2 (Dense)             (None, 10)                330       
+
+=================================================================
+Total params: 52650 (205.66 KB)
+Trainable params: 52650 (205.66 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Alternatively, it is equivalent to write:</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">inputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">64</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">32</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="s1">&#39;relu&#39;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Model: "model"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_2 (InputLayer)        [(None, 28, 28, 1)]       0         
+
+ flatten_1 (Flatten)         (None, 784)               0         
+
+ dense_3 (Dense)             (None, 64)                50240     
+
+ activation_2 (Activation)   (None, 64)                0         
+
+ dense_4 (Dense)             (None, 32)                2080      
+
+ activation_3 (Activation)   (None, 32)                0         
+
+ dense_5 (Dense)             (None, 10)                330       
+
+=================================================================
+Total params: 52650 (205.66 KB)
+Trainable params: 52650 (205.66 KB)
+Non-trainable params: 0 (0.00 Byte)
+_________________________________________________________________
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><code>deel-lip</code> extends <code>keras</code>' capabilities by introducing custom <code>layers</code> and <code>model</code> modules, to provide the ability to control the Lipschitz constant of layers objects or of complete neural networks, while keeping a user-friendly interface.</p>
+<p>Below is a 1-Lipschitz replication of the previous MLP toy-example, using <code>deel-lip</code>:</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">deel</span>
+<span class="kn">from</span> <span class="nn">deel</span> <span class="kn">import</span> <span class="n">lip</span>
+</code></pre></div>
+
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">Lip_model</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">Sequential</span><span class="p">([</span>    
+        <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">),</span>
+        <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+        <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="mi">64</span><span class="p">),</span>
+        <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GroupSort2</span><span class="p">(),</span>
+        <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="mi">32</span><span class="p">),</span>
+        <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GroupSort2</span><span class="p">(),</span>
+        <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="p">],</span>
+
+<span class="p">)</span>
+
+<span class="n">Lip_model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="s1">&#39;adam&#39;</span><span class="p">,</span>
+          <span class="n">loss</span><span class="o">=</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="o">.</span><span class="n">CategoricalCrossentropy</span><span class="p">(</span><span class="n">from_logits</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+          <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+
+<span class="n">Lip_model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Model: "sequential_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ flatten_2 (Flatten)         (None, 784)               0         
+
+ spectral_dense (SpectralDe  (None, 64)                100481    
+ nse)                                                            
+
+ group_sort2 (GroupSort2)    (None, 64)                0         
+
+ spectral_dense_1 (Spectral  (None, 32)                4161      
+ Dense)                                                          
+
+ group_sort2_1 (GroupSort2)  (None, 32)                0         
+
+ spectral_dense_2 (Spectral  (None, 10)                661       
+ Dense)                                                          
+
+=================================================================
+Total params: 105303 (411.34 KB)
+Trainable params: 52650 (205.66 KB)
+Non-trainable params: 52653 (205.68 KB)
+_________________________________________________________________
+</code>
+</pre>
+</div>
+</div>
+<div class="output_area">
+<div class="output_subarea output_stream output_stderr output_text">
+<pre>
+<code>C:\Users\kierszbaums\anaconda.related\envs\1_lipschitz\deel_lip\lib\site-packages\keras\src\initializers\initializers.py:120: UserWarning: The initializer Orthogonal is unseeded and being called multiple times, which will return identical values each time (even if the initializer is unseeded). Please update your code to provide a seed to the initializer, or avoid using the same initializer instance more than once.
+  warnings.warn(
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Alternatively, it is equivalent to write:</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="highlight"><pre><span></span><code><span class="n">inputs</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Input</span><span class="p">(</span><span class="n">input_shape</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()(</span><span class="n">inputs</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="mi">64</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GroupSort2</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="mi">32</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">GroupSort2</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">SpectralDense</span><span class="p">(</span><span class="n">num_classes</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">Lip_model</span> <span class="o">=</span> <span class="n">lip</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">Model</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">y</span><span class="p">)</span>
+<span class="n">Lip_model</span><span class="o">.</span><span class="n">summary</span><span class="p">()</span>
+</code></pre></div>
+
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+<code>Model: "model_1"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ input_4 (InputLayer)        [(None, 28, 28, 1)]       0         
+
+ flatten_3 (Flatten)         (None, 784)               0         
+
+ spectral_dense_3 (Spectral  (None, 64)                100481    
+ Dense)                                                          
+
+ group_sort2_2 (GroupSort2)  (None, 64)                0         
+
+ spectral_dense_4 (Spectral  (None, 32)                4161      
+ Dense)                                                          
+
+ group_sort2_3 (GroupSort2)  (None, 32)                0         
+
+ spectral_dense_5 (Spectral  (None, 10)                661       
+ Dense)                                                          
+
+=================================================================
+Total params: 105303 (411.34 KB)
+Trainable params: 52650 (205.66 KB)
+Non-trainable params: 52653 (205.68 KB)
+_________________________________________________________________
+</code>
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>💡
+Keep in mind that all the classes above inherit from their respective <code>keras</code> equivalent (e.g. <code>Dense</code> for <code>SpectralDense</code>).   <br/>
+As a result, these objects conveniently use the same interface and the same parameters as their keras equivalent.</p>
+<h2 id="design-rules-for-1-lipschitz-neural-networks-with-deel-lip">🔨 Design rules for 1-Lipschitz neural networks with <code>deel-lip</code>  <a id="design"></a> <a name="design"></a><a class="headerlink" href="#design-rules-for-1-lipschitz-neural-networks-with-deel-lip" title="Permanent link">&para;</a></h2>
+<p><strong>Layer selection: <code>deel-lip</code> vs <code>keras</code></strong><br />
+<br> 
+In our 1-Lipschitz MLP examples above, we have used a mixture of objects from both <code>keras</code> and <code>deel-lip</code> <code>layers</code> submodule (e.g. the <code>Input</code> layer for <code>keras</code>, the <code>SpectralDense</code> layer for <code>deel-lip</code>).</p>
+<p>More generally, for the particular types of layers that do not interfere with the Lipschitz property of any neural network they belong to, no alternative has been coded in <code>deel-lip</code> and the existing <code>keras</code> layer object can be used. </p>
+<p>This is the case for the following keras layers: <code>MaxPooling</code>, <code>GlobalMaxPooling</code>, <code>Flatten</code> and <code>Input</code>.</p>
+<p>Below is the full list of <code>keras</code> layers for which <code>deel-lip</code> provides a Lipschitz equivalent. If one wants to ensure a model's Lipschitz continuity, the alternative <code>deel-lip</code> layers must be employed instead of the original <code>keras</code> counterparts.</p>
+<table>
+<thead>
+<tr>
+<th>tensorflow.keras.layers</th>
+<th>deel.lip.layers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Dense</code></td>
+<td><code>SpectralDense</code><br/></td>
+</tr>
+<tr>
+<td><code>Conv2D</code></td>
+<td><code>SpectralConv2D</code><br/></td>
+</tr>
+<tr>
+<td><code>AveragePooling2D</code><br/><code>GlobalAveragePooling2D</code></td>
+<td><code>ScaledAveragePooling2D</code><br/><code>ScaledGlobalAveragePooling2D</code></td>
+</tr>
+</tbody>
+</table>
+<p><br></p>
+<p>💡 Although there are additional Lipschitz continuous layers available in <code>deel-lip</code>, the ones mentioned above are perfectly suitable and recommended for practical use. Interested readers can find information about the other layers <a href="https://deel-ai.github.io/deel-lip/api/layers/">here</a>.</p>
+<p><br/>  </p>
+<p>🚨 <strong>Note:</strong> <em>When creating a 1-Lipschitz neural network, one should avoid using the following layers:</em><br/> 
+- <code>Dropout</code>: Our current recommendation is to avoid using it, since it can induce a modification of the Lipschitz constant of the model.
+- <code>BatchNormalization</code>: It is not 1-Lipschitz
+</br></br></p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><strong>Activation function selection:</strong></p>
+<p>The ReLU activation function is Lipschitz continuous with a Lipschtiz constant of 1. </p>
+<p>However, the 'GroupSort2' activation function provided in the <code>layers</code> submodule of <code>deel-lip</code> has additional properties that can enhance the adversarial robustness of 1-Lipschitz neural networks.</p>
+<p>💡 Interested readers can find information relevant to other 1-Lipschitz activation functions that exist within <code>deel-lip</code> <a href="https://deel-ai.github.io/deel-lip/api/layers/">here</a>.</p>
+<p><strong>Loss function selection:</strong></p>
+<p>One can use <code>keras</code> loss functions to train 1-Lipschitz neural networks. Doing so will not interfere with the 1-Lipschitz continuity of the model.  </p>
+<p>💡 <code>deel-lip</code> also has a <code>losses</code> submodule that contains several loss functions. They have been developed to enhance the adversarial robustness of the learnt  1-Lipschitz models.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="congratulations">🎉 Congratulations<a class="headerlink" href="#congratulations" title="Permanent link">&para;</a></h2>
+<p>You now know how to create 1-Lipschitz neural networks!</p>
+<p>In the next tutorial, we will see how to train and assess adversarially robust 1-Lipschitz neural networks on the classification task, using <code>deel-lip</code>'s <code>losses</code> submodule.</p>
+</div>
+</div>
+</div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.aecac24b.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+        <script src="../../js/custom.js"></script>
+      
+    
+  </body>
+</html>

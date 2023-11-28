@@ -9,10 +9,6 @@
       
       
       
-        <link rel="prev" href="../constraints/">
-      
-      
-        <link rel="next" href="../layers/">
       
       
       <link rel="icon" href="../../assets/lip_logo.png">
@@ -20,7 +16,7 @@
     
     
       
-        <title>deel.lip.initializers - DEEL-LIP</title>
+        <title>Compute layer sv - DEEL-LIP</title>
       
     
     
@@ -85,7 +81,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#deel.lip.initializers" class="md-skip">
+        <a href="#deel.lip.compute_layer_sv" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              deel.lip.initializers
+              Compute layer sv
             
           </span>
         </div>
@@ -275,20 +271,18 @@
       
   
   
-    
-  
   
     
     
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -302,7 +296,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             API Reference
@@ -373,27 +367,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    deel.lip.initializers
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../initializers/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -402,38 +378,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#deel.lip.initializers" class="md-nav__link">
-    initializers
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#deel.lip.initializers.SpectralInitializer" class="md-nav__link">
-    SpectralInitializer
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -754,15 +698,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#deel.lip.initializers" class="md-nav__link">
-    initializers
+  <a href="#deel.lip.compute_layer_sv" class="md-nav__link">
+    compute_layer_sv
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#deel.lip.initializers.SpectralInitializer" class="md-nav__link">
-    SpectralInitializer
+  <a href="#deel.lip.compute_layer_sv.compute_layer_sv" class="md-nav__link">
+    compute_layer_sv()
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deel.lip.compute_layer_sv.compute_model_sv" class="md-nav__link">
+    compute_model_sv()
   </a>
   
 </li>
@@ -785,18 +736,26 @@
   
 
 
-  <h1>deel.lip.initializers</h1>
+  <h1>Compute layer sv</h1>
 
 <div class="doc doc-object doc-module">
 
 
 
-<a id="deel.lip.initializers"></a>
+<a id="deel.lip.compute_layer_sv"></a>
   <div class="doc doc-contents first">
   
-      <p>This module contains extra Keras initializers, e.g. SpectralInitializer for 1-Lipschitz
-matrix initialization.
-They can be used as kernel initializers in any Keras layer.</p>
+      <p>Compute the largest and lowest singular values of a layer or network.</p>
+<p>The singular values are computed using the SVD decomposition of the weight matrix.
+For convolutional layers, the equivalent matrix is computed and the SVD is applied on
+it.</p>
+<p>The <code>compute_layer_sv()</code> function is the main function to compute the singular values of
+a given layer. It supports by default several kinds of layers (Conv2D, Dense, Add,
+BatchNormalization, ReLU, Activation, and deel-lip layers). For other layers, the
+user can provide a supplementary_type2sv dictionary linking a new layer type with a
+user-defined function to compute the singular values.</p>
+<p>The function <code>compute_model_sv()</code> computes the singular values of all layers in a model.
+It returns a dictionary indicating for each layer name a tuple (min sv, max sv).</p>
 
   
 
@@ -809,32 +768,29 @@ They can be used as kernel initializers in any Keras layer.</p>
 
 
 
-<div class="doc doc-object doc-class">
+
+
+<div class="doc doc-object doc-function">
 
 
 
 
-<h2 id="deel.lip.initializers.SpectralInitializer" class="doc doc-heading">
-          <span class="doc doc-object-name doc-class-name">SpectralInitializer</span>
+<h2 id="deel.lip.compute_layer_sv.compute_layer_sv" class="doc doc-heading">
+          <span class="doc doc-object-name doc-function-name">compute_layer_sv</span>
 
 
-<a href="#deel.lip.initializers.SpectralInitializer" class="headerlink" title="Permanent link">&para;</a></h2>
-<div class="doc-signature highlight"><pre><span></span><code><span class="n">SpectralInitializer</span><span class="p">(</span>
-    <span class="n">eps_spectral</span><span class="o">=</span><span class="n">DEFAULT_EPS_SPECTRAL</span><span class="p">,</span>
-    <span class="n">eps_bjorck</span><span class="o">=</span><span class="n">DEFAULT_EPS_BJORCK</span><span class="p">,</span>
-    <span class="n">beta_bjorck</span><span class="o">=</span><span class="n">DEFAULT_BETA_BJORCK</span><span class="p">,</span>
-    <span class="n">k_coef_lip</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">base_initializer</span><span class="o">=</span><span class="s2">&quot;orthogonal&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<a href="#deel.lip.compute_layer_sv.compute_layer_sv" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">compute_layer_sv</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="o">=</span><span class="p">{})</span>
 </code></pre></div>
 
   <div class="doc doc-contents ">
-          <p class="doc doc-class-bases">
-            Bases: <code><span title="tensorflow.keras.initializers.Initializer">Initializer</span></code></p>
-
   
-      <p>Initialize a kernel to be 1-lipschitz orthogonal using bjorck
-normalization.</p>
+      <p>Compute the largest and lowest singular values (or upper and lower bounds)
+of a given layer.</p>
+<p>In case of Condensable layers, a vanilla_export is applied to the layer
+to get the weights.
+Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization,
+ReLU, Activation, and deel-lip layers)</p>
 
 
 
@@ -847,75 +803,185 @@ normalization.</p>
     </thead>
     <tbody>
         <tr>
-          <td><code>eps_spectral</code></td>
+          <td><code>layer</code></td>
           <td class="doc-param-details">
             <div class="doc-md-description">
-              <p>stopping criterion of iterative power method</p>
+              <p>a single tf.keras.layer</p>
             </div>
             <p>
                 <span class="doc-param-annotation">
                   <b>TYPE:</b>
-                    <code>float</code>
-                </span>
-                <span class="doc-param-default">
-                  <b>DEFAULT:</b> 
-                    <code><span title="deel.lip.normalizers.DEFAULT_EPS_SPECTRAL">DEFAULT_EPS_SPECTRAL</span></code>
+                    <code><span title="tensorflow.keras.layers.Layer">Layer</span></code>
                 </span>
             </p>
           </td>
         </tr>
         <tr>
-          <td><code>eps_bjorck</code></td>
+          <td><code>supplementary_type2sv</code></td>
           <td class="doc-param-details">
             <div class="doc-md-description">
-              <p>float greater than 0, stopping criterion of
-bjorck algorithm, setting it to None disable orthogonalization</p>
+              <p>a dictionary linking new layer type with
+user-defined function to compute the singular values. Defaults to {}.</p>
             </div>
             <p>
                 <span class="doc-param-annotation">
                   <b>TYPE:</b>
-                    <code>float</code>
+                    <code>dict</code>
                 </span>
                 <span class="doc-param-default">
                   <b>DEFAULT:</b> 
-                    <code><span title="deel.lip.normalizers.DEFAULT_EPS_BJORCK">DEFAULT_EPS_BJORCK</span></code>
+                    <code>{}</code>
+                </span>
+            </p>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+      <p>Returns:
+    tuple: a 2-tuple with lowest and largest singular values.</p>
+
+          <details class="quote">
+            <summary>Source code in <code>deel/lip/compute_layer_sv.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">compute_layer_sv</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the largest and lowest singular values (or upper and lower bounds)</span>
+<span class="sd">    of a given layer.</span>
+
+<span class="sd">    In case of Condensable layers, a vanilla_export is applied to the layer</span>
+<span class="sd">    to get the weights.</span>
+<span class="sd">    Support by default several kind of layers (Conv2D,Dense,Add, BatchNormalization,</span>
+<span class="sd">    ReLU, Activation, and deel-lip layers)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        layer (tf.keras.layers.Layer): a single tf.keras.layer</span>
+<span class="sd">        supplementary_type2sv (dict, optional): a dictionary linking new layer type with</span>
+<span class="sd">            user-defined function to compute the singular values. Defaults to {}.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: a 2-tuple with lowest and largest singular values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">default_type2sv</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2D</span><span class="p">:</span> <span class="n">_compute_sv_conv2d_layer</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Conv2DTranspose</span><span class="p">:</span> <span class="n">_compute_sv_conv2d_layer</span><span class="p">,</span>
+        <span class="n">PadConv2D</span><span class="p">:</span> <span class="n">_compute_sv_conv2d_layer</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Dense</span><span class="p">:</span> <span class="n">_compute_sv_dense</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">ReLU</span><span class="p">:</span> <span class="n">_compute_sv_activation</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Activation</span><span class="p">:</span> <span class="n">_compute_sv_activation</span><span class="p">,</span>
+        <span class="n">GroupSort</span><span class="p">:</span> <span class="n">_compute_sv_activation</span><span class="p">,</span>
+        <span class="n">MaxMin</span><span class="p">:</span> <span class="n">_compute_sv_activation</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">Add</span><span class="p">:</span> <span class="n">_compute_sv_add</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">BatchNormalization</span><span class="p">:</span> <span class="n">_compute_sv_bn</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">input_shape</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">Condensable</span><span class="p">):</span>
+        <span class="n">layer</span><span class="o">.</span><span class="n">condense</span><span class="p">()</span>
+        <span class="n">layer</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">vanilla_export</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="ow">in</span> <span class="n">default_type2sv</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">default_type2sv</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">)](</span><span class="n">layer</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span> <span class="ow">in</span> <span class="n">supplementary_type2sv</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">supplementary_type2sv</span><span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="n">layer</span><span class="p">)](</span><span class="n">layer</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+          </details>
+  </div>
+
+</div>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+
+<h2 id="deel.lip.compute_layer_sv.compute_model_sv" class="doc doc-heading">
+          <span class="doc doc-object-name doc-function-name">compute_model_sv</span>
+
+
+<a href="#deel.lip.compute_layer_sv.compute_model_sv" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="doc-signature highlight"><pre><span></span><code><span class="n">compute_model_sv</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="o">=</span><span class="p">{})</span>
+</code></pre></div>
+
+  <div class="doc doc-contents ">
+  
+      <p>Compute the largest and lowest singular values of all layers in a model.</p>
+
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>PARAMETER</b></th>
+        <th><b> DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td><code>model</code></td>
+          <td class="doc-param-details">
+            <div class="doc-md-description">
+              <p>a tf.keras Model or Sequential.</p>
+            </div>
+            <p>
+                <span class="doc-param-annotation">
+                  <b>TYPE:</b>
+                    <code><span title="tensorflow.keras.Model">Model</span></code>
                 </span>
             </p>
           </td>
         </tr>
         <tr>
-          <td><code>beta_bjorck</code></td>
+          <td><code>supplementary_type2sv</code></td>
           <td class="doc-param-details">
             <div class="doc-md-description">
-              <p>beta parameter of bjorck algorithm</p>
+              <p>a dictionary linking new layer type
+with user defined function to compute the min and max singular values.</p>
             </div>
             <p>
                 <span class="doc-param-annotation">
                   <b>TYPE:</b>
-                    <code>float</code>
+                    <code>dict</code>
                 </span>
                 <span class="doc-param-default">
                   <b>DEFAULT:</b> 
-                    <code><span title="deel.lip.normalizers.DEFAULT_BETA_BJORCK">DEFAULT_BETA_BJORCK</span></code>
-                </span>
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td><code>base_initializer</code></td>
-          <td class="doc-param-details">
-            <div class="doc-md-description">
-              <p>method used to generate weights before applying the
-orthonormalization</p>
-            </div>
-            <p>
-                <span class="doc-param-annotation">
-                  <b>TYPE:</b>
-                    <code>str</code>
-                </span>
-                <span class="doc-param-default">
-                  <b>DEFAULT:</b> 
-                    <code>&#39;orthogonal&#39;</code>
+                    <code>{}</code>
                 </span>
             </p>
           </td>
@@ -923,82 +989,73 @@ orthonormalization</p>
     </tbody>
   </table>
 
-                <details class="quote">
-                  <summary>Source code in <code>deel/lip/initializers.py</code></summary>
-                  <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">23</span>
-<span class="normal">24</span>
-<span class="normal">25</span>
-<span class="normal">26</span>
-<span class="normal">27</span>
-<span class="normal">28</span>
-<span class="normal">29</span>
-<span class="normal">30</span>
-<span class="normal">31</span>
-<span class="normal">32</span>
-<span class="normal">33</span>
-<span class="normal">34</span>
-<span class="normal">35</span>
-<span class="normal">36</span>
-<span class="normal">37</span>
-<span class="normal">38</span>
-<span class="normal">39</span>
-<span class="normal">40</span>
-<span class="normal">41</span>
-<span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span>
-<span class="normal">45</span>
-<span class="normal">46</span>
-<span class="normal">47</span>
-<span class="normal">48</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-    <span class="bp">self</span><span class="p">,</span>
-    <span class="n">eps_spectral</span><span class="o">=</span><span class="n">DEFAULT_EPS_SPECTRAL</span><span class="p">,</span>
-    <span class="n">eps_bjorck</span><span class="o">=</span><span class="n">DEFAULT_EPS_BJORCK</span><span class="p">,</span>
-    <span class="n">beta_bjorck</span><span class="o">=</span><span class="n">DEFAULT_BETA_BJORCK</span><span class="p">,</span>
-    <span class="n">k_coef_lip</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-    <span class="n">base_initializer</span><span class="o">=</span><span class="s2">&quot;orthogonal&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Initialize a kernel to be 1-lipschitz orthogonal using bjorck</span>
-<span class="sd">    normalization.</span>
+
+
+  <table>
+    <thead>
+      <tr>
+        <th><b>RETURNS</b></th>
+        <th><b>DESCRIPTION</b></th>
+      </tr>
+    </thead>
+    <tbody>
+        <tr>
+          <td>
+              <code>dict</code>
+          </td>
+          <td class="doc-returns-details">
+            <div class="doc-md-description">
+              <p>A dictionary indicating for each layer name a tuple (min sv, max sv)</p>
+            </div>
+          </td>
+        </tr>
+    </tbody>
+  </table>
+
+          <details class="quote">
+            <summary>Source code in <code>deel/lip/compute_layer_sv.py</code></summary>
+            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">compute_model_sv</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the largest and lowest singular values of all layers in a model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        eps_spectral (float): stopping criterion of iterative power method</span>
-<span class="sd">        eps_bjorck (float): float greater than 0, stopping criterion of</span>
-<span class="sd">            bjorck algorithm, setting it to None disable orthogonalization</span>
-<span class="sd">        beta_bjorck (float): beta parameter of bjorck algorithm</span>
-<span class="sd">        base_initializer (str): method used to generate weights before applying the</span>
-<span class="sd">            orthonormalization</span>
+<span class="sd">        model (tf.keras.Model): a tf.keras Model or Sequential.</span>
+<span class="sd">        supplementary_type2sv (dict, optional): a dictionary linking new layer type</span>
+<span class="sd">            with user defined function to compute the min and max singular values.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: A dictionary indicating for each layer name a tuple (min sv, max sv)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">eps_spectral</span> <span class="o">=</span> <span class="n">eps_spectral</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">eps_bjorck</span> <span class="o">=</span> <span class="n">eps_bjorck</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">beta_bjorck</span> <span class="o">=</span> <span class="n">beta_bjorck</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">k_coef_lip</span> <span class="o">=</span> <span class="n">k_coef_lip</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">base_initializer</span> <span class="o">=</span> <span class="n">initializers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">base_initializer</span><span class="p">)</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SpectralInitializer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="n">list_sv</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+            <span class="n">list_sv</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)))</span>
+            <span class="n">list_sv</span> <span class="o">+=</span> <span class="n">compute_model_sv</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">list_sv</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">compute_layer_sv</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">supplementary_type2sv</span><span class="p">)))</span>
+    <span class="k">return</span> <span class="n">list_sv</span>
 </code></pre></div></td></tr></table></div>
-                </details>
-
-  
-
-  <div class="doc doc-children">
-
-
-
-
-
-
-
-
-
-
-
-  </div>
-
+          </details>
   </div>
 
 </div>
-
 
 
 
