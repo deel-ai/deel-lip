@@ -12,6 +12,8 @@ nav:
     - deel.lip.metrics: api/metrics.md
     - deel.lip.model: api/model.md
     - deel.lip.normalizers: api/normalizers.md
+    - deel.lip.regularizers: api/regularizers.md
+    - deel.lip.compute_layer_sv: api/compute_layer_sv.md
     - deel.lip.utils: api/utils.md
   - Tutorials:
     - "Getting started 1 - Creating a 1-Lipschitz neural network": notebooks/Getting_started_1.ipynb
