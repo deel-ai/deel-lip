@@ -395,8 +395,8 @@ class MulticlassHKR(Loss):
         }
         base_config = super(MulticlassHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-
-
+    
+    
 @register_keras_serializable("deel-lip", "MulticlassSoftHKR")
 class MulticlassSoftHKR(Loss):
     def __init__(
@@ -405,7 +405,6 @@ class MulticlassSoftHKR(Loss):
         min_margin=1.0,
         alpha_mean=0.99,
         temperature=1.0,
-        one_hot_ytrue=False,
         reduction=Reduction.AUTO,
         name="MulticlassSoftHKR",
     ):
@@ -444,7 +443,6 @@ class MulticlassSoftHKR(Loss):
         )
 
         self.temperature = temperature * self.min_margin_v
-        self.one_hot_ytrue = one_hot_ytrue
         if alpha == np.inf:  # alpha = inf => hinge only
             self.fct = self.multiclass_hinge_soft
         else:
@@ -482,45 +480,43 @@ class MulticlassSoftHKR(Loss):
         F_soft_KR = tf.where(y_true > 0, tf.cast(1.0, F_soft_KR.dtype), F_soft_KR)
         return F_soft_KR
 
-    def kr_preproc(self, y_true, y_pred):
-        """From _kr_multi_gpu(y_true, y_pred)"""
-        if self.one_hot_ytrue:
-            y_true = tf.where(y_true > 0, 1, -1)  # switch to +/-1
-        y_true = tf.cast(y_true, y_pred.dtype)
-        """return tf.reduce_mean(y_pred * y_true, axis=-1)"""
-        return y_pred * y_true
+    def signed_y_pred(self, y_true, y_pred):
+        """Return for each item sign(y_true)*y_pred."""
+        sign_y_true = tf.where(y_true > 0, 1, -1)  # switch to +/-1
+        sign_y_true = tf.cast(sign_y_true, y_pred.dtype)
+        return y_pred * sign_y_true
 
-    def multiclass_hinge_preproc(self, y_true, y_pred, min_margin):
-        """From multiclass_hinge(y_true, y_pred, min_margin)"""
-        sign = tf.where(y_true > 0, 1, -1)
-        sign = tf.cast(sign, y_pred.dtype)
+    def multiclass_hinge_preproc(self, signed_y_pred, min_margin):
+        """From multiclass_hinge(y_true, y_pred, min_margin) 
+        simplified to use precalculated signed_y_pred"""
         # compute the elementwise hinge term
-        hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
+        hinge = tf.nn.relu(min_margin / 2.0 - signed_y_pred)
         return hinge
 
     @tf.function
     def multiclass_hinge_soft(self, y_true, y_pred):
         F_soft_KR = self.computeTemperatureSoftMax(y_true, y_pred)
-        hinge = self.multiclass_hinge_preproc(y_true, y_pred, self.min_margin_v)
+        signed_y_pred = self.signed_y_pred(y_true, y_pred)
+        hinge = self.multiclass_hinge_preproc(signed_y_pred, self.min_margin_v)
         b = hinge * F_soft_KR
         return b
 
     # @tf.function
     def hkr(self, y_true, y_pred):
         F_soft_KR = self.computeTemperatureSoftMax(y_true, y_pred)
-        kr = -self.kr_preproc(y_true, y_pred)
+        signed_y_pred = self.signed_y_pred(y_true, y_pred)
+        kr = -signed_y_pred
         a = kr * F_soft_KR
         a = tf.reduce_sum(a, axis=-1)
 
-        hinge = self.multiclass_hinge_preproc(y_true, y_pred, self.min_margin_v)
-        # print(hinge.shape,F_soft_KR.shape)
-        # tf.print(hinge.shape,F_soft_KR.shape)
+        hinge = self.multiclass_hinge_preproc(signed_y_pred, self.min_margin_v)
+        
         b = hinge * F_soft_KR
         b = tf.reduce_sum(b, axis=-1)
 
         # tf.print(self.alpha)
         beta = 1.0 / self.alpha
-        #  Hinge with coef 1 and hkr with lower coef  a + self.alpha * b
+        #  Hinge with coef 1 and hkr with lower coef  a/self.alpha + b
         return beta * a + b
 
     def call(self, y_true, y_pred):
@@ -532,7 +528,6 @@ class MulticlassSoftHKR(Loss):
             "min_margin": self.min_margin_v,
             "alpha_mean": self.alpha_mean,
             "temperature": self.temperature,
-            "one_hot_ytrue": self.one_hot_ytrue,
         }
         base_config = super(MulticlassSoftHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
