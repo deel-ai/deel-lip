@@ -395,8 +395,8 @@ class MulticlassHKR(Loss):
         }
         base_config = super(MulticlassHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
-    
-    
+
+
 @register_keras_serializable("deel-lip", "MulticlassSoftHKR")
 class MulticlassSoftHKR(Loss):
     def __init__(
@@ -412,12 +412,8 @@ class MulticlassSoftHKR(Loss):
         The multiclass version of HKR with softmax. This is done by computing
         the HKR term over each class and averaging the results.
 
-        Note that `y_true` should be one-hot encoded or pre-processed with the
-        `deel.lip.utils.process_labels_for_multi_gpu()` function.
+        Note that `y_true` could be either one-hot encoded, +/-1 values.
 
-        Using a multi-GPU/TPU strategy requires to set `multi_gpu` to True and to
-        pre-process the labels `y_true` with the
-        `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
         Args:
             alpha (float): regularization factor
@@ -487,7 +483,7 @@ class MulticlassSoftHKR(Loss):
         return y_pred * sign_y_true
 
     def multiclass_hinge_preproc(self, signed_y_pred, min_margin):
-        """From multiclass_hinge(y_true, y_pred, min_margin) 
+        """From multiclass_hinge(y_true, y_pred, min_margin)
         simplified to use precalculated signed_y_pred"""
         # compute the elementwise hinge term
         hinge = tf.nn.relu(min_margin / 2.0 - signed_y_pred)
@@ -510,7 +506,7 @@ class MulticlassSoftHKR(Loss):
         a = tf.reduce_sum(a, axis=-1)
 
         hinge = self.multiclass_hinge_preproc(signed_y_pred, self.min_margin_v)
-        
+
         b = hinge * F_soft_KR
         b = tf.reduce_sum(b, axis=-1)
 
@@ -520,6 +516,10 @@ class MulticlassSoftHKR(Loss):
         return beta * a + b
 
     def call(self, y_true, y_pred):
+        if not (isinstance(y_pred, tf.Tensor)):  # required for dtype.max
+            y_pred = tf.convert_to_tensor(y_pred, dtype=y_pred.dtype)
+        if not (isinstance(y_true, tf.Tensor)):
+            y_true = tf.convert_to_tensor(y_true, dtype=y_pred.dtype)
         return self.fct(y_true, y_pred)
 
     def get_config(self):
