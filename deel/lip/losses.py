@@ -424,7 +424,7 @@ class MulticlassSoftHKR(Loss):
             alpha (float): regularization factor
             min_margin (float): margin to enforce.
             temperature (float): factor for softmax  temperature
-                (higher value increases the weight of the highestnon y_true logits)
+                (higher value increases the weight of the highest non y_true logits)
             alpha_mean (float): geometric mean factor
             one_hot_ytrue (bool): set to True when y_true are one hot encoded (0 or 1),
                 and False when y_true already signed bases (for instance +/-1)
@@ -462,7 +462,6 @@ class MulticlassSoftHKR(Loss):
                     constraint=lambda x: tf.clip_by_value(x, 0.005, 1000),
                     name="moving_mean",
                 )
-                # self.trainable_vars.append(self.margins)
 
     @tf.function
     def _update_mean(self, y_pred):
@@ -492,13 +491,10 @@ class MulticlassSoftHKR(Loss):
         )
         F_soft_KR = tf.nn.softmax(opposite_values)
         F_soft_KR = tf.where(y_true > 0, tf.cast(1.0, F_soft_KR.dtype), F_soft_KR)
-        # if self.stop_gradient:
-        #    F_soft_KR = tf.stop_gradient(F_soft_KR)
         return F_soft_KR
 
     def kr_preproc(self, y_true, y_pred):
         """From _kr_multi_gpu(y_true, y_pred)"""
-        # assert tf.reduce_min(y_true)<0
         if self.one_hot_ytrue:
             y_true = tf.where(y_true > 0, 1, -1)  # switch to +/-1
         y_true = tf.cast(y_true, y_pred.dtype)
@@ -511,10 +507,6 @@ class MulticlassSoftHKR(Loss):
         sign = tf.cast(sign, y_pred.dtype)
         # compute the elementwise hinge term
         hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
-        # reweight positive elements
-        """factor = y_pred.shape[-1] - 1.0
-        hinge = tf.where(sign > 0, hinge * factor, hinge)
-        return tf.reduce_mean(hinge, axis=-1)"""
         return hinge
 
     @tf.function
@@ -528,9 +520,6 @@ class MulticlassSoftHKR(Loss):
     def hkr(self, y_true, y_pred):
         F_soft_KR = self.computeTemperatureSoftMax(y_true, y_pred)
         kr = -self.kr_preproc(y_true, y_pred)
-        # print(kr.shape,F_soft_KR.shape)
-        # tf.print(kr.shape,F_soft_KR.shape)
-        # tf.print(kr)
         a = kr * F_soft_KR
         a = tf.reduce_sum(a, axis=-1)
 
