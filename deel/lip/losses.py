@@ -434,14 +434,13 @@ class MulticlassSoftHKR(Loss):
         """
         self.alpha = tf.Variable(alpha, dtype=tf.float32)
         self.min_margin_v = min_margin
-        self.moving_mean = None
         self.alpha_mean = alpha_mean
 
         self.current_mean = tf.Variable(
             (self.min_margin_v,),
             dtype=tf.float32,
             constraint=lambda x: tf.clip_by_value(x, 0.005, 1000),
-            name="moving_mean",
+            name="current_mean",
         )
 
         self.temperature = temperature * self.min_margin_v
@@ -452,16 +451,6 @@ class MulticlassSoftHKR(Loss):
             self.fct = self.hkr
 
         super(MulticlassSoftHKR, self).__init__(reduction=reduction, name=name)
-
-    def init_variables(self, input_shape):
-        if self.moving_mean is None:
-            with tf.init_scope():
-                self.moving_mean = tf.Variable(
-                    self.min_margin_v * tf.ones((input_shape[-1],)),
-                    dtype=tf.float32,
-                    constraint=lambda x: tf.clip_by_value(x, 0.005, 1000),
-                    name="moving_mean",
-                )
 
     @tf.function
     def _update_mean(self, y_pred):
@@ -535,7 +524,6 @@ class MulticlassSoftHKR(Loss):
         return beta * a + b
 
     def call(self, y_true, y_pred):
-        self.init_variables(y_pred.shape.as_list())
         return self.fct(y_true, y_pred)
 
     def get_config(self):
