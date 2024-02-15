@@ -421,8 +421,6 @@ class MulticlassSoftHKR(Loss):
             temperature (float): factor for softmax  temperature
                 (higher value increases the weight of the highest non y_true logits)
             alpha_mean (float): geometric mean factor
-            one_hot_ytrue (bool): set to True when y_true are one hot encoded (0 or 1),
-                and False when y_true already signed bases (for instance +/-1)
             reduction: passed to tf.keras.Loss constructor
             name (str): passed to tf.keras.Loss constructor
 
