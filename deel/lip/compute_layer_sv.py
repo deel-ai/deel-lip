@@ -53,9 +53,15 @@ def _generate_conv_matrix(layer, input_sizes):
     Returns:
         np.array: the equivalent matrix of the convolutional layer.
     """
+    # Clone layer (as a model) and remove bias and activation
     single_layer_model = tf.keras.models.Sequential(
         [tf.keras.layers.Input(input_sizes[1:]), layer]
     )
+    single_layer_model = tf.keras.models.clone_model(single_layer_model)
+    single_layer_model.set_weights(layer.get_weights())
+    single_layer_model.layers[0].use_bias = False
+    single_layer_model.layers[0].activation = None
+
     dirac_inp = np.zeros((input_sizes[2],) + input_sizes[1:])  # Line by line generation
     in_size = input_sizes[1] * input_sizes[2]
     channel_in = input_sizes[-1]
