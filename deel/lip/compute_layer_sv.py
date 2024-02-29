@@ -15,6 +15,8 @@ It returns a dictionary indicating for each layer name a tuple (min sv, max sv).
 """
 
 import numpy as np
+import scipy.sparse as sps
+import scipy.sparse.linalg as spsl  # Required for scipy<=1.7.3
 import tensorflow as tf
 
 from .layers import Condensable, GroupSort, MaxMin
@@ -53,28 +55,25 @@ def _generate_conv_matrix(layer, input_sizes):
     Returns:
         np.array: the equivalent matrix of the convolutional layer.
     """
+    # Clone layer (as a model) and remove bias and activation
     single_layer_model = tf.keras.models.Sequential(
         [tf.keras.layers.Input(input_sizes[1:]), layer]
     )
-    dirac_inp = np.zeros((input_sizes[2],) + input_sizes[1:])  # Line by line generation
-    in_size = input_sizes[1] * input_sizes[2]
-    channel_in = input_sizes[-1]
-    w_eqmatrix = None
-    start_index = 0
-    for ch in range(channel_in):
+    single_layer_model = tf.keras.models.clone_model(single_layer_model)
+    single_layer_model.set_weights(layer.get_weights())
+    single_layer_model.layers[0].use_bias = False
+    single_layer_model.layers[0].activation = None
+
+    dirac_inp = np.zeros((input_sizes[2],) + input_sizes[1:], dtype=np.float32)
+    stack = []
+    for ch in range(input_sizes[-1]):
         for ii in range(input_sizes[1]):
             dirac_inp[:, ii, :, ch] = np.eye(input_sizes[2])
             out_pred = single_layer_model(dirac_inp)
-            if w_eqmatrix is None:
-                w_eqmatrix = np.zeros(
-                    (in_size * channel_in, np.prod(out_pred.shape[1:]))
-                )
-            w_eqmatrix[start_index : (start_index + input_sizes[2]), :] = tf.reshape(
-                out_pred, (input_sizes[2], -1)
-            )
+            out_pred = tf.reshape(out_pred, (input_sizes[2], -1))
+            stack.append(sps.coo_matrix(out_pred.numpy()))
             dirac_inp = 0.0 * dirac_inp
-            start_index += input_sizes[2]
-    return w_eqmatrix
+    return sps.vstack(stack)
 
 
 def _compute_sv_conv2d_layer(layer, input_sizes):
@@ -94,8 +93,9 @@ def _compute_sv_conv2d_layer(layer, input_sizes):
         tuple: min and max singular values
     """
     w_eqmatrix = _generate_conv_matrix(layer, input_sizes)
-    svd = np.linalg.svd(w_eqmatrix, compute_uv=False)
-    return (np.min(svd), np.max(svd))
+    svd_max = spsl.svds(w_eqmatrix, k=1, return_singular_vectors=False)
+    svd_min = spsl.svds(w_eqmatrix, k=1, which="SM", return_singular_vectors=False)
+    return (svd_min[0], svd_max[0])
 
 
 def _compute_sv_activation(layer, input_sizes=None):

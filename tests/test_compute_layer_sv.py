@@ -343,6 +343,23 @@ class LipschitzLayersSVTest(unittest.TestCase):
                     test_SVmin=False,
                     callbacks=[],
                 ),
+                dict(  # SpectralConv2D with bias and activation
+                    layer_type=SpectralConv2D,
+                    layer_params={
+                        "filters": 2,
+                        "kernel_size": (3, 3),
+                        "activation": "relu",
+                    },
+                    batch_size=100,
+                    steps_per_epoch=125,
+                    epochs=5,
+                    input_shape=(5, 5, 1),
+                    k_lip_data=1.0,
+                    k_lip_model=1.0,
+                    k_lip_tolerance_factor=1.02,
+                    test_SVmin=False,
+                    callbacks=[],
+                ),
                 dict(
                     layer_type=SpectralConv2D,
                     layer_params={
