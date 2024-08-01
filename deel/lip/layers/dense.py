@@ -148,7 +148,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.value, trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -276,7 +276,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def build(self, input_shape):
         super(FrobeniusDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        self.wbar = tf.Variable(self.kernel.read_value(), trainable=False)
+        self.wbar = tf.Variable(self.kernel.value, trainable=False)
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
