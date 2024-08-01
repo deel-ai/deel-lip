@@ -13,7 +13,6 @@ from tensorflow.keras.losses import (
     categorical_crossentropy,
     sparse_categorical_crossentropy,
     Loss,
-    Reduction,
 )
 from tensorflow.keras.utils import register_keras_serializable
 
@@ -61,7 +60,7 @@ def _kr_multi_gpu(y_true, y_pred):
 
 @register_keras_serializable("deel-lip", "KR")
 class KR(Loss):
-    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="KR"):
+    def __init__(self, multi_gpu=False, reduction="sum_over_batch_size", name="KR"):
         r"""
         Loss to estimate Wasserstein-1 distance using Kantorovich-Rubinstein duality.
         The Kantorovich-Rubinstein duality is formulated as following:
@@ -116,7 +115,7 @@ class HKR(Loss):
         alpha,
         min_margin=1.0,
         multi_gpu=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="HKR",
     ):
         r"""
@@ -204,7 +203,12 @@ def hinge_margin(y_true, y_pred, min_margin):
 
 @register_keras_serializable("deel-lip", "HingeMargin")
 class HingeMargin(Loss):
-    def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="HingeMargin"):
+    def __init__(
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="HingeMargin",
+    ):
         r"""
         Compute the hinge margin loss.
 
@@ -241,7 +245,12 @@ class HingeMargin(Loss):
 
 @register_keras_serializable("deel-lip", "MulticlassKR")
 class MulticlassKR(Loss):
-    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="MulticlassKR"):
+    def __init__(
+        self,
+        multi_gpu=False,
+        reduction="sum_over_batch_size",
+        name="MulticlassKR",
+    ):
         r"""
         Loss to estimate average of Wasserstein-1 distance using Kantorovich-Rubinstein
         duality over outputs. In this multiclass setup, the KR term is computed for each
@@ -306,7 +315,10 @@ def multiclass_hinge(y_true, y_pred, min_margin):
 @register_keras_serializable("deel-lip", "MulticlassHinge")
 class MulticlassHinge(Loss):
     def __init__(
-        self, min_margin=1.0, reduction=Reduction.AUTO, name="MulticlassHinge"
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="MulticlassHinge",
     ):
         """
         Loss to estimate the Hinge loss in a multiclass setup. It computes the
@@ -346,7 +358,7 @@ class MulticlassHKR(Loss):
         alpha=10.0,
         min_margin=1.0,
         multi_gpu=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="MulticlassHKR",
     ):
         """
@@ -399,7 +411,12 @@ class MulticlassHKR(Loss):
 
 @register_keras_serializable("deel-lip", "MultiMargin")
 class MultiMargin(Loss):
-    def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="MultiMargin"):
+    def __init__(
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="MultiMargin",
+    ):
         """
         Compute the hinge margin loss for multiclass (equivalent to Pytorch
         multi_margin_loss)
@@ -439,7 +456,12 @@ class MultiMargin(Loss):
 
 @register_keras_serializable("deel-lip", "CategoricalHinge")
 class CategoricalHinge(Loss):
-    def __init__(self, min_margin, reduction=Reduction.AUTO, name="CategoricalHinge"):
+    def __init__(
+        self,
+        min_margin,
+        reduction="sum_over_batch_size",
+        name="CategoricalHinge",
+    ):
         """
         Similar to original categorical hinge, but with a settable margin parameter.
         This implementation is sligthly different from the Keras one.
@@ -472,7 +494,10 @@ class CategoricalHinge(Loss):
 @register_keras_serializable("deel-lip", "TauCategoricalCrossentropy")
 class TauCategoricalCrossentropy(Loss):
     def __init__(
-        self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauCategoricalCrossentropy",
     ):
         """
         Similar to original categorical crossentropy, but with a settable temperature
@@ -503,7 +528,10 @@ class TauCategoricalCrossentropy(Loss):
 @register_keras_serializable("deel-lip", "TauSparseCategoricalCrossentropy")
 class TauSparseCategoricalCrossentropy(Loss):
     def __init__(
-        self, tau, reduction=Reduction.AUTO, name="TauSparseCategoricalCrossentropy"
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauSparseCategoricalCrossentropy",
     ):
         """
         Similar to original sparse categorical crossentropy, but with a settable
@@ -531,7 +559,12 @@ class TauSparseCategoricalCrossentropy(Loss):
 
 @register_keras_serializable("deel-lip", "TauBinaryCrossentropy")
 class TauBinaryCrossentropy(Loss):
-    def __init__(self, tau, reduction=Reduction.AUTO, name="TauBinaryCrossentropy"):
+    def __init__(
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauBinaryCrossentropy",
+    ):
         """
         Similar to the original binary crossentropy, but with a settable temperature
         parameter. y_pred must be a logits tensor (before sigmoid) and not

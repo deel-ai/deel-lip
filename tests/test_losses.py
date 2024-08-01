@@ -100,7 +100,7 @@ class Test(TestCase):
         check_serialization(1, loss)
 
     def test_kr_multiclass_loss(self):
-        multiclass_kr = MulticlassKR(reduction="auto")
+        multiclass_kr = MulticlassKR(reduction="sum_over_batch_size")
         y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
@@ -555,9 +555,9 @@ class Test(TestCase):
             KR(reduction="none", name="KR none"),
             HingeMargin(0.4, reduction="none", name="hinge none"),
             HKR(alpha=5.2, reduction="none", name="HKR none"),
-            KR(reduction="auto", name="KR auto"),
-            HingeMargin(0.6, reduction="auto", name="hinge auto"),
-            HKR(alpha=10, reduction="auto", name="HKR auto"),
+            KR(reduction="sum_over_batch_size", name="KR sum_over_bs"),
+            HingeMargin(0.6, reduction="sum_over_batch_size", name="hinge sum_over_bs"),
+            HKR(alpha=10, reduction="sum_over_batch_size", name="HKR sum_over_bs"),
             KR(multi_gpu=True, reduction="sum", name="KR multi_gpu"),
             HKR(alpha=3.2, multi_gpu=True, reduction="sum", name="HKR multi_gpu"),
         )

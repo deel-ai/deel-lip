@@ -11,7 +11,6 @@ information.
 import math
 import tensorflow as tf
 from tensorflow.keras.losses import Loss
-from tensorflow.keras.losses import Reduction
 from tensorflow.keras.utils import register_keras_serializable
 
 
@@ -70,7 +69,7 @@ class CategoricalProvableRobustAccuracy(Loss):
         epsilon=36 / 255,
         lip_const=1.0,
         disjoint_neurons=True,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="CategoricalProvableRobustAccuracy",
     ):
         r"""
@@ -120,7 +119,7 @@ class BinaryProvableRobustAccuracy(Loss):
         self,
         epsilon=36 / 255,
         lip_const=1.0,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="BinaryProvableRobustAccuracy",
     ):
         r"""
@@ -161,7 +160,7 @@ class CategoricalProvableAvgRobustness(Loss):
         lip_const=1.0,
         disjoint_neurons=True,
         negative_robustness=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="CategoricalProvableAvgRobustness",
     ):
         r"""
@@ -239,7 +238,7 @@ class BinaryProvableAvgRobustness(Loss):
         self,
         lip_const=1.0,
         negative_robustness=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="BinaryProvableAvgRobustness",
     ):
         r"""
