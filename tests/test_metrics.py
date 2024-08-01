@@ -21,7 +21,7 @@ def check_serialization(nb_class, loss, nb_classes):
     y = tf.one_hot(
         tf.convert_to_tensor(np.random.randint(nb_classes, size=n)), nb_classes
     )
-    m = Sequential([Input(42), Dense(nb_class)])
+    m = Sequential([Input((42,)), Dense(nb_class)])
     m.compile(optimizer=SGD(), loss=loss)
     l1 = m.evaluate(x, y)
     name = loss.__class__.__name__

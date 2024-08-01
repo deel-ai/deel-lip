@@ -39,7 +39,7 @@ def get_gaussian_data(n=500, mean1=1.0, mean2=-1.0):
 
 
 def check_serialization(nb_class, loss):
-    m = Sequential([Input(10), Dense(nb_class)])
+    m = Sequential([Input((10,)), Dense(nb_class)])
     m.compile(optimizer=SGD(), loss=loss)
     name = loss.__class__.__name__ if isinstance(loss, Loss) else loss.__name__
     path = os.path.join("logs", "losses", name)

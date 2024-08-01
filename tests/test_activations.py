@@ -10,7 +10,7 @@ import numpy as np
 
 
 def check_serialization(layer):
-    m = Sequential([Input(10), layer])
+    m = Sequential([Input((10,)), layer])
     m.compile(optimizer=SGD(), loss=CategoricalCrossentropy(from_logits=False))
     name = layer.__class__.__name__
     path = os.path.join("logs", "losses", name)
