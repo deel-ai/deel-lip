@@ -160,7 +160,7 @@ class LipschitzLayersSVTest(unittest.TestCase):
         model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
         print(model.summary())
 
-        optimizer = Adam(lr=0.001)
+        optimizer = Adam(learning_rate=0.001)
         model.compile(
             optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
         )

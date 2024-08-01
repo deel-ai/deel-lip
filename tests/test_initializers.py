@@ -34,7 +34,7 @@ class MyTestCase(unittest.TestCase):
         # clear session to avoid side effects from previous train
         K.clear_session()
         # create the keras model, defin opt, and compile it
-        optimizer = Adam(lr=0.001)
+        optimizer = Adam(learning_rate=0.001)
         model.compile(
             optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
         )
