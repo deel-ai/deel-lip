@@ -166,7 +166,11 @@ def vanillaModel(model):
         if isinstance(layer, Condensable):
             return layer.vanilla_export()
         new_layer = layer.__class__.from_config(layer.get_config())
-        new_layer.build(layer.input_shape)
+        if isinstance(layer.input, list):
+            input_shape = [inp.shape for inp in layer.input]
+        else:
+            input_shape = layer.input.shape
+        new_layer.build(input_shape)
         new_layer.set_weights(layer.get_weights())
         return new_layer
 

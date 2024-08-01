@@ -163,7 +163,7 @@ def compute_layer_sv(layer, supplementary_type2sv={}):
         tf.keras.layers.Add: _compute_sv_add,
         tf.keras.layers.BatchNormalization: _compute_sv_bn,
     }
-    input_shape = layer.input_shape
+    input_shape = layer.input.shape if hasattr(layer.input, "shape") else None
     if isinstance(layer, Condensable):
         layer.condense()
         layer = layer.vanilla_export()

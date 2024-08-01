@@ -163,7 +163,7 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
             bias_initializer="zeros",
             **self._kwargs
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.kernel)
         if self.use_bias:
             layer.bias.assign(self.bias)

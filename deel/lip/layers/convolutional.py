@@ -297,7 +297,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             bias_initializer="zeros",
             **self._kwargs,
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.wbar)
         if self.use_bias:
             layer.bias.assign(self.bias)
@@ -596,7 +596,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             use_bias=self.use_bias,
             **self._kwargs,
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.wbar)
         if layer.use_bias:
             layer.bias.assign(self.bias)

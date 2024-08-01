@@ -216,7 +216,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             bias_initializer="zeros",
             **self._kwargs
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.wbar)
         if self.use_bias:
             layer.bias.assign(self.bias)
@@ -323,7 +323,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             bias_initializer="zeros",
             **self._kwargs
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.wbar)
         if self.use_bias:
             layer.bias.assign(self.bias)
