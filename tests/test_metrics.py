@@ -24,7 +24,7 @@ def check_serialization(nb_class, loss, nb_classes):
     m = Sequential([Input((42,)), Dense(nb_class)])
     m.compile(optimizer=SGD(), loss=loss)
     l1 = m.evaluate(x, y)
-    name = loss.__class__.__name__
+    name = loss.__class__.__name__ + ".keras"
     path = os.path.join("logs", "losses", name)
     m.save(path)
     m2 = load_model(path, compile=True)

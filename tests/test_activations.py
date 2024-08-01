@@ -12,7 +12,7 @@ import numpy as np
 def check_serialization(layer):
     m = Sequential([Input((10,)), layer])
     m.compile(optimizer=SGD(), loss=CategoricalCrossentropy(from_logits=False))
-    name = layer.__class__.__name__
+    name = layer.__class__.__name__ + ".keras"
     path = os.path.join("logs", "losses", name)
     x = tf.random.uniform((255, 10), -10, 10)
     y1 = m(x)

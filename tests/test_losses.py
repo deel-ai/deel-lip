@@ -42,7 +42,7 @@ def check_serialization(nb_class, loss):
     m = Sequential([Input((10,)), Dense(nb_class)])
     m.compile(optimizer=SGD(), loss=loss)
     name = loss.__class__.__name__ if isinstance(loss, Loss) else loss.__name__
-    path = os.path.join("logs", "losses", name)
+    path = os.path.join("logs", "losses", name + ".keras")
     m.save(path)
     m2 = load_model(path, compile=True)
     m2(tf.random.uniform((255, 10)))
