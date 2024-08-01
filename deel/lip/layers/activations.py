@@ -255,7 +255,7 @@ class Householder(Layer, LipschitzLayer):
             raise RuntimeError("2 has to be a divisor of the number of channels")
 
         self.theta = self.add_weight(
-            "theta",
+            name="theta",
             shape=[input_shape[-1] // 2],
             initializer=self.theta_initializer,
         )
