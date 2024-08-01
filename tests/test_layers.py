@@ -1015,7 +1015,6 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
             dict(filters=5, kernel_size=3),
             dict(filters=12, kernel_size=5, strides=2, use_bias=False),
             dict(filters=3, kernel_size=3, padding="same", dilation_rate=1),
-            dict(filters=4, kernel_size=1, output_padding=None, activation="relu"),
             dict(filters=16, kernel_size=3, data_format="channels_first"),
         )
 
@@ -1027,7 +1026,6 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
         cases = (
             {"msg": "Wrong padding", "kwarg": {"padding": "valid"}},
             {"msg": "Wrong dilation rate", "kwarg": {"dilation_rate": 2}},
-            {"msg": "Wrong data format", "kwarg": {"output_padding": 5}},
         )
 
         for case in cases:

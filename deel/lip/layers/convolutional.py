@@ -312,7 +312,6 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         kernel_size,
         strides=(1, 1),
         padding="same",
-        output_padding=None,
         data_format=None,
         dilation_rate=(1, 1),
         activation=None,
@@ -403,7 +402,6 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             kernel_size,
             strides,
             padding,
-            output_padding,
             data_format,
             dilation_rate,
             activation,
@@ -422,10 +420,6 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             raise ValueError("SpectralConv2DTranspose does not support dilation rate")
         if self.padding != "same":
             raise ValueError("SpectralConv2DTranspose only supports padding='same'")
-        if self.output_padding is not None:
-            raise ValueError(
-                "SpectralConv2DTranspose only supports output_padding=None"
-            )
         self.set_klip_factor(k_coef_lip)
         self.u = None
         self.sig = None
@@ -503,17 +497,11 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         kernel_h, kernel_w = self.kernel_size
         stride_h, stride_w = self.strides
 
-        if self.output_padding is None:
-            out_pad_h = out_pad_w = None
-        else:
-            out_pad_h, out_pad_w = self.output_padding
-
         # Infer the dynamic output shape:
         out_height = conv_utils.deconv_output_length(
             height,
             kernel_h,
             padding=self.padding,
-            output_padding=out_pad_h,
             stride=stride_h,
             dilation=self.dilation_rate[0],
         )
@@ -521,7 +509,6 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             width,
             kernel_w,
             padding=self.padding,
-            output_padding=out_pad_w,
             stride=stride_w,
             dilation=self.dilation_rate[1],
         )
