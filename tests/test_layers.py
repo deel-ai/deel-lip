@@ -254,6 +254,10 @@ def train_k_lip_model(
 
 
 class LipschitzLayersTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def _check_mse_results(self, mse, from_disk_mse, test_params):
         self.assertAlmostEqual(
             mse,
@@ -1001,6 +1005,10 @@ class LipschitzLayersTest(unittest.TestCase):
 
 
 class TestSpectralConv2DTranspose(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def test_instantiation(self):
         # Supported cases
         cases = (

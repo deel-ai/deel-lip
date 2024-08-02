@@ -23,6 +23,10 @@ def check_serialization(layer):
 
 
 class TestGroupSort(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/losses", exist_ok=True)
+
     def test_simple(self):
         gs = GroupSort(n=2)
         check_serialization(gs)
@@ -118,6 +122,9 @@ class TestHouseholder(TestCase):
     - check outputs on dense (bs, h, w, n) tensor, with three thetas: 0, pi/2 and pi
     - check idempotence hh(hh(x)) = hh(x)
     """
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/losses", exist_ok=True)
 
     def test_instantiation(self):
         # Instantiation without argument

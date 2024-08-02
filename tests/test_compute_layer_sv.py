@@ -115,6 +115,10 @@ def generate_k_lip_model(layer_type: type, layer_params: dict, input_shape, k):
 
 
 class LipschitzLayersSVTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def train_compute_and_verifySV(
         self,
         layer_type: type,

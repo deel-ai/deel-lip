@@ -33,6 +33,10 @@ def check_serialization(nb_class, loss, nb_classes):
 
 
 class Test(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def test_serialization(self):
         pra = CategoricalProvableRobustAccuracy(1, 1.0, disjoint_neurons=False)
         l1, l2 = check_serialization(10, pra, 10)

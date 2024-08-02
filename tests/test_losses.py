@@ -54,6 +54,10 @@ def binary_tf_data(x):
 
 
 class Test(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/losses", exist_ok=True)
+
     def test_kr_loss(self):
         loss = KR()
 
