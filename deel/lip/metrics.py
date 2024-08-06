@@ -9,9 +9,10 @@ and [https://arxiv.org/abs/2108.04062](https://arxiv.org/abs/2108.04062) for mor
 information.
 """
 import math
-import tensorflow as tf
-from tensorflow.keras.losses import Loss
-from tensorflow.keras.utils import register_keras_serializable
+
+import keras
+import keras.ops as K
+from keras.saving import register_keras_serializable
 
 
 def _delta_multiclass(y_true, y_pred):
@@ -31,13 +32,10 @@ def _delta_multiclass(y_true, y_pred):
     Returns: non-normalized provable robustness factor
 
     """
-    ynl_shape = (-1, tf.shape(y_pred)[-1] - 1)
-    yl = tf.boolean_mask(y_pred, y_true > 0)
-    ynl = tf.reshape(
-        tf.boolean_mask(y_pred, y_true <= 0),
-        ynl_shape,
-    )
-    delta = yl - tf.reduce_max(ynl, axis=-1)
+    ynl_shape = (-1, K.shape(y_pred)[-1] - 1)
+    yl = y_pred[y_true > 0]
+    ynl = K.reshape(y_pred[y_true <= 0], ynl_shape)
+    delta = yl - K.max(ynl, axis=-1)
     return delta
 
 
@@ -58,12 +56,12 @@ def _delta_binary(y_true, y_pred):
     Returns: non-normalized provable robustness factor
 
     """
-    y_true = tf.sign(tf.cast(y_true, y_pred.dtype) - 1e-3)
-    return tf.multiply(y_true, y_pred)
+    y_true = K.sign(K.cast(y_true, y_pred.dtype) - 1e-3)
+    return K.multiply(y_true, y_pred)
 
 
 @register_keras_serializable("deel-lip", "CategoricalProvableRobustAccuracy")
-class CategoricalProvableRobustAccuracy(Loss):
+class CategoricalProvableRobustAccuracy(keras.Loss):
     def __init__(
         self,
         epsilon=36 / 255,
@@ -97,9 +95,8 @@ class CategoricalProvableRobustAccuracy(Loss):
             reduction=reduction, name=name
         )
 
-    @tf.function
     def call(self, y_true, y_pred):
-        return tf.cast(
+        return K.cast(
             (_delta_multiclass(y_true, y_pred) / self.certificate_factor)
             > self.epsilon,
             y_pred.dtype,
@@ -116,7 +113,7 @@ class CategoricalProvableRobustAccuracy(Loss):
 
 
 @register_keras_serializable("deel-lip", "BinaryProvableRobustAccuracy")
-class BinaryProvableRobustAccuracy(Loss):
+class BinaryProvableRobustAccuracy(keras.Loss):
     def __init__(
         self,
         epsilon=36 / 255,
@@ -141,9 +138,8 @@ class BinaryProvableRobustAccuracy(Loss):
             reduction=reduction, name=name
         )
 
-    @tf.function
     def call(self, y_true, y_pred):
-        return tf.cast(
+        return K.cast(
             (_delta_binary(y_true, y_pred) / self.lip_const) > self.epsilon,
             y_pred.dtype,
         )
@@ -158,7 +154,7 @@ class BinaryProvableRobustAccuracy(Loss):
 
 
 @register_keras_serializable("deel-lip", "CategoricalProvableAvgRobustness")
-class CategoricalProvableAvgRobustness(Loss):
+class CategoricalProvableAvgRobustness(keras.Loss):
     def __init__(
         self,
         lip_const=1.0,
@@ -216,12 +212,11 @@ class CategoricalProvableAvgRobustness(Loss):
         if self.negative_robustness:
             self.delta_correction = lambda delta: delta
         else:
-            self.delta_correction = tf.nn.relu
+            self.delta_correction = K.relu
         super(CategoricalProvableAvgRobustness, self).__init__(
             reduction=reduction, name=name
         )
 
-    @tf.function
     def call(self, y_true, y_pred):
         return (
             self.delta_correction(_delta_multiclass(y_true, y_pred))
@@ -239,7 +234,7 @@ class CategoricalProvableAvgRobustness(Loss):
 
 
 @register_keras_serializable("deel-lip", "BinaryProvableAvgRobustness")
-class BinaryProvableAvgRobustness(Loss):
+class BinaryProvableAvgRobustness(keras.Loss):
     def __init__(
         self,
         lip_const=1.0,
@@ -286,12 +281,11 @@ class BinaryProvableAvgRobustness(Loss):
         if self.negative_robustness:
             self.delta_correction = lambda delta: delta
         else:
-            self.delta_correction = tf.nn.relu
+            self.delta_correction = K.relu
         super(BinaryProvableAvgRobustness, self).__init__(
             reduction=reduction, name=name
         )
 
-    @tf.function
     def call(self, y_true, y_pred):
         return self.delta_correction(_delta_binary(y_true, y_pred)) / self.lip_const
 
