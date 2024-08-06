@@ -14,8 +14,8 @@ The function `compute_model_sv()` computes the singular values of all layers in 
 It returns a dictionary indicating for each layer name a tuple (min sv, max sv).
 """
 
+import keras
 import numpy as np
-import tensorflow as tf
 
 from .layers import Condensable, GroupSort, MaxMin
 from .layers.unconstrained import PadConv2D
@@ -27,7 +27,7 @@ def _compute_sv_dense(layer, input_sizes=None):
     The singular values are computed using the SVD decomposition of the weight matrix.
 
     Args:
-        layer (tf.keras.Layer): the Dense layer.
+        layer (keras.Layer): the Dense layer.
         input_sizes (tuple, optional): unused here.
 
     Returns:
@@ -46,16 +46,14 @@ def _generate_conv_matrix(layer, input_sizes):
     dirac input.
 
     Args:
-        layer (tf.keras.Layer): the convolutional layer to convert to dense.
+        layer (keras.Layer): the convolutional layer to convert to dense.
         input_sizes (tuple): the input shape of the layer (with batch dimension as first
             element).
 
     Returns:
         np.array: the equivalent matrix of the convolutional layer.
     """
-    single_layer_model = tf.keras.models.Sequential(
-        [tf.keras.layers.Input(input_sizes[1:]), layer]
-    )
+    single_layer_model = keras.Sequential([keras.Input(input_sizes[1:]), layer])
     dirac_inp = np.zeros((input_sizes[2],) + input_sizes[1:])  # Line by line generation
     in_size = input_sizes[1] * input_sizes[2]
     channel_in = input_sizes[-1]
@@ -69,8 +67,8 @@ def _generate_conv_matrix(layer, input_sizes):
                 w_eqmatrix = np.zeros(
                     (in_size * channel_in, np.prod(out_pred.shape[1:]))
                 )
-            w_eqmatrix[start_index : (start_index + input_sizes[2]), :] = tf.reshape(
-                out_pred, (input_sizes[2], -1)
+            w_eqmatrix[start_index : (start_index + input_sizes[2]), :] = (
+                keras.ops.reshape(out_pred, (input_sizes[2], -1))
             )
             dirac_inp = 0.0 * dirac_inp
             start_index += input_sizes[2]
@@ -86,7 +84,7 @@ def _compute_sv_conv2d_layer(layer, input_sizes):
     the weight matrix.
 
     Args:
-        layer (tf.keras.Layer): the convolutional layer.
+        layer (keras.Layer): the convolutional layer.
         input_sizes (tuple): the input shape of the layer (with batch dimension as first
             element).
 
@@ -103,14 +101,14 @@ def _compute_sv_activation(layer, input_sizes=None):
 
     Warning: This is not singular values for non-linear functions but gradient norm.
     """
-    if isinstance(layer, tf.keras.layers.Activation):
-        function2SV = {tf.keras.activations.relu: (0, 1)}
+    if isinstance(layer, keras.layers.Activation):
+        function2SV = {keras.activations.relu: (0, 1)}
         if layer.activation in function2SV.keys():
             return function2SV[layer.activation]
         else:
             return (None, None)
     layer2SV = {
-        tf.keras.layers.ReLU: (0, 1),
+        keras.layers.ReLU: (0, 1),
         GroupSort: (1, 1),
         MaxMin: (1, 1),
     }
@@ -145,23 +143,23 @@ def compute_layer_sv(layer, supplementary_type2sv={}):
     ReLU, Activation, and deel-lip layers)
 
     Args:
-        layer (tf.keras.layers.Layer): a single tf.keras.layer
+        layer (keras.layers.Layer): a single keras.layer
         supplementary_type2sv (dict, optional): a dictionary linking new layer type with
             user-defined function to compute the singular values. Defaults to {}.
     Returns:
         tuple: a 2-tuple with lowest and largest singular values.
     """
     default_type2sv = {
-        tf.keras.layers.Conv2D: _compute_sv_conv2d_layer,
-        tf.keras.layers.Conv2DTranspose: _compute_sv_conv2d_layer,
+        keras.layers.Conv2D: _compute_sv_conv2d_layer,
+        keras.layers.Conv2DTranspose: _compute_sv_conv2d_layer,
         PadConv2D: _compute_sv_conv2d_layer,
-        tf.keras.layers.Dense: _compute_sv_dense,
-        tf.keras.layers.ReLU: _compute_sv_activation,
-        tf.keras.layers.Activation: _compute_sv_activation,
+        keras.layers.Dense: _compute_sv_dense,
+        keras.layers.ReLU: _compute_sv_activation,
+        keras.layers.Activation: _compute_sv_activation,
         GroupSort: _compute_sv_activation,
         MaxMin: _compute_sv_activation,
-        tf.keras.layers.Add: _compute_sv_add,
-        tf.keras.layers.BatchNormalization: _compute_sv_bn,
+        keras.layers.Add: _compute_sv_add,
+        keras.layers.BatchNormalization: _compute_sv_bn,
     }
     input_shape = layer.input.shape if hasattr(layer.input, "shape") else None
     if isinstance(layer, Condensable):
@@ -179,7 +177,7 @@ def compute_model_sv(model, supplementary_type2sv={}):
     """Compute the largest and lowest singular values of all layers in a model.
 
     Args:
-        model (tf.keras.Model): a tf.keras Model or Sequential.
+        model (keras.Model): a keras Model or Sequential.
         supplementary_type2sv (dict, optional): a dictionary linking new layer type
             with user defined function to compute the min and max singular values.
 
@@ -188,7 +186,7 @@ def compute_model_sv(model, supplementary_type2sv={}):
     """
     list_sv = []
     for layer in model.layers:
-        if isinstance(layer, tf.keras.Model):
+        if isinstance(layer, keras.Model):
             list_sv.append((layer.name, (None, None)))
             list_sv += compute_model_sv(layer, supplementary_type2sv)
         else:
