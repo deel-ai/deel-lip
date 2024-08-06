@@ -6,16 +6,15 @@
 This module contains extra constraint objects. These object can be added as params to
 regular layers.
 """
-import tensorflow as tf
-from tensorflow.keras import backend as K
-from tensorflow.keras.constraints import Constraint
+import keras.ops as K
+from keras.constraints import Constraint
 from .normalizers import (
     reshaped_kernel_orthogonalization,
     DEFAULT_EPS_SPECTRAL,
     DEFAULT_EPS_BJORCK,
     DEFAULT_BETA_BJORCK,
 )
-from tensorflow.keras.utils import register_keras_serializable
+from keras.saving import register_keras_serializable
 
 
 @register_keras_serializable("deel-lip", "WeightClipConstraint")
@@ -49,8 +48,8 @@ class AutoWeightClipConstraint(Constraint):
         self.scale = scale
 
     def __call__(self, w):
-        c = 1 / (tf.sqrt(tf.cast(tf.size(w), dtype=w.dtype)) * self.scale)
-        return tf.clip_by_value(w, -c, c)
+        c = 1 / (K.sqrt(K.cast(K.size(w), dtype=w.dtype)) * self.scale)
+        return K.clip(w, -c, c)
 
     def get_config(self):
         return {"scale": self.scale}
@@ -67,7 +66,7 @@ class FrobeniusConstraint(Constraint):
         self.eps = eps
 
     def __call__(self, w):
-        return w / (tf.sqrt(tf.reduce_sum(tf.square(w), keepdims=False)) + self.eps)
+        return w / (K.sqrt(K.sum(K.square(w), keepdims=False)) + self.eps)
 
     def get_config(self):
         return {"eps": self.eps}
@@ -95,15 +94,15 @@ class SpectralConstraint(Constraint):
             eps_spectral (float): stopping criterion for the iterative power algorithm.
             eps_bjorck (float): stopping criterion Bjorck algorithm.
             beta_bjorck (float): beta parameter in bjorck algorithm.
-            u (tf.Tensor): vector used for iterated power method, can be set to None
+            u (Tensor): vector used for iterated power method, can be set to None
                 (used for serialization/deserialization purposes).
         """
         self.eps_spectral = eps_spectral
         self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
         self.k_coef_lip = k_coef_lip
-        if not (isinstance(u, tf.Tensor) or (u is None)):
-            u = tf.convert_to_tensor(u)
+        if not (K.is_tensor(u) or (u is None)):
+            u = K.convert_to_tensor(u)
         self.u = u
         super(SpectralConstraint, self).__init__()
 
