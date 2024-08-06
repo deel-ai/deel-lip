@@ -9,12 +9,12 @@ for condensation and vanilla exportation.
 import math
 from warnings import warn
 import numpy as np
-from tensorflow.keras import Sequential as KerasSequential, Model as KerasModel
-from tensorflow.keras import activations as ka
-from tensorflow.keras import layers as kl
+from keras import Sequential as KerasSequential, Model as KerasModel
+from keras import activations as ka
+from keras import layers as kl
 from .layers import LipschitzLayer, Condensable
-from tensorflow.keras.utils import register_keras_serializable
-from tensorflow.keras.models import clone_model
+from keras.saving import register_keras_serializable
+from keras.models import clone_model
 
 
 _msg_not_lip = "Sequential model contains a layer which is not a 1-Lipschitz layer: {}"
@@ -149,12 +149,12 @@ def vanillaModel(model):
     """
     Transform a model to its equivalent "vanilla" model, i.e. a model where
     `Condensable` layers are replaced with their vanilla equivalent. For example,
-    `SpectralConv2D` layers are converted to tf.keras `Conv2D` layers.
+    `SpectralConv2D` layers are converted to keras `Conv2D` layers.
 
-    The input model can be a tf.keras Sequential/Model or a deel.lip Sequential/Model.
+    The input model can be a keras Sequential/Model or a deel.lip Sequential/Model.
 
     Args:
-        model: a tf.keras or deel.lip model with Condensable layers.
+        model: a keras or deel.lip model with Condensable layers.
 
     Returns:
         A Keras model, identical to the input model where `Condensable` layers are
