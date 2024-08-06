@@ -6,11 +6,12 @@
 This module contains callbacks that can be added to keras training process.
 """
 import os
-from typing import Optional, Dict, Iterable
+from typing import Dict, Iterable, Optional
 
-import tensorflow as tf
-from tensorflow.keras.callbacks import Callback
+import keras.ops as K
 import numpy as np
+from keras.callbacks import Callback
+
 from .layers import Condensable
 
 
@@ -91,6 +92,8 @@ class MonitorCallback(Callback):
         assert what in {"max", "all"}
         self.what = what
         self.logdir = logdir
+        import tensorflow as tf
+
         self.file_writer = tf.summary.create_file_writer(
             os.path.join(logdir, "metrics")
         )
@@ -101,6 +104,8 @@ class MonitorCallback(Callback):
         super().__init__()
 
     def _monitor(self, step):
+        import tensorflow as tf
+
         step = self.params["steps"] * self.epochs + step
         for layer_name in self.monitored_layers:
             layer = self.model.get_layer(layer_name)
@@ -113,8 +118,8 @@ class MonitorCallback(Callback):
             elif hasattr(layer, self.target):
                 kernel = getattr(layer, self.target)
                 w_shape = kernel.shape.as_list()
-                sigmas = tf.linalg.svd(
-                    tf.keras.backend.reshape(kernel, [-1, w_shape[-1]]),
+                sigmas = K.svd(
+                    K.reshape(kernel, [-1, w_shape[-1]]),
                     full_matrices=False,
                     compute_uv=False,
                 ).numpy()
@@ -176,7 +181,7 @@ class LossParamScheduler(Callback):
 
         Args:
             param_name (str): name of the parameter of the loss to tune. Must be a
-                tf.Variable.
+                keras.Variable.
             fp (list): values of the loss parameter as steps given by the xp.
             xp (list): step where the parameter equals fp.
             step (int): step value, for serialization/deserialization purposes.
@@ -215,7 +220,7 @@ class LossParamLog(Callback):
 
     def on_epoch_end(self, epoch: int, logs=None):
         if epoch % self.rate == 0:
-            tf.print(
+            print(
                 "\n",
                 self.model.loss.name,
                 self.param_name,
