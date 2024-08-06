@@ -8,12 +8,11 @@ It can be added as a layer, or it can be used in the "activation" params for oth
 layers.
 """
 import math
-import tensorflow as tf
-from tensorflow.keras import backend as K
-from tensorflow.keras.constraints import MinMaxNorm
-from tensorflow.keras.layers import Layer, PReLU
+import keras.ops as K
+from keras.constraints import MinMaxNorm
+from keras.layers import Layer, PReLU
 from .base_layer import LipschitzLayer
-from tensorflow.keras.utils import register_keras_serializable
+from keras.saving import register_keras_serializable
 
 
 @register_keras_serializable("deel-lip", "MaxMin")
@@ -116,14 +115,13 @@ class GroupSort(Layer, LipschitzLayer):
         self.data_format = data_format
 
     def build(self, input_shape):
-        input_shape = tf.TensorShape(input_shape)
         super(GroupSort, self).build(input_shape)
         self._init_lip_coef(input_shape)
         if (self.n is None) or (self.n > input_shape[self.channel_axis]):
             self.n = input_shape[self.channel_axis]
         if (input_shape[self.channel_axis] % self.n) != 0:
             raise RuntimeError("self.n has to be a divisor of the number of channels")
-        input_shape = tuple(input_shape.as_list())
+        input_shape = tuple(input_shape)
         self.flat_shape = (
             (-1,) + input_shape[1:-1] + (input_shape[-1] // self.n, self.n)
         )
@@ -132,17 +130,16 @@ class GroupSort(Layer, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    @tf.function
     def call(self, x):
-        fv = tf.reshape(x, self.flat_shape)
+        fv = K.reshape(x, self.flat_shape)
         if self.n == 2:
-            b, c = tf.split(fv, 2, -1)
-            newv = tf.concat([tf.minimum(b, c), tf.maximum(b, c)], axis=-1)
-            newv = tf.reshape(newv, self.out_shape)
+            b, c = K.split(fv, 2, axis=-1)
+            newv = K.concatenate([K.minimum(b, c), K.maximum(b, c)], axis=-1)
+            newv = K.reshape(newv, self.out_shape)
             return newv * self._get_coef()
 
-        newv = tf.sort(fv)
-        newv = tf.reshape(newv, self.out_shape)
+        newv = K.sort(fv)
+        newv = K.reshape(newv, self.out_shape)
         return newv * self._get_coef()
 
     def get_config(self):
@@ -229,7 +226,7 @@ class Householder(Layer, LipschitzLayer):
             k_coef_lip (str): The lipschitz coefficient to be enforced.
             theta_initializer: initializer for the angle theta of reflection. Defaults
                 to pi/2, which corresponds to GroupSort2.
-            **kwargs: parameters passed to the `tf.keras.layers.Layer`.
+            **kwargs: parameters passed to the `keras.layers.Layer`.
 
         Input shape:
             Arbitrary. Use the keyword argument `input_shape` (tuple of integers, does
@@ -260,27 +257,27 @@ class Householder(Layer, LipschitzLayer):
             initializer=self.theta_initializer,
         )
         if self.theta_initializer is None:
-            self.theta.assign(tf.ones_like(self.theta, dtype=tf.float32) * math.pi / 2)
+            self.theta.assign(K.ones_like(self.theta, dtype="float32") * math.pi / 2)
 
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
     def call(self, x):
-        z1, z2 = tf.split(x, 2, axis=-1)
+        z1, z2 = K.split(x, 2, axis=-1)
 
         # selector > 0 if point (z1, z2) is on one side of reflection line, else < 0.
         # Reflection line is defined by angle theta/2.
-        selector = (z1 * tf.sin(0.5 * self.theta)) - (z2 * tf.cos(0.5 * self.theta))
+        selector = (z1 * K.sin(0.5 * self.theta)) - (z2 * K.cos(0.5 * self.theta))
 
-        cos_theta = tf.cos(self.theta)
-        sin_theta = tf.sin(self.theta)
+        cos_theta = K.cos(self.theta)
+        sin_theta = K.sin(self.theta)
         reflected_z1 = z1 * cos_theta + z2 * sin_theta
         reflected_z2 = z1 * sin_theta - z2 * cos_theta
 
-        a = tf.where(selector <= 0, z1, reflected_z1)
-        b = tf.where(selector <= 0, z2, reflected_z2)
+        a = K.where(selector <= 0, z1, reflected_z1)
+        b = K.where(selector <= 0, z2, reflected_z2)
 
-        return tf.concat([a, b], axis=-1)
+        return K.concatenate([a, b], axis=-1)
 
     def get_config(self):
         config = {
