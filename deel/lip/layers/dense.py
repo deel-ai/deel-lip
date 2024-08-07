@@ -21,10 +21,11 @@ robustness) the user may want to use layers that are at most 1 lipschitz, this c
 be done by setting the param `eps_bjorck=None`.
 """
 
-import tensorflow as tf
-from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+import keras.ops as K
+from keras.initializers import RandomNormal
+from keras.layers import Dense
+from keras.saving import register_keras_serializable
 
 from ..initializers import SpectralInitializer
 from ..normalizers import (
@@ -53,6 +54,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         activity_regularizer=None,
         kernel_constraint=None,
         bias_constraint=None,
+        lora_rank=None,
         k_coef_lip=1.0,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
         eps_bjorck=DEFAULT_EPS_BJORCK,
@@ -85,6 +87,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             kernel_constraint: Constraint function applied to
                 the `kernel` weights matrix.
             bias_constraint: Constraint function applied to the bias vector.
+            lora_rank: SpectralDense only support lora_rank=None.
             k_coef_lip: lipschitz constant to ensure
             eps_spectral: stopping criterion for the iterative power algorithm.
             eps_bjorck: stopping criterion Bjorck algorithm.
@@ -104,6 +107,9 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
 
         This documentation reuse the body of the original keras.layers.Dense doc.
         """
+        if lora_rank is not None:
+            raise ValueError("lora_rank is not supported for SpectralDense")
+
         super(SpectralDense, self).__init__(
             units=units,
             activation=activation,
@@ -115,6 +121,7 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
+            lora_rank=None,
             **kwargs
         )
         self._kwargs = kwargs
@@ -134,27 +141,26 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
         super(SpectralDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.u = self.add_weight(
-            shape=tuple([1, self.kernel.shape.as_list()[-1]]),
+            shape=(1, self.units),
             initializer=RandomNormal(0, 1),
             name="sn",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig = self.add_weight(
-            shape=tuple([1, 1]),  # maximum spectral  value
-            initializer=tf.keras.initializers.ones,
+            shape=(1, 1),  # maximum spectral  value
+            initializer=keras.initializers.ones,
             name="sigma",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.value, trainable=False)
+        self.wbar = keras.Variable(self.kernel.value, trainable=False, name="wbar")
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
-        return 1.0  # this layer don't require a corrective factor
+        return 1.0  # this layer doesn't require a corrective factor
 
-    @tf.function
     def call(self, x, training=True):
         if training:
             wbar, u, sigma = reshaped_kernel_orthogonalization(
@@ -172,12 +178,14 @@ class SpectralDense(Dense, LipschitzLayer, Condensable):
             self.sig.assign(sigma)
         else:
             wbar = self.wbar
-        outputs = tf.matmul(x, wbar)
-        if self.use_bias:
-            outputs = tf.nn.bias_add(outputs, self.bias)
+
+        # Compute the output of the Dense layer (copied from keras.layers.Dense)
+        x = K.matmul(x, wbar)
+        if self.bias is not None:
+            x = K.add(x, self.bias)
         if self.activation is not None:
-            outputs = self.activation(outputs)
-        return outputs
+            x = self.activation(x)
+        return x
 
     def get_config(self):
         config = {
@@ -248,10 +256,14 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         activity_regularizer=None,
         kernel_constraint=None,
         bias_constraint=None,
+        lora_rank=None,
         disjoint_neurons=True,
         k_coef_lip=1.0,
         **kwargs
     ):
+        if lora_rank is not None:
+            raise ValueError("lora_rank is not supported for FrobeniusDense")
+
         super().__init__(
             units=units,
             activation=activation,
@@ -263,6 +275,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint,
+            lora_rank=None,
             **kwargs
         )
         self.set_klip_factor(k_coef_lip)
@@ -276,7 +289,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
     def build(self, input_shape):
         super(FrobeniusDense, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        self.wbar = tf.Variable(self.kernel.value, trainable=False)
+        self.wbar = keras.Variable(self.kernel.value, trainable=False, name="wbar")
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -286,18 +299,20 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         if training:
             wbar = (
                 self.kernel
-                / tf.norm(self.kernel, axis=self.axis_norm)
+                / K.norm(self.kernel, axis=self.axis_norm)
                 * self._get_coef()
             )
             self.wbar.assign(wbar)
         else:
             wbar = self.wbar
-        outputs = tf.matmul(x, wbar)
-        if self.use_bias:
-            outputs = tf.nn.bias_add(outputs, self.bias)
+
+        # Compute the output of the Dense layer (copied from keras.layers.Dense)
+        x = K.matmul(x, wbar)
+        if self.bias is not None:
+            x = K.add(x, self.bias)
         if self.activation is not None:
-            return self.activation(outputs)
-        return outputs
+            x = self.activation(x)
+        return x
 
     def get_config(self):
         config = {
@@ -308,9 +323,7 @@ class FrobeniusDense(Dense, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar = (
-            self.kernel / tf.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
-        )
+        wbar = self.kernel / K.norm(self.kernel, axis=self.axis_norm) * self._get_coef()
         self.kernel.assign(wbar)
 
     def vanilla_export(self):
