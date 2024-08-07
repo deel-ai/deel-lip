@@ -22,11 +22,11 @@ be done by setting the param `eps_bjorck=None`.
 """
 
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import backend as K
-from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+import keras.ops as K
+from keras.initializers import RandomNormal
+from keras.layers import Conv2D, Conv2DTranspose
+from keras.saving import register_keras_serializable
 
 from ..constraints import SpectralConstraint
 from ..initializers import SpectralInitializer
@@ -40,12 +40,6 @@ from ..normalizers import (
     reshaped_kernel_orthogonalization,
 )
 from .base_layer import Condensable, LipschitzLayer
-
-try:
-    from keras.utils import conv_utils  # in Keras for TF >= 2.6
-except ImportError:
-    # conv_utils in tf.python for TF <= 2.5 and TF >= 2.13
-    from tensorflow.python.keras.utils import conv_utils
 
 
 def _compute_conv_lip_factor(kernel_size, strides, input_shape, data_format):
@@ -84,6 +78,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         padding="same",
         data_format=None,
         dilation_rate=(1, 1),
+        groups=1,
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(),
@@ -142,6 +137,8 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
                 all spatial dimensions.
                 Currently, specifying any `dilation_rate` value != 1 is
                 incompatible with specifying any stride value != 1.
+            groups: A positive int specifying the number of groups in which the input is
+                split along the channel axis. This layer only supports groups=1.
             activation: Activation function to use.
                 If you don't specify anything, no activation is applied
                 (ie. "linear" activation: `a(x) = x`).
@@ -168,6 +165,8 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             raise RuntimeError("SpectralConv2D does not support dilation rate")
         if padding != "same":
             raise RuntimeError("SpectralConv2D only supports padding='same'")
+        if groups != 1:
+            raise ValueError("SpectralConv2D does not support groups != 1")
         super(SpectralConv2D, self).__init__(
             filters=filters,
             kernel_size=kernel_size,
@@ -175,6 +174,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             padding=padding,
             data_format=data_format,
             dilation_rate=dilation_rate,
+            groups=1,
             activation=activation,
             use_bias=use_bias,
             kernel_initializer=kernel_initializer,
@@ -202,7 +202,7 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         super(SpectralConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
         self.u = self.add_weight(
-            shape=tuple([1, self.kernel.shape.as_list()[-1]]),
+            shape=(1, self.filters),
             initializer=RandomNormal(0, 1),
             name="sn",
             trainable=False,
@@ -210,13 +210,13 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         )
 
         self.sig = self.add_weight(
-            shape=tuple([1, 1]),  # maximum spectral  value
+            shape=(1, 1),  # maximum spectral value
             name="sigma",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.value, trainable=False)
+        self.wbar = keras.Variable(self.kernel.value, trainable=False, name="wbar")
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -241,16 +241,25 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
             self.sig.assign(sigma)
         else:
             wbar = self.wbar
-        outputs = K.conv2d(
+
+        # Compute Conv2D operation (copied from keras.layers.Conv2D)
+        outputs = K.conv(
             x,
             wbar,
-            strides=self.strides,
+            strides=list(self.strides),
             padding=self.padding,
-            data_format=self.data_format,
             dilation_rate=self.dilation_rate,
+            data_format=self.data_format,
         )
+
         if self.use_bias:
-            outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
+            if self.data_format == "channels_last":
+                bias_shape = (1,) * (self.rank + 1) + (self.filters,)
+            else:
+                bias_shape = (1, self.filters) + (1,) * self.rank
+            bias = K.reshape(self.bias, bias_shape)
+            outputs += bias
+
         if self.activation is not None:
             return self.activation(outputs)
         return outputs
@@ -342,7 +351,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         3. divide the output by the Lipschitz target K to ensure K-Lipschitzity.
 
         This documentation reuses the body of the original
-        `tf.keras.layers.Conv2DTranspose` doc.
+        `keras.layers.Conv2DTranspose` doc.
 
         Args:
             filters: Integer, the dimensionality of the output space
@@ -436,7 +445,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         super().build(input_shape)
         self._init_lip_coef(input_shape)
         self.u = self.add_weight(
-            shape=tuple([1, self.kernel.shape.as_list()[2]]),
+            shape=(1, self.filters),
             initializer=RandomNormal(0, 1),
             name="sn",
             trainable=False,
@@ -444,13 +453,13 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
         )
 
         self.sig = self.add_weight(
-            shape=tuple([1, 1]),  # maximum spectral  value
+            shape=(1, 1),  # maximum spectral value
             name="sigma",
             trainable=False,
             dtype=self.dtype,
         )
         self.sig.assign([[1.0]])
-        self.wbar = tf.Variable(self.kernel.value, trainable=False)
+        self.wbar = keras.Variable(self.kernel.value, trainable=False, name="wbar")
 
     def _compute_lip_coef(self, input_shape=None):
         return _compute_conv_lip_factor(
@@ -459,7 +468,7 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
 
     def call(self, inputs, training=True):
         if training:
-            kernel_reshaped = tf.transpose(self.kernel, [0, 1, 3, 2])
+            kernel_reshaped = K.transpose(self.kernel, [0, 1, 3, 2])
             wbar, u, sigma = reshaped_kernel_orthogonalization(
                 kernel_reshaped,
                 self.u,
@@ -470,75 +479,31 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
                 self.maxiter_spectral,
                 self.maxiter_bjorck,
             )
-            wbar = tf.transpose(wbar, [0, 1, 3, 2])
+            wbar = K.transpose(wbar, [0, 1, 3, 2])
             self.wbar.assign(wbar)
             self.u.assign(u)
             self.sig.assign(sigma)
         else:
             wbar = self.wbar
 
-        # Apply conv2D_transpose operation on constrained weights
-        # (code from TF/Keras 2.9.1)
-        inputs_shape = tf.shape(inputs)
-        batch_size = inputs_shape[0]
-        if self.data_format == "channels_first":
-            h_axis, w_axis = 2, 3
-        else:
-            h_axis, w_axis = 1, 2
-
-        height, width = None, None
-        if inputs.shape.rank is not None:
-            dims = inputs.shape.as_list()
-            height = dims[h_axis]
-            width = dims[w_axis]
-        height = height if height is not None else inputs_shape[h_axis]
-        width = width if width is not None else inputs_shape[w_axis]
-
-        kernel_h, kernel_w = self.kernel_size
-        stride_h, stride_w = self.strides
-
-        # Infer the dynamic output shape:
-        out_height = conv_utils.deconv_output_length(
-            height,
-            kernel_h,
-            padding=self.padding,
-            stride=stride_h,
-            dilation=self.dilation_rate[0],
-        )
-        out_width = conv_utils.deconv_output_length(
-            width,
-            kernel_w,
-            padding=self.padding,
-            stride=stride_w,
-            dilation=self.dilation_rate[1],
-        )
-        if self.data_format == "channels_first":
-            output_shape = (batch_size, self.filters, out_height, out_width)
-        else:
-            output_shape = (batch_size, out_height, out_width, self.filters)
-        output_shape_tensor = tf.stack(output_shape)
-
-        outputs = K.conv2d_transpose(
+        # Apply conv2D_transpose operation (copied from keras.layers.Conv2DTranspose)
+        outputs = K.conv_transpose(
             inputs,
             wbar,
-            output_shape_tensor,
-            strides=self.strides,
+            strides=list(self.strides),
             padding=self.padding,
-            data_format=self.data_format,
+            output_padding=self.output_padding,
             dilation_rate=self.dilation_rate,
+            data_format=self.data_format,
         )
 
-        if not tf.executing_eagerly():
-            # Infer the static output shape:
-            out_shape = self.compute_output_shape(inputs.shape)
-            outputs.set_shape(out_shape)
-
         if self.use_bias:
-            outputs = tf.nn.bias_add(
-                outputs,
-                self.bias,
-                data_format=conv_utils.convert_data_format(self.data_format, ndim=4),
-            )
+            if self.data_format == "channels_last":
+                bias_shape = (1,) * (self.rank + 1) + (self.filters,)
+            else:
+                bias_shape = (1, self.filters) + (1,) * self.rank
+            bias = K.reshape(self.bias, bias_shape)
+            outputs += bias
 
         if self.activation is not None:
             return self.activation(outputs)
@@ -604,6 +569,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         padding="same",
         data_format=None,
         dilation_rate=(1, 1),
+        groups=1,
         activation=None,
         use_bias=True,
         kernel_initializer=SpectralInitializer(),
@@ -622,13 +588,15 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             raise RuntimeError("FrobeniusConv2D does not support dilation rate")
         if padding != "same":
             raise RuntimeError("FrobeniusConv2D only supports padding='same'")
+        if groups != 1:
+            raise ValueError("SpectralConv2D does not support groups != 1")
         if not (
             (kernel_constraint is None)
             or isinstance(kernel_constraint, SpectralConstraint)
         ):
             raise RuntimeError(
-                "only deellip constraints are allowed as other constraints could break"
-                " 1 lipschitz condition"
+                "only deel-lip constraints are allowed as other constraints could break"
+                " 1-Lipschitz condition"
             )
         super(FrobeniusConv2D, self).__init__(
             filters=filters,
@@ -637,6 +605,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
             padding=padding,
             data_format=data_format,
             dilation_rate=dilation_rate,
+            groups=groups,
             activation=activation,
             use_bias=use_bias,
             kernel_initializer=kernel_initializer,
@@ -655,7 +624,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
     def build(self, input_shape):
         super(FrobeniusConv2D, self).build(input_shape)
         self._init_lip_coef(input_shape)
-        self.wbar = tf.Variable(self.kernel.value, trainable=False)
+        self.wbar = keras.Variable(self.kernel.value, trainable=False, name="wbar")
         self.built = True
 
     def _compute_lip_coef(self, input_shape=None):
@@ -665,20 +634,31 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
 
     def call(self, x, training=True):
         if training:
-            wbar = (self.kernel / tf.norm(self.kernel)) * self._get_coef()
+            wbar = (
+                self.kernel / K.norm(K.reshape(self.kernel, (-1,))) * self._get_coef()
+            )
             self.wbar.assign(wbar)
         else:
             wbar = self.wbar
-        outputs = K.conv2d(
+
+        # Compute Conv2D operation (copied from keras.layers.Conv2D)
+        outputs = K.conv(
             x,
             wbar,
-            strides=self.strides,
+            strides=list(self.strides),
             padding=self.padding,
-            data_format=self.data_format,
             dilation_rate=self.dilation_rate,
+            data_format=self.data_format,
         )
+
         if self.use_bias:
-            outputs = K.bias_add(outputs, self.bias, data_format=self.data_format)
+            if self.data_format == "channels_last":
+                bias_shape = (1,) * (self.rank + 1) + (self.filters,)
+            else:
+                bias_shape = (1, self.filters) + (1,) * self.rank
+            bias = K.reshape(self.bias, bias_shape)
+            outputs += bias
+
         if self.activation is not None:
             return self.activation(outputs)
         return outputs
@@ -691,7 +671,7 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         return dict(list(base_config.items()) + list(config.items()))
 
     def condense(self):
-        wbar = self.kernel / tf.norm(self.kernel) * self._get_coef()
+        wbar = self.kernel / K.norm(K.reshape(self.kernel, (-1,))) * self._get_coef()
         self.kernel.assign(wbar)
 
     def vanilla_export(self):
