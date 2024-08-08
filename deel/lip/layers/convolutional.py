@@ -276,6 +276,18 @@ class SpectralConv2D(Conv2D, LipschitzLayer, Condensable):
         base_config = super(SpectralConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+    def save_own_variables(self, store):
+        super().save_own_variables(store)
+        store["sn"] = self.u.numpy()
+        store["sigma"] = self.sig.numpy()
+        store["wbar"] = self.wbar.numpy()
+
+    def load_own_variables(self, store):
+        super().load_own_variables(store)
+        self.u.assign(store["sn"])
+        self.sig.assign(store["sigma"])
+        self.wbar.assign(store["wbar"])
+
     def condense(self):
         wbar, u, sigma = reshaped_kernel_orthogonalization(
             self.kernel,
@@ -669,6 +681,14 @@ class FrobeniusConv2D(Conv2D, LipschitzLayer, Condensable):
         }
         base_config = super(FrobeniusConv2D, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+    def save_own_variables(self, store):
+        super().save_own_variables(store)
+        store["wbar"] = self.wbar.numpy()
+
+    def load_own_variables(self, store):
+        super().load_own_variables(store)
+        self.wbar.assign(store["wbar"])
 
     def condense(self):
         wbar = self.kernel / K.norm(K.reshape(self.kernel, (-1,))) * self._get_coef()
