@@ -40,6 +40,18 @@ distance estimation.
 This library provides an efficient implementation of **k-Lispchitz
 layers for keras**.
 
+> [!CAUTION]
+> **Incompatibility with TensorFlow >= 2.16 and Keras 3**
+>
+> Due to significant changes introduced in TensorFlow version 2.16 and Keras 3, this
+> package is currently incompatible with TensorFlow versions 2.16 and above. Users are
+> advised to use TensorFlow versions lower than 2.16 to ensure compatibility and proper
+> functionality of this package.
+>
+> We are actively working on updating the package to support Keras 3. Please stay tuned
+> for updates. For now, make sure to install an earlier version of TensorFlow by
+> specifying it in your environment.
+
 ## 📚 Table of contents
 
 - [📚 Table of contents](#-table-of-contents)
