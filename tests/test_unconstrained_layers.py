@@ -1,7 +1,8 @@
 import unittest
 
+import keras
 import numpy as np
-import tensorflow as tf
+
 from deel.lip.layers.unconstrained import PadConv2D
 from deel.lip.model import vanillaModel
 from deel.lip.utils import _padding_circular
@@ -47,7 +48,7 @@ class TestPadConv2D(unittest.TestCase):
         elif padding.lower() in ["constant", "reflect", "symmetric"]:
             p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
             pad_sizes = [[0, 0], [p_vert, p_vert], [p_hor, p_hor], [0, 0]]
-            return tf.pad(x, pad_sizes, padding)
+            return keras.ops.pad(x, pad_sizes, padding)
         elif padding.lower() in ["circular"]:
             p_vert, p_hor = kernel_size[0] // 2, kernel_size[1] // 2
             return _padding_circular(x, (p_vert, p_hor))
@@ -151,7 +152,7 @@ class TestPadConv2D(unittest.TestCase):
             layer_params_ref["padding"] = "same"
 
         model_ref = generate_k_lip_model(
-            layer_type=tf.keras.layers.Conv2D,
+            layer_type=keras.layers.Conv2D,
             layer_params=layer_params_ref,
             input_shape=x_pad.shape[1:],
             k=1.0,
