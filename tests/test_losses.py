@@ -1,10 +1,10 @@
 from unittest import TestCase
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.losses import Loss
-from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.models import load_model
+import keras
+import keras.ops as K
+from keras.models import Sequential, load_model
+from keras.losses import Loss
+from keras.layers import Input, Dense
+from keras.optimizers import SGD
 from deel.lip.losses import (
     KR,
     HingeMargin,
@@ -31,10 +31,10 @@ import numpy as np
 
 
 def get_gaussian_data(n=500, mean1=1.0, mean2=-1.0):
-    x1 = tf.random.normal((n, 1), mean=mean1, stddev=0.1)
-    x2 = tf.random.normal((n, 1), mean=mean2, stddev=0.1)
-    y_pred = tf.concat([x1, x2], axis=0)
-    y_true = tf.concat([tf.ones((n, 1)), tf.zeros((n, 1))], axis=0)
+    x1 = keras.random.normal((n, 1), mean=mean1, stddev=0.1)
+    x2 = keras.random.normal((n, 1), mean=mean2, stddev=0.1)
+    y_pred = K.concatenate([x1, x2], axis=0)
+    y_true = K.concatenate([K.ones((n, 1)), K.zeros((n, 1))], axis=0)
     return y_pred, y_true
 
 
@@ -45,12 +45,12 @@ def check_serialization(nb_class, loss):
     path = os.path.join("logs", "losses", name + ".keras")
     m.save(path)
     m2 = load_model(path, compile=True)
-    m2(tf.random.uniform((255, 10)))
+    m2(keras.random.uniform((255, 10)))
 
 
-def binary_tf_data(x):
-    """Return a TF float32 tensor of shape [N, 1] from a list/np.array of shape [N]"""
-    return tf.expand_dims(tf.constant(x, dtype=tf.float32), axis=-1)
+def binary_keras_data(x):
+    """Return a float32 tensor of shape [N, 1] from a list/np.array of shape [N]"""
+    return K.expand_dims(K.convert_to_tensor(x, dtype="float32"), axis=-1)
 
 
 class Test(TestCase):
@@ -61,8 +61,8 @@ class Test(TestCase):
     def test_kr_loss(self):
         loss = KR()
 
-        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_keras_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_keras_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(1), "KR loss must be equal to 1")
 
@@ -71,11 +71,11 @@ class Test(TestCase):
         np.testing.assert_approx_equal(
             loss_val, 2.0, 1, "test failed when y_true has shape (bs, 1)"
         )
-        loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_3 = loss(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_3, loss_val, "test failed when y_true has dtype int32"
         )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        y_true2 = K.where(y_true == 1.0, 1.0, -1.0)
         loss_val_4 = loss(y_true2, y_pred).numpy()
         self.assertEqual(loss_val_4, loss_val, "test failed when labels are in (1, -1)")
 
@@ -88,15 +88,15 @@ class Test(TestCase):
 
     def test_hinge_margin_loss(self):
         loss = HingeMargin(2.0)
-        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_keras_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_keras_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
         loss_val = loss(y_true, y_pred).numpy()
         self.assertEqual(loss_val, np.float32(4 / 6), "Hinge loss must be equal to 4/6")
-        loss_val_3 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_3 = loss(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_3, np.float32(4 / 6), "Hinge loss must be equal to 4/6"
         )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        y_true2 = K.where(y_true == 1.0, 1.0, -1.0)
         loss_val_4 = loss(y_true2, y_pred).numpy()
         self.assertEqual(
             loss_val_4, np.float32(4 / 6), "Hinge loss must be equal to 4/6"
@@ -105,7 +105,7 @@ class Test(TestCase):
 
     def test_kr_multiclass_loss(self):
         multiclass_kr = MulticlassKR(reduction="sum_over_batch_size")
-        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_true = K.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
                 [2, 0.2, -0.5],
@@ -121,10 +121,10 @@ class Test(TestCase):
 
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = multiclass_kr(y_true, y_pred).numpy()
-        loss_val_2 = multiclass_kr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = multiclass_kr(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
@@ -135,14 +135,14 @@ class Test(TestCase):
 
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = multiclass_hinge(y_true, y_pred).numpy()
-        loss_val_2 = multiclass_hinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = multiclass_hinge(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        y_true2 = K.where(y_true == 1.0, 1.0, -1.0)
         loss_val_3 = multiclass_hinge(y_true2, y_pred).numpy()
         self.assertEqual(
             loss_val_3, loss_val_2, "test failed when labels are in (1, -1)"
@@ -151,7 +151,7 @@ class Test(TestCase):
 
     def test_hkr_multiclass_loss(self):
         multiclass_hkr = MulticlassHKR(5.0, 2.0)
-        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_true = K.one_hot([0, 0, 0, 1, 1, 2], 3)
         y_pred = np.float32(
             [
                 [2, 0.2, -0.5],
@@ -167,10 +167,10 @@ class Test(TestCase):
 
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = multiclass_hkr(y_true, y_pred).numpy()
-        loss_val_2 = multiclass_hkr(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = multiclass_hkr(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_2,
             loss_val,
@@ -182,14 +182,14 @@ class Test(TestCase):
         multimargin_loss = MultiMargin(1.0)
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = multimargin_loss(y_true, y_pred).numpy()
-        loss_val_2 = multimargin_loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = multimargin_loss(K.cast(y_true, dtype="int32"), y_pred).numpy()
         self.assertEqual(
             loss_val_2, loss_val, "test failed when y_true has dtype int32"
         )
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        y_true2 = K.where(y_true == 1.0, 1.0, -1.0)
         loss_val_3 = multimargin_loss(y_true2, y_pred).numpy()
         self.assertEqual(
             loss_val_3, loss_val_2, "test failed when labels are in (1, -1)"
@@ -200,10 +200,10 @@ class Test(TestCase):
         cathinge = CategoricalHinge(1.0)
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = cathinge(y_true, y_pred).numpy()
-        loss_val_2 = cathinge(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = cathinge(K.cast(y_true, dtype="int32"), y_pred).numpy()
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
         )
@@ -213,12 +213,10 @@ class Test(TestCase):
         taucatcrossent_loss = TauCategoricalCrossentropy(1.0)
         n_class = 10
         n_items = 10000
-        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_true = K.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = taucatcrossent_loss(y_true, y_pred).numpy()
-        loss_val_2 = taucatcrossent_loss(
-            tf.cast(y_true, dtype=tf.int32), y_pred
-        ).numpy()
+        loss_val_2 = taucatcrossent_loss(K.cast(y_true, dtype="int32"), y_pred).numpy()
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
         )
@@ -229,10 +227,10 @@ class Test(TestCase):
         n_class = 10
         n_items = 10000
         y_true = np.random.randint(0, n_class, n_items)
-        y_pred = tf.random.normal((n_items, n_class))
+        y_pred = keras.random.normal((n_items, n_class))
         loss_val = tau_sparse_catcrossent_loss(y_true, y_pred).numpy()
         loss_val_2 = tau_sparse_catcrossent_loss(
-            tf.cast(y_true, dtype=tf.int32), y_pred
+            K.cast(y_true, dtype="int32"), y_pred
         ).numpy()
         np.testing.assert_almost_equal(
             loss_val_2, loss_val, 1, "test failed when y_true has dtype int32"
@@ -241,8 +239,8 @@ class Test(TestCase):
 
     def test_tau_binary_crossent(self):
         loss = TauBinaryCrossentropy(2.0)
-        y_true = binary_tf_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        y_pred = binary_tf_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
+        y_true = binary_keras_data([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        y_pred = binary_keras_data([0.5, 1.5, -0.5, -0.5, -1.5, 0.5])
 
         # Assert that loss value is equal to expected value
         expected_loss_val = 0.279185
@@ -250,11 +248,11 @@ class Test(TestCase):
         np.testing.assert_allclose(loss_val, expected_loss_val, rtol=1e-6)
 
         # Assert that loss value is the same when y_true is of type int32
-        loss_val_2 = loss(tf.cast(y_true, dtype=tf.int32), y_pred).numpy()
+        loss_val_2 = loss(K.cast(y_true, dtype="int32"), y_pred).numpy()
         np.testing.assert_allclose(loss_val_2, expected_loss_val, rtol=1e-6)
 
         # Assert that loss value is the same when y_true is [-1, 1] instead of [0, 1]
-        y_true2 = tf.where(y_true == 1.0, 1.0, -1.0)
+        y_true2 = K.where(y_true == 1.0, 1.0, -1.0)
         loss_val_3 = loss(y_true2, y_pred).numpy()
         np.testing.assert_allclose(loss_val_3, expected_loss_val, rtol=1e-6)
 
@@ -266,8 +264,8 @@ class Test(TestCase):
         Assert binary losses without reduction. Three losses are tested on hardcoded
         y_true/y_pred of shape [8 elements, 1]: KR, HingeMargin and HKR.
         """
-        y_true = binary_tf_data([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
-        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
+        y_true = binary_keras_data([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        y_pred = binary_keras_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
 
         losses = (
             KR(reduction="none"),
@@ -280,7 +278,11 @@ class Test(TestCase):
             np.array([1.0, 2.2, -0.2, 1.4, 2.6, 0.8, -0.4, 1.8]),
             np.array([0.2, 0, 0.8, 0, 0, 0.3, 0.9, 0]),
             np.array([0.25, -2.2, 2.95, -0.65, -2.6, 0.7, 3.4, -1.55]),
-            [1.15188, 0.91098, 1.43692, 1.06676, 0.84011, 1.19628, 1.48879, 0.98650],
+            np.array(
+                [1.15188, 0.91098, 1.43692, 1.06676, 0.84011, 1.19628, 1.48879, 0.98650]
+            ).reshape(
+                (-1, 1)
+            ),  # Shape (8, 1) because BCE is not reduced on last dim
         )
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
@@ -299,7 +301,7 @@ class Test(TestCase):
         y_true/y_pred of shape [8 elements, 3 classes]: MulticlassKR, MulticlassHinge,
         MultiMargin and MulticlassHKR.
         """
-        y_true = tf.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
+        y_true = K.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
         y_pred = np.array(
             [
                 [1.5, 0.2, -0.5],
@@ -357,7 +359,7 @@ class Test(TestCase):
 
         for loss, expected_loss_val in zip(losses, expected_loss_values):
             if isinstance(loss, TauSparseCategoricalCrossentropy):
-                loss_val = loss(tf.argmax(y_true, axis=-1), y_pred)
+                loss_val = loss(K.argmax(y_true, axis=-1), y_pred)
             else:
                 loss_val = loss(y_true, y_pred)
             np.testing.assert_allclose(
@@ -377,8 +379,8 @@ class Test(TestCase):
         - losses on large random data with full batch and mini-batches.
         """
         # Small hardcoded data of size [8, 1]
-        y_true = binary_tf_data([1, 1, 1, 1, 0, 0, 0, 0])
-        y_pred = binary_tf_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
+        y_true = binary_keras_data([1, 1, 1, 1, 0, 0, 0, 0])
+        y_pred = binary_keras_data([0.5, 1.1, -0.1, 0.7, -1.3, -0.4, 0.2, -0.9])
         y_true = process_labels_for_multi_gpu(y_true)
 
         reduction = "sum"
@@ -419,8 +421,8 @@ class Test(TestCase):
 
         # Large random data of size [10000, 1]
         num_items = 10000
-        y_true = binary_tf_data(np.random.randint(2, size=num_items))
-        y_pred = tf.random.normal((num_items, 1))
+        y_true = binary_keras_data(np.random.randint(2, size=num_items))
+        y_pred = keras.random.normal((num_items, 1))
         y_true = process_labels_for_multi_gpu(y_true)
 
         # Compare full batch loss and mini-batches loss
@@ -453,9 +455,9 @@ class Test(TestCase):
         - losses on large random data with full batch and mini-batches.
         """
         # Small hardcoded data of size [8, 3]
-        y_true = tf.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
+        y_true = K.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
         y_true = process_labels_for_multi_gpu(y_true)
-        y_pred = tf.constant(
+        y_pred = K.convert_to_tensor(
             [
                 [1.5, 0.2, -0.5],
                 [1, -1.2, 0.3],
@@ -466,7 +468,7 @@ class Test(TestCase):
                 [-0.1, -1.7, 0.6],
                 [1.2, 1.3, 2.5],
             ],
-            dtype=tf.float32,
+            dtype="float32",
         )
 
         # Losses are tested on full batch
@@ -516,9 +518,9 @@ class Test(TestCase):
         # Large random data of size [10000, 1]
         num_classes = 10
         num_items = 10000
-        y_true = tf.one_hot(np.random.randint(num_classes, size=num_items), num_classes)
+        y_true = K.one_hot(np.random.randint(num_classes, size=num_items), num_classes)
         y_true = process_labels_for_multi_gpu(y_true)
-        y_pred = tf.random.normal((num_items, num_classes), seed=17)
+        y_pred = keras.random.normal((num_items, num_classes), seed=17)
 
         # Compare full batch loss and mini-batches loss
         for loss in losses:
@@ -551,8 +553,8 @@ class Test(TestCase):
         y_pred1, y_true1 = get_gaussian_data(1000)
         y_pred2, y_true2 = get_gaussian_data(1000)
         y_pred3, y_true3 = get_gaussian_data(1000)
-        y_pred = tf.concat([y_pred1, y_pred2, y_pred3], axis=-1)
-        y_true = tf.concat([y_true1, y_true2, y_true3], axis=-1)
+        y_pred = K.concatenate([y_pred1, y_pred2, y_pred3], axis=-1)
+        y_true = K.concatenate([y_true1, y_true2, y_true3], axis=-1)
 
         # Tested losses (different reductions, multi_gpu)
         losses = (
