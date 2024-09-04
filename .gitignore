@@ -13,3 +13,5 @@ deel_lip_dev_env
 logs
 export-wass
 site
+docs/notebooks/save_img
+wandb
