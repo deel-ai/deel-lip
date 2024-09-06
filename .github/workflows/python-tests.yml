@@ -16,14 +16,8 @@ jobs:
       max-parallel: 4
       matrix:
         include:
-          - python-version: 3.7
-            tf-version: 2.3
-          - python-version: 3.9
-            tf-version: 2.7
           - python-version: "3.10"
-            tf-version: 2.11
-          - python-version: "3.10"
-            tf-version: 2.15
+            tf-version: 2.17
 
     steps:
     - uses: actions/checkout@v4
