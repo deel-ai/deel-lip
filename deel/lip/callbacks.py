@@ -118,11 +118,12 @@ class MonitorCallback(Callback):
             elif hasattr(layer, self.target):
                 kernel = getattr(layer, self.target)
                 w_shape = kernel.shape.as_list()
+                # TODO: compute_uv=False in next Keras version (3.6.0)
                 sigmas = K.svd(
                     K.reshape(kernel, [-1, w_shape[-1]]),
                     full_matrices=False,
-                    compute_uv=False,
-                ).numpy()
+                    compute_uv=True,
+                )[1].numpy()
                 sig = sigmas[0]
             else:
                 raise RuntimeWarning(
