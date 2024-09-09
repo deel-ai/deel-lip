@@ -58,7 +58,7 @@ class Sequential(KerasSequential, LipschitzLayer, Condensable):
             k_coef_lip (float): the Lipschitz coefficient to ensure globally on the
                 model.
         """
-        super(Sequential, self).__init__(layers, name)
+        super(Sequential, self).__init__(layers=layers, name=name)
         self.set_klip_factor(k_coef_lip)
 
     def build(self, input_shape=None):
