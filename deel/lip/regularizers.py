@@ -31,9 +31,9 @@ in any Keras layer.
 import warnings
 from abc import ABC, abstractmethod
 
-import tensorflow as tf
-from tensorflow.keras.regularizers import Regularizer
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+import keras.ops as K
+from keras.saving import register_keras_serializable
 
 
 class Lorth(ABC):
@@ -133,14 +133,14 @@ class Lorth(ABC):
         """Compute regularization term based on Lorth.
 
         Args:
-            w (tf.Tensor): the convolutional kernel.
+            w (Tensor): the convolutional kernel.
 
         Returns:
-            tf.Tensor: value of the regularization term.
+            Tensor: value of the regularization term.
         """
         output = self._compute_conv_kk(w)
         target = self._compute_target(w, output.shape)
-        return tf.reduce_sum(tf.square(output - target)) - self.delta
+        return K.sum(K.square(output - target)) - self.delta
 
 
 class Lorth2D(Lorth):
@@ -161,41 +161,41 @@ class Lorth2D(Lorth):
         super(Lorth2D, self).__init__(dim, kernel_shape, stride, conv_transpose)
 
     def _compute_conv_kk(self, w):
-        w_reshape = tf.transpose(w, perm=[3, 0, 1, 2])
-        w_padded = tf.pad(
+        w_reshape = K.transpose(w, axes=[3, 0, 1, 2])
+        w_padded = K.pad(
             w_reshape,
-            paddings=[
+            pad_width=[
                 [0, 0],
                 [self.padding, self.padding],
                 [self.padding, self.padding],
                 [0, 0],
             ],
         )
-        return tf.nn.conv2d(w_padded, w, self.stride, padding="VALID")
+        return K.conv(w_padded, w, self.stride, padding="valid")
 
     def _compute_target(self, w, convKxK_shape):
         C_out = w.shape[-1]
         outm3 = convKxK_shape[-3]
         outm2 = convKxK_shape[-2]
-        ct = tf.cast(tf.math.floor(outm2 / 2), dtype=tf.int32)
+        ct = K.cast(K.floor(outm2 / 2), dtype="int32")
 
-        target_zeros = tf.zeros((outm3 * outm2 - 1, C_out, C_out))
-        target = tf.concat(
+        target_zeros = K.zeros((outm3 * outm2 - 1, C_out, C_out))
+        target = K.concatenate(
             [
                 target_zeros[: ct * outm2 + ct],
-                tf.expand_dims(tf.eye(C_out), axis=0),
+                K.expand_dims(K.eye(C_out), axis=0),
                 target_zeros[ct * outm2 + ct :],
             ],
             axis=0,
         )
 
-        target = tf.reshape(target, (outm3, outm2, C_out, C_out))
-        target = tf.transpose(target, [2, 0, 1, 3])
+        target = K.reshape(target, (outm3, outm2, C_out, C_out))
+        target = K.transpose(target, axes=[2, 0, 1, 3])
         return target
 
 
 @register_keras_serializable("deel-lip", "LorthRegularizer")
-class LorthRegularizer(Regularizer):
+class LorthRegularizer(keras.Regularizer):
     def __init__(
         self,
         kernel_shape=None,
@@ -249,7 +249,7 @@ class LorthRegularizer(Regularizer):
 
 
 @register_keras_serializable("deel-lip", "OrthDenseRegularizer")
-class OrthDenseRegularizer(Regularizer):
+class OrthDenseRegularizer(keras.Regularizer):
     def __init__(self, lambda_orth=1.0) -> None:
         """
         Regularize a Dense kernel to be orthogonal (all singular values are equal to 1)
@@ -264,9 +264,12 @@ class OrthDenseRegularizer(Regularizer):
     def _dense_orth_dist(self, w):
         transp_b = w.shape[0] <= w.shape[1]
         # W.W^T if h<=w; W^T.W otherwise
-        wwt = tf.matmul(w, w, transpose_a=not transp_b, transpose_b=transp_b)
-        idx = tf.eye(wwt.shape[0])
-        return tf.reduce_sum(tf.square(wwt - idx))
+        if transp_b:
+            wwt = K.matmul(w, K.transpose(w))
+        else:
+            wwt = K.matmul(K.transpose(w), w)
+        idx = K.eye(wwt.shape[0])
+        return K.sum(K.square(wwt - idx))
 
     def __call__(self, x):
         return self.lambda_orth * self._dense_orth_dist(x)

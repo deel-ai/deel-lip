@@ -6,7 +6,6 @@ import unittest
 from functools import partial
 
 import numpy as np
-import tensorflow as tf
 from deel.lip.normalizers import (
     bjorck_normalization,
     reshaped_kernel_orthogonalization,
@@ -32,12 +31,12 @@ class TestSpectralNorm(unittest.TestCase):
         self._test_kernel(kernel)
 
     def _test_kernel(self, kernel):
-        """Compare max singular value using power iteration and tf.linalg.svd"""
-        sigmas_svd = tf.linalg.svd(
+        """Compare max singular value using power iteration and np.linalg.svd"""
+        sigmas_svd = np.linalg.svd(
             np.reshape(kernel, (np.prod(kernel.shape[:-1]), kernel.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         SVmax = np.max(sigmas_svd)
 
         u = rng.normal(size=(1, kernel.shape[-1])).astype("float32")
@@ -184,20 +183,20 @@ class TestBjorckNormalization(unittest.TestCase):
         self._test_kernel(kernel)
 
     def _test_kernel(self, kernel):
-        """Compare max singular value using power iteration and tf.linalg.svd"""
-        sigmas_svd = tf.linalg.svd(
+        """Compare max singular value using power iteration and np.linalg.svd"""
+        sigmas_svd = np.linalg.svd(
             np.reshape(kernel, (np.prod(kernel.shape[:-1]), kernel.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         SVmax = np.max(sigmas_svd)
 
         wbar = bjorck_normalization(kernel / SVmax, eps=1e-5)
-        sigmas_wbar_svd = tf.linalg.svd(
+        sigmas_wbar_svd = np.linalg.svd(
             np.reshape(wbar, (np.prod(wbar.shape[:-1]), wbar.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         # Test sigma is close to the one computed with svd first run @ 1e-1
         np.testing.assert_allclose(
             sigmas_wbar_svd, np.ones(sigmas_wbar_svd.shape), 1e-2, 0
@@ -209,11 +208,11 @@ class TestBjorckNormalization(unittest.TestCase):
 
         # Test sigma is close to the one computed with svd second run @1e-5
         wbar = bjorck_normalization(wbar, eps=1e-5)
-        sigmas_wbar_svd = tf.linalg.svd(
+        sigmas_wbar_svd = np.linalg.svd(
             np.reshape(wbar, (np.prod(wbar.shape[:-1]), wbar.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         np.testing.assert_allclose(
             sigmas_wbar_svd, np.ones(sigmas_wbar_svd.shape), 1e-4, 0
         )
@@ -234,12 +233,12 @@ class TestRKO(unittest.TestCase):
         self._test_kernel(kernel)
 
     def _test_kernel(self, kernel):
-        """Compare max singular value using power iteration and tf.linalg.svd"""
-        sigmas_svd = tf.linalg.svd(
+        """Compare max singular value using power iteration and np.linalg.svd"""
+        sigmas_svd = np.linalg.svd(
             np.reshape(kernel, (np.prod(kernel.shape[:-1]), kernel.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         SVmax = np.max(sigmas_svd)
 
         W_bar, _, sigma = reshaped_kernel_orthogonalization(
@@ -251,11 +250,11 @@ class TestRKO(unittest.TestCase):
         np.testing.assert_approx_equal(
             sigma, SVmax, 1, "test failed with kernel_shape " + str(kernel.shape)
         )
-        sigmas_wbar_svd = tf.linalg.svd(
+        sigmas_wbar_svd = np.linalg.svd(
             np.reshape(W_bar, (np.prod(W_bar.shape[:-1]), W_bar.shape[-1])),
             full_matrices=False,
             compute_uv=False,
-        ).numpy()
+        )
         # Test if SVs of W_bar are close to one
         np.testing.assert_allclose(
             sigmas_wbar_svd, np.ones(sigmas_wbar_svd.shape), 1e-2, 0

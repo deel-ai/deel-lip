@@ -6,33 +6,17 @@
 This module contains computation function, for Bjorck and spectral
 normalization. This is done for internal use only.
 """
-import tensorflow as tf
-from tensorflow.keras import backend as K
+import keras
+import keras.ops as K
 
-from .utils import _maybe_transpose_kernel, _zero_upscale2D
+from .utils import _maybe_transpose_kernel, _zero_upscale2D, l2_normalize
 
 DEFAULT_BETA_BJORCK = 0.5
 DEFAULT_EPS_SPECTRAL = 1e-3
 DEFAULT_EPS_BJORCK = 1e-3
 DEFAULT_MAXITER_BJORCK = 15
 DEFAULT_MAXITER_SPECTRAL = 10
-SWAP_MEMORY = True
 STOP_GRAD_SPECTRAL = True
-
-
-def set_swap_memory(value: bool):
-    """
-    Set the global SWAP_MEMORY to values. This function must be called before
-    constructing the model (first call of `reshaped_kernel_orthogonalization`) in
-    order to be accounted.
-
-    Args:
-        value: boolean that will be used as the swap_memory parameter in while loops
-            in spectral and bjorck algorithms.
-
-    """
-    global SWAP_MEMORY
-    SWAP_MEMORY = value
 
 
 def set_stop_grad_spectral(value: bool):
@@ -79,8 +63,8 @@ def reshaped_kernel_orthogonalization(
     speed convergence of the bjorck algorithm.
 
     Args:
-        kernel (tf.Tensor): the kernel to orthogonalize
-        u (tf.Tensor): the vector used to do the power iteration method
+        kernel (Tensor): the kernel to orthogonalize
+        u (Tensor): the vector used to do the power iteration method
         adjustment_coef (float): the adjustment coefficient as used in convolution
         eps_spectral (float): stopping criterion in spectral algorithm
         eps_bjorck (float): stopping criterion in bjorck algorithm
@@ -89,13 +73,13 @@ def reshaped_kernel_orthogonalization(
         maxiter_bjorck (int): maximum number of iterations for bjorck algorithm
 
     Returns:
-        tf.Tensor: the orthogonalized kernel, the new u, and sigma which is the largest
+        Tensor: the orthogonalized kernel, the new u, and sigma which is the largest
             singular value
 
     """
     W_shape = kernel.shape
     # Flatten the Tensor
-    W_reshaped = tf.reshape(kernel, [-1, W_shape[-1]])
+    W_reshaped = K.reshape(kernel, [-1, W_shape[-1]])
     W_bar, u, sigma = spectral_normalization(
         W_reshaped, u, eps=eps_spectral, maxiter=maxiter_spectral
     )
@@ -110,9 +94,9 @@ def reshaped_kernel_orthogonalization(
 
 def _wwtw(w):
     if w.shape[0] > w.shape[1]:
-        return w @ (tf.transpose(w) @ w)
+        return w @ (K.transpose(w) @ w)
     else:
-        return (w @ tf.transpose(w)) @ w
+        return (w @ K.transpose(w)) @ w
 
 
 def bjorck_normalization(
@@ -122,14 +106,14 @@ def bjorck_normalization(
     apply Bjorck normalization on w.
 
     Args:
-        w (tf.Tensor): weight to normalize, in order to work properly, we must have
+        w (Tensor): weight to normalize, in order to work properly, we must have
             max_eigenval(w) ~= 1
         eps (float): epsilon stopping criterion: norm(wt - wt-1) must be less than eps
         beta (float): beta used in each iteration, must be in the interval ]0, 0.5]
         maxiter (int): maximum number of iterations for the algorithm
 
     Returns:
-        tf.Tensor: the orthonormal weights
+        Tensor: the orthonormal weights
 
     """
     # create a fake old_w that does'nt pass the loop condition
@@ -138,7 +122,7 @@ def bjorck_normalization(
     # define the loop condition
 
     def cond(w, old_w):
-        return tf.linalg.norm(w - old_w) >= eps
+        return K.norm(w - old_w) >= eps
 
     # define the loop body
     def body(w, old_w):
@@ -147,13 +131,11 @@ def bjorck_normalization(
         return w, old_w
 
     # apply the loop
-    w, old_w = tf.while_loop(
+    w, old_w = K.while_loop(
         cond,
         body,
         (w, old_w),
-        parallel_iterations=30,
         maximum_iterations=maxiter,
-        swap_memory=SWAP_MEMORY,
     )
     return w
 
@@ -173,7 +155,7 @@ def _power_iteration(
         linear_operator (Callable): a callable object that maps a linear operation.
         adjoint_operator (Callable): a callable object that maps the adjoint of the
             linear operator.
-        u (tf.Tensor): initialization of the singular vector.
+        u (Tensor): initialization of the singular vector.
         eps (float, optional): stopping criterion of the algorithm, when
             norm(u[t] - u[t-1]) is less than eps. Defaults to DEFAULT_EPS_SPECTRAL.
         maxiter (int, optional): maximum number of iterations for the algorithm.
@@ -182,11 +164,11 @@ def _power_iteration(
             depthwise convolution for example. Defaults to None.
 
     Returns:
-        tf.Tensor: the maximum singular vector.
+        Tensor: the maximum singular vector.
     """
 
     # Prepare while loop variables
-    u = tf.math.l2_normalize(u, axis=axis)
+    u = l2_normalize(u, axis=axis)
     # create a fake old_w that doesn't pass the loop condition, it will be overwritten
     old_u = u + 2 * eps
 
@@ -196,26 +178,25 @@ def _power_iteration(
         v = linear_operator(u)
         u = adjoint_operator(v)
 
-        u = tf.math.l2_normalize(u, axis=axis)
+        u = l2_normalize(u, axis=axis)
 
         return u, old_u
 
     # Loop stopping condition
     def cond(u, old_u):
-        return tf.linalg.norm(u - old_u) >= eps
+        return K.norm(K.reshape(u, [-1]) - K.reshape(old_u, [-1])) >= eps
 
     # Run the while loop
-    u, _ = tf.while_loop(
+    u, _ = K.while_loop(
         cond,
         body,
         (u, old_u),
         maximum_iterations=maxiter,
-        swap_memory=SWAP_MEMORY,
     )
 
     # Prevent gradient to back-propagate into the while loop
     if STOP_GRAD_SPECTRAL:
-        u = tf.stop_gradient(u)
+        u = K.stop_gradient(u)
 
     return u
 
@@ -227,8 +208,8 @@ def spectral_normalization(
     Normalize the kernel to have its maximum singular value equal to 1.
 
     Args:
-        kernel (tf.Tensor): the kernel to normalize, assuming a 2D kernel.
-        u (tf.Tensor): initialization of the maximum singular vector.
+        kernel (Tensor): the kernel to normalize, assuming a 2D kernel.
+        u (Tensor): initialization of the maximum singular vector.
         eps (float, optional): stopping criterion of the algorithm, when
             norm(u[t] - u[t-1]) is less than eps. Defaults to DEFAULT_EPS_SPECTRAL.
         maxiter (int, optional): maximum number of iterations for the algorithm.
@@ -240,12 +221,12 @@ def spectral_normalization(
     """
 
     if u is None:
-        u = tf.random.uniform(
+        u = keras.random.uniform(
             shape=(1, kernel.shape[-1]), minval=0.0, maxval=1.0, dtype=kernel.dtype
         )
 
     def linear_op(u):
-        return u @ tf.transpose(kernel)
+        return u @ K.transpose(kernel)
 
     def adjoint_op(v):
         return v @ kernel
@@ -258,7 +239,7 @@ def spectral_normalization(
     # In order to be sure that operator norm of normalized kernel is strictly less than
     # one we use sigma + eps, which ensures stability of Björck algorithm even when
     # beta=0.5
-    sigma = tf.reshape(tf.norm(linear_op(u)), (1, 1))
+    sigma = K.reshape(K.norm(linear_op(u)), (1, 1))
     normalized_kernel = kernel / (sigma + eps)
     return normalized_kernel, u, sigma
 
@@ -269,7 +250,7 @@ def get_conv_operators(kernel, u_shape, stride=1.0, conv_first=True, pad_func=No
     adjoint.
 
     Args:
-        kernel (tf.Tensor): the convolution kernel to normalize
+        kernel (Tensor): the convolution kernel to normalize
         u_shape (tuple): shape of a singular vector (as a 4D tensor).
         stride (int, optional): stride parameter of convolutions. Defaults to 1.
         conv_first (bool, optional): RO or CO case , should be True in CO case
@@ -297,11 +278,11 @@ def get_conv_operators(kernel, u_shape, stride=1.0, conv_first=True, pad_func=No
 
     def _conv(u, w, stride):
         u_pad = _pad_func(u)
-        return tf.nn.conv2d(u_pad, w, stride, pad_type)
+        return K.conv(u_pad, w, stride, pad_type)
 
     def _conv_transpose(u, w, output_shape, stride):
         if pad_func is None:
-            return tf.nn.conv2d_transpose(u, w, output_shape, stride, pad_type)
+            return K.conv_transpose(u, w, output_shape, stride, pad_type)
         else:
             u_upscale = _zero_upscale2D(u, (stride, stride))
             w_adj = _maybe_transpose_kernel(w, True)
@@ -344,8 +325,8 @@ def spectral_normalization_conv(
     Normalize the convolution kernel to have its max eigenvalue == 1.
 
     Args:
-        kernel (tf.Tensor): the convolution kernel to normalize
-        u (tf.Tensor): initialization for the max eigen vector (as a 4d tensor)
+        kernel (Tensor): the convolution kernel to normalize
+        u (Tensor): initialization for the max eigen vector (as a 4d tensor)
         stride (int): stride parameter of convolutions
         conv_first (bool): RO or CO case , should be True in CO case (stride^2*C<M)
         pad_func (Callable): function for applying padding (None is padding same)
@@ -364,10 +345,10 @@ def spectral_normalization_conv(
         kernel, u.shape, stride, conv_first, pad_func
     )
 
-    u = tf.math.l2_normalize(u) + tf.random.uniform(u.shape, minval=-eps, maxval=eps)
+    u = l2_normalize(u) + keras.random.uniform(u.shape, minval=-eps, maxval=eps)
     u = _power_iteration(linear_op, adjoint_op, u, eps, maxiter)
 
     # Compute the largest singular value and the normalized kernel
-    sigma = tf.norm(linear_op(u))
+    sigma = K.norm(K.reshape(linear_op(u), [-1]))
     normalized_kernel = kernel / (sigma + eps)
     return normalized_kernel, u, sigma

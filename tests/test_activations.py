@@ -1,20 +1,20 @@
 from unittest import TestCase
-import tensorflow as tf
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Input
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.losses import CategoricalCrossentropy
+import keras
+import keras.ops as K
+from keras.models import Sequential, load_model
+from keras.optimizers import SGD
+from keras.losses import CategoricalCrossentropy
 from deel.lip.activations import GroupSort, Householder
 import os
 import numpy as np
 
 
 def check_serialization(layer):
-    m = Sequential([Input(10), layer])
+    m = Sequential([keras.Input((10,)), layer])
     m.compile(optimizer=SGD(), loss=CategoricalCrossentropy(from_logits=False))
-    name = layer.__class__.__name__
+    name = layer.__class__.__name__ + ".keras"
     path = os.path.join("logs", "losses", name)
-    x = tf.random.uniform((255, 10), -10, 10)
+    x = keras.random.uniform((255, 10), -10, 10)
     y1 = m(x)
     m.save(path)
     m2 = load_model(path, compile=True)
@@ -23,6 +23,10 @@ def check_serialization(layer):
 
 
 class TestGroupSort(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/losses", exist_ok=True)
+
     def test_simple(self):
         gs = GroupSort(n=2)
         check_serialization(gs)
@@ -31,16 +35,16 @@ class TestGroupSort(TestCase):
 
     def test_flat_input(self):
         gs = GroupSort(n=2)
-        x = tf.convert_to_tensor(
+        x = K.convert_to_tensor(
             [
                 [1, 2, 3, 4],
                 [4, 3, 2, 1],
                 [1, 2, 1, 2],
                 [2, 1, 2, 1],
             ],
-            dtype=tf.float32,
+            dtype="float32",
         )
-        gs.build(tf.TensorShape((None, 4)))
+        gs.build((None, 4))
         y = gs(x).numpy()
         y_t = [
             [1.0, 2.0, 3.0, 4.0],
@@ -52,16 +56,16 @@ class TestGroupSort(TestCase):
 
     def test_gs4(self):
         gs = GroupSort(n=4)
-        x = tf.convert_to_tensor(
+        x = K.convert_to_tensor(
             [
                 [1, 2, 3, 4],
                 [4, 3, 2, 1],
                 [1, 2, 1, 2],
                 [2, 1, 2, 1],
             ],
-            dtype=tf.float32,
+            dtype="float32",
         )
-        gs.build(tf.TensorShape((None, 4)))
+        gs.build((None, 4))
         y = gs(x).numpy()
         y_t = [
             [1.0, 2.0, 3.0, 4.0],
@@ -73,17 +77,17 @@ class TestGroupSort(TestCase):
 
     def test_img_input(self):
         gs = GroupSort(n=2)
-        x = tf.convert_to_tensor(
+        x = K.convert_to_tensor(
             [
                 [1, 2, 3, 4],
                 [4, 3, 2, 1],
                 [1, 2, 1, 2],
                 [2, 1, 2, 1],
             ],
-            dtype=tf.float32,
+            dtype="float32",
         )
-        x = tf.repeat(tf.expand_dims(tf.repeat(tf.expand_dims(x, 1), 28, 1), 1), 28, 1)
-        gs.build(tf.TensorShape((None, 28, 28, 4)))
+        x = K.repeat(K.expand_dims(K.repeat(K.expand_dims(x, 1), 28, 1), 1), 28, 1)
+        gs.build((None, 28, 28, 4))
         y = gs(x).numpy()
         y_t = [
             [1.0, 2.0, 3.0, 4.0],
@@ -91,21 +95,19 @@ class TestGroupSort(TestCase):
             [1.0, 2.0, 1.0, 2.0],
             [1.0, 2.0, 1.0, 2.0],
         ]
-        y_t = tf.repeat(
-            tf.expand_dims(tf.repeat(tf.expand_dims(y_t, 1), 28, 1), 1), 28, 1
-        )
+        y_t = K.repeat(K.expand_dims(K.repeat(K.expand_dims(y_t, 1), 28, 1), 1), 28, 1)
         np.testing.assert_equal(y, y_t)
 
     def test_idempotence(self):
         gs = GroupSort(n=2)
-        x = tf.random.uniform((255, 16), -10, 10)
-        gs.build(tf.TensorShape((None, 16)))
+        x = keras.random.uniform((255, 16), -10, 10)
+        gs.build((None, 16))
         y1 = gs(x)
         y2 = gs(y1)
         np.testing.assert_equal(y1.numpy(), y2.numpy())
         gs = GroupSort(n=2)
-        x = tf.random.uniform((255, 16), -10, 10)
-        gs.build(tf.TensorShape((None, 16)))
+        x = keras.random.uniform((255, 16), -10, 10)
+        gs.build((None, 16))
         y1 = gs(x)
         y2 = gs(y1)
         np.testing.assert_equal(y1.numpy(), y2.numpy())
@@ -118,6 +120,10 @@ class TestHouseholder(TestCase):
     - check outputs on dense (bs, h, w, n) tensor, with three thetas: 0, pi/2 and pi
     - check idempotence hh(hh(x)) = hh(x)
     """
+
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/losses", exist_ok=True)
 
     def test_instantiation(self):
         # Instantiation without argument
@@ -152,38 +158,38 @@ class TestHouseholder(TestCase):
         n = np.random.randint(1, 1024) * 2
 
         # Case 1: hh(x) = x   (identity case, z2 > 0)
-        z1 = tf.random.normal((bs, n // 2))
-        z2 = tf.random.uniform((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = keras.random.normal((bs, n // 2))
+        z2 = keras.random.uniform((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x)
 
         # Case 2: hh(x) = [z1, -z2]   (reflection across z1 axis, z2 < 0)
-        z1 = tf.random.normal((bs, n // 2))
-        z2 = -tf.random.uniform((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([z1, -z2], axis=-1)
+        z1 = keras.random.normal((bs, n // 2))
+        z2 = -keras.random.uniform((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([z1, -z2], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output)
 
     def test_theta_pi_dense_potentials(self):
         """Householder with theta=pi on 2-D tensor (bs, n).
         Theta=pi means Id if z1 < 0, and reflection if z1 > 0.
         """
-        hh = Householder(theta_initializer=tf.keras.initializers.Constant(np.pi))
+        hh = Householder(theta_initializer=keras.initializers.Constant(np.pi))
 
         bs = np.random.randint(64, 512)
         n = np.random.randint(1, 1024) * 2
 
         # Case 1: hh(x) = x   (identity case, z1 < 0)
-        z1 = -tf.random.uniform((bs, n // 2))
-        z2 = tf.random.normal((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = -keras.random.uniform((bs, n // 2))
+        z2 = keras.random.normal((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x, atol=1e-6)
 
         # Case 2: hh(x) = [z1, -z2]   (reflection across z2 axis, z1 > 0)
-        z1 = tf.random.uniform((bs, n // 2))
-        z2 = tf.random.normal((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([-z1, z2], axis=-1)
+        z1 = keras.random.uniform((bs, n // 2))
+        z2 = keras.random.normal((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([-z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
 
     def test_theta_90_dense_potentials(self):
@@ -196,16 +202,16 @@ class TestHouseholder(TestCase):
         n = np.random.randint(1, 1024) * 2
 
         # Case 1: hh(x) = x   (identity case, z1 < z2)
-        z1 = -tf.random.normal((bs, n // 2))
-        z2 = z1 + tf.random.uniform((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = -keras.random.normal((bs, n // 2))
+        z2 = z1 + keras.random.uniform((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x)
 
         # Case 2: hh(x) = reflection(x)   (if z1 > z2)
-        z1 = tf.random.normal((bs, n // 2))
-        z2 = z1 - tf.random.uniform((bs, n // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([z2, z1], axis=-1)
+        z1 = keras.random.normal((bs, n // 2))
+        z2 = z1 - keras.random.uniform((bs, n // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([z2, z1], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
 
     def test_theta_zero_conv_potentials(self):
@@ -219,39 +225,39 @@ class TestHouseholder(TestCase):
         c = np.random.randint(1, 64) * 2
 
         # Case 1: hh(x) = x   (identity case, z2 > 0)
-        z1 = tf.random.normal((bs, h, w, c // 2))
-        z2 = tf.random.uniform((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = keras.random.normal((bs, h, w, c // 2))
+        z2 = keras.random.uniform((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x)
 
         # Case 2: hh(x) = [z1, -z2]   (reflection across z1 axis, z2 < 0)
-        z1 = tf.random.normal((bs, h, w, c // 2))
-        z2 = -tf.random.uniform((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([z1, -z2], axis=-1)
+        z1 = keras.random.normal((bs, h, w, c // 2))
+        z2 = -keras.random.uniform((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([z1, -z2], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output)
 
     def test_theta_pi_conv_potentials(self):
         """Householder with theta=pi on 4-D tensor (bs, h, w, c).
         Theta=pi means Id if z1 < 0, and reflection if z1 > 0.
         """
-        hh = Householder(theta_initializer=tf.keras.initializers.Constant(np.pi))
+        hh = Householder(theta_initializer=keras.initializers.Constant(np.pi))
 
         bs = np.random.randint(32, 128)
         h, w = np.random.randint(1, 64), np.random.randint(1, 64)
         c = np.random.randint(1, 64) * 2
 
         # Case 1: hh(x) = x   (identity case, z1 < 0)
-        z1 = -tf.random.uniform((bs, h, w, c // 2))
-        z2 = tf.random.normal((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = -keras.random.uniform((bs, h, w, c // 2))
+        z2 = keras.random.normal((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x, atol=1e-6)
 
         # Case 2: hh(x) = [z1, -z2]   (reflection across z2 axis, z1 > 0)
-        z1 = tf.random.uniform((bs, h, w, c // 2))
-        z2 = tf.random.normal((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([-z1, z2], axis=-1)
+        z1 = keras.random.uniform((bs, h, w, c // 2))
+        z2 = keras.random.normal((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([-z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
 
     def test_theta_90_conv_potentials(self):
@@ -265,16 +271,16 @@ class TestHouseholder(TestCase):
         c = np.random.randint(1, 64) * 2
 
         # Case 1: hh(x) = x   (identity case, z1 < z2)
-        z1 = -tf.random.normal((bs, h, w, c // 2))
-        z2 = z1 + tf.random.uniform((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
+        z1 = -keras.random.normal((bs, h, w, c // 2))
+        z2 = z1 + keras.random.uniform((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
         np.testing.assert_allclose(hh(x), x)
 
         # Case 2: hh(x) = reflection(x)   (if z1 > z2)
-        z1 = tf.random.normal((bs, h, w, c // 2))
-        z2 = z1 - tf.random.uniform((bs, h, w, c // 2))
-        x = tf.concat([z1, z2], axis=-1)
-        expected_output = tf.concat([z2, z1], axis=-1)
+        z1 = keras.random.normal((bs, h, w, c // 2))
+        z2 = z1 - keras.random.uniform((bs, h, w, c // 2))
+        x = K.concatenate([z1, z2], axis=-1)
+        expected_output = K.concatenate([z2, z1], axis=-1)
         np.testing.assert_allclose(hh(x), expected_output, atol=1e-6)
 
     def test_idempotence(self):
@@ -284,7 +290,7 @@ class TestHouseholder(TestCase):
         bs = np.random.randint(32, 128)
         h, w = np.random.randint(1, 64), np.random.randint(1, 64)
         c = np.random.randint(1, 32) * 2
-        x = tf.random.normal((bs, h, w, c))
+        x = keras.random.normal((bs, h, w, c))
 
         # Run two times the HH activation and compare both outputs
         y = hh(x)

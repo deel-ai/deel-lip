@@ -25,7 +25,7 @@ DEEL-LIP
 --------
 
 DEEL-LIP provides a simple interface to build and train Lipschitz-constrained neural
-networks based on TensorFlow/Keras framework.
+networks based on Keras framework.
 """
 from os import path
 

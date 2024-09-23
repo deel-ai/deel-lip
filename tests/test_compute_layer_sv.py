@@ -8,14 +8,12 @@ import os
 import pprint
 import unittest
 
+import keras
 import numpy as np
-import tensorflow as tf
 from tensorboard.plugins.hparams import api as hp
-from tensorflow.keras import Input, Model
-from tensorflow.keras import backend as K
-from tensorflow.keras import metrics
-from tensorflow.keras.layers import Dense, Layer
-from tensorflow.keras.optimizers import Adam
+from keras import Input, Model
+from keras.layers import Dense, Layer
+from keras.optimizers import Adam
 
 from deel.lip.compute_layer_sv import compute_layer_sv
 from deel.lip.layers import (
@@ -115,6 +113,10 @@ def generate_k_lip_model(layer_type: type, layer_params: dict, input_shape, k):
 
 
 class LipschitzLayersSVTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def train_compute_and_verifySV(
         self,
         layer_type: type,
@@ -149,16 +151,17 @@ class LipschitzLayersSVTest(unittest.TestCase):
         if "k_lip_tolerance_factor" not in kwargs.keys():
             kwargs["k_lip_tolerance_factor"] = 1.02
         # clear session to avoid side effects from previous train
-        K.clear_session()
-        np.random.seed(42)
-        tf.random.set_seed(1234)
+        keras.utils.clear_session()
+        keras.utils.set_random_seed(1234)
         # create the keras model, defin opt, and compile it
         model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
         print(model.summary())
 
-        optimizer = Adam(lr=0.001)
+        optimizer = Adam(learning_rate=0.001)
         model.compile(
-            optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
+            optimizer=optimizer,
+            loss="mean_squared_error",
+            metrics=["mean_squared_error"],
         )
         # create the synthetic data generator
         output_shape = model.compute_output_shape((batch_size,) + input_shape)[1:]
@@ -185,16 +188,16 @@ class LipschitzLayersSVTest(unittest.TestCase):
             callbacks=callback_list,
         )
 
-        file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
-        file_writer.set_as_default()
+        # file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
+        # file_writer.set_as_default()
         for ll in model.layers:
             print(ll.name)
             SVmin, SVmax = compute_layer_sv(ll)
             # log metrics
             if SVmin is not None:
-                tf.summary.text("Layer name", ll.name, step=epochs)
-                tf.summary.scalar("SVmin_estim", SVmin, step=epochs)
-                tf.summary.scalar("SVmax_estim", SVmax, step=epochs)
+                # tf.summary.text("Layer name", ll.name, step=epochs)
+                # tf.summary.scalar("SVmin_estim", SVmin, step=epochs)
+                # tf.summary.scalar("SVmax_estim", SVmax, step=epochs)
                 self.assertLess(
                     SVmax,
                     k_lip_model * kwargs["k_lip_tolerance_factor"],

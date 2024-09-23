@@ -1,11 +1,10 @@
 """These tests assert that deel.lip Sequential and Model objects behave as expected."""
 
 import warnings
-from packaging import version
 from unittest import TestCase
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.layers as kl
+import keras
+import keras.layers as kl
 from deel.lip import Sequential, Model, vanillaModel
 from deel.lip.layers import SpectralConv2D, SpectralDense, ScaledL2NormPooling2D
 from deel.lip.activations import GroupSort2
@@ -24,7 +23,7 @@ def sequential_layers():
 
 def functional_input_output_tensors():
     """Return input and output tensor of a Functional (hard-coded) model"""
-    inputs = tf.keras.Input((8, 8, 3))
+    inputs = keras.Input((8, 8, 3))
     x = SpectralConv2D(2, (3, 3), k_coef_lip=2.0)(inputs)
     x = GroupSort2()(x)
     x = ScaledL2NormPooling2D((2, 2), k_coef_lip=2.0)(x)
@@ -47,8 +46,8 @@ class Test(TestCase):
         np.testing.assert_array_equal(y2, y1)
 
     def test_keras_Sequential(self):
-        """Assert vanilla conversion of a tf.keras.Sequential model"""
-        model = tf.keras.Sequential(sequential_layers())
+        """Assert vanilla conversion of a keras.Sequential model"""
+        model = keras.Sequential(sequential_layers())
         vanilla_model = vanillaModel(model)
         self.assert_model_outputs(model, vanilla_model)
 
@@ -59,14 +58,14 @@ class Test(TestCase):
         self.assert_model_outputs(model, vanilla_model)
 
     def test_keras_Model(self):
-        """Assert vanilla conversion of a tf.keras.Model model"""
+        """Assert vanilla conversion of a keras.Model"""
         inputs, outputs = functional_input_output_tensors()
-        model = tf.keras.Model(inputs, outputs)
+        model = keras.Model(inputs, outputs)
         vanilla_model = vanillaModel(model)
         self.assert_model_outputs(model, vanilla_model)
 
     def test_deel_lip_Model(self):
-        """Assert vanilla conversion of a deel.lip.Model model"""
+        """Assert vanilla conversion of a deel.lip.Model"""
         inputs, outputs = functional_input_output_tensors()
         model = Model(inputs, outputs)
         vanilla_model = model.vanilla_export()
@@ -102,9 +101,8 @@ class Test(TestCase):
             kl.Dense(5),
             kl.Conv2D(10, 3),
             kl.UpSampling2D(),
+            kl.Activation("gelu"),
         ]
-        if version.parse(tf.__version__) >= version.parse("2.4.0"):
-            unsupported_layers.append(kl.Activation("gelu"))
 
         for lay in unsupported_layers:
             with self.assertWarnsRegex(

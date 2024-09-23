@@ -27,8 +27,9 @@
 
 from unittest import TestCase
 
+import keras.ops as K
 import numpy as np
-import tensorflow as tf
+
 from deel.lip.regularizers import Lorth2D, LorthRegularizer
 
 
@@ -86,7 +87,7 @@ class TestLorth2D(TestCase):
             w = np.zeros(kernel_shape, dtype=np.float32)
             for i in range(channels):
                 w[kernel_size // 2, kernel_size // 2, i, i] = 1
-            return tf.constant(w)
+            return K.convert_to_tensor(w)
 
         kernel_size = (np.random.randint(1, 10) * 2) + 1
         channels = np.random.randint(1, 100)

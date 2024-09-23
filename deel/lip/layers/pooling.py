@@ -22,15 +22,15 @@ be done by setting the param `eps_bjorck=None`.
 """
 
 import numpy as np
-import tensorflow as tf
-import tensorflow.keras.layers as keraslayers
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+import keras.ops as K
+from keras.saving import register_keras_serializable
 
 from .base_layer import LipschitzLayer
 
 
 @register_keras_serializable("deel-lip", "ScaledAveragePooling2D")
-class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
+class ScaledAveragePooling2D(keras.layers.AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
         pool_size=(2, 2),
@@ -103,7 +103,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
     def call(self, x):
-        return super(keraslayers.AveragePooling2D, self).call(x) * self._get_coef()
+        return super(keras.layers.AveragePooling2D, self).call(x) * self._get_coef()
 
     def get_config(self):
         config = {
@@ -114,7 +114,7 @@ class ScaledAveragePooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "ScaledL2NormPooling2D")
-class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
+class ScaledL2NormPooling2D(keras.layers.AveragePooling2D, LipschitzLayer):
     def __init__(
         self,
         pool_size=(2, 2),
@@ -193,26 +193,8 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
     def _compute_lip_coef(self, input_shape=None):
         return np.sqrt(np.prod(np.asarray(self.pool_size)))
 
-    @staticmethod
-    def _sqrt(eps_grad_sqrt):
-        @tf.custom_gradient
-        def sqrt_op(x):
-            sqrtx = tf.sqrt(x)
-
-            def grad(dy):
-                return dy / (2 * (sqrtx + eps_grad_sqrt))
-
-            return sqrtx, grad
-
-        return sqrt_op
-
     def call(self, x):
-        return (
-            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
-                super(ScaledL2NormPooling2D, self).call(tf.square(x))
-            )
-            * self._get_coef()
-        )
+        return K.sqrt(super().call(K.square(x)) + self.eps_grad_sqrt) * self._get_coef()
 
     def get_config(self):
         config = {
@@ -223,7 +205,7 @@ class ScaledL2NormPooling2D(keraslayers.AveragePooling2D, LipschitzLayer):
 
 
 @register_keras_serializable("deel-lip", "ScaledGlobalL2NormPooling2D")
-class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzLayer):
+class ScaledGlobalL2NormPooling2D(keras.layers.GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, eps_grad_sqrt=1e-6, **kwargs):
         """
         Average pooling operation for spatial data, with a lipschitz bound. This
@@ -280,24 +262,9 @@ class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzL
     def _compute_lip_coef(self, input_shape=None):
         return 1.0
 
-    @staticmethod
-    def _sqrt(eps_grad_sqrt):
-        @tf.custom_gradient
-        def sqrt_op(x):
-            sqrtx = tf.sqrt(x)
-
-            def grad(dy):
-                return dy / (2 * (sqrtx + eps_grad_sqrt))
-
-            return sqrtx, grad
-
-        return sqrt_op
-
     def call(self, x):
         return (
-            ScaledL2NormPooling2D._sqrt(self.eps_grad_sqrt)(
-                tf.reduce_sum(tf.square(x), axis=self.axes)
-            )
+            K.sqrt(K.sum(K.square(x), axis=self.axes) + self.eps_grad_sqrt)
             * self._get_coef()
         )
 
@@ -310,7 +277,7 @@ class ScaledGlobalL2NormPooling2D(keraslayers.GlobalAveragePooling2D, LipschitzL
 
 
 @register_keras_serializable("deel-lip", "ScaledGlobalAveragePooling2D")
-class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, LipschitzLayer):
+class ScaledGlobalAveragePooling2D(keras.layers.GlobalAveragePooling2D, LipschitzLayer):
     def __init__(self, data_format=None, k_coef_lip=1.0, **kwargs):
         """Global average pooling operation for spatial data with Lipschitz bound.
 
@@ -370,7 +337,7 @@ class ScaledGlobalAveragePooling2D(keraslayers.GlobalAveragePooling2D, Lipschitz
 
 
 @register_keras_serializable("deel-lip", "InvertibleDownSampling")
-class InvertibleDownSampling(keraslayers.Layer):
+class InvertibleDownSampling(keras.layers.Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
@@ -401,7 +368,7 @@ class InvertibleDownSampling(keraslayers.Layer):
 
     def call(self, inputs):
         if self.data_format == "channels_last":
-            return tf.concat(
+            return K.concatenate(
                 [
                     inputs[
                         :, i :: self.pool_size[0], j :: self.pool_size[1], :
@@ -412,7 +379,7 @@ class InvertibleDownSampling(keraslayers.Layer):
                 axis=-1,
             )
         else:
-            return tf.concat(
+            return K.concatenate(
                 [
                     inputs[
                         :, :, i :: self.pool_size[0], j :: self.pool_size[1]
@@ -433,7 +400,7 @@ class InvertibleDownSampling(keraslayers.Layer):
 
 
 @register_keras_serializable("deel-lip", "InvertibleUpSampling")
-class InvertibleUpSampling(keraslayers.Layer):
+class InvertibleUpSampling(keras.layers.Layer):
     def __init__(
         self, pool_size, data_format="channels_last", name=None, dtype=None, **kwargs
     ):
@@ -466,16 +433,16 @@ class InvertibleUpSampling(keraslayers.Layer):
     def call(self, inputs):
         if self.data_format == "channels_first":
             # convert to channels_first
-            inputs = tf.transpose(inputs, [0, 2, 3, 1])
+            inputs = K.transpose(inputs, [0, 2, 3, 1])
         # from shape (bs, w, h, c*pw*ph) to (bs, w, h, pw, ph, c)
-        input_shape = tf.shape(inputs)
+        input_shape = K.shape(inputs)
         w, h, c_in = input_shape[1], input_shape[2], input_shape[3]
         pw, ph = self.pool_size
         c = c_in // (pw * ph)
-        inputs = tf.reshape(inputs, (-1, w, h, pw, ph, c))
-        inputs = tf.transpose(
-            tf.reshape(
-                tf.transpose(
+        inputs = K.reshape(inputs, (-1, w, h, pw, ph, c))
+        inputs = K.transpose(
+            K.reshape(
+                K.transpose(
                     inputs, [0, 5, 2, 4, 1, 3]
                 ),  # (bs, w, h, pw, ph, c) -> (bs, c, w, pw, h, ph)
                 (-1, c, w, pw, h * ph),
@@ -489,11 +456,11 @@ class InvertibleUpSampling(keraslayers.Layer):
             ],  # (bs, c, w, pw, h*ph) -> (bs, c, h*ph, w, pw)
             # put each axis back in place
         )
-        inputs = tf.reshape(
+        inputs = K.reshape(
             inputs, (-1, c, h * ph, w * pw)
         )  # (bs, c, h*ph, w, pw) -> (bs, c, h*ph, w*pw)
         if self.data_format == "channels_last":
-            inputs = tf.transpose(
+            inputs = K.transpose(
                 inputs, [0, 2, 3, 1]  # (bs, c, h*ph, w*pw) -> (bs, w*pw, h*ph, c)
             )
         return inputs
