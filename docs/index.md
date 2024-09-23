@@ -37,6 +37,27 @@ distance estimation.
 This library provides an efficient implementation of **k-Lispchitz
 layers for keras**.
 
+> [!CAUTION]
+> **Incompatibility with TensorFlow >= 2.16 and Keras 3**
+>
+> Due to significant changes introduced in TensorFlow version 2.16 and Keras 3, this
+> package is currently incompatible with TensorFlow versions 2.16 and above. Users are
+> advised to use TensorFlow versions lower than 2.16 to ensure compatibility and proper
+> functionality of this package.
+>
+> We're excited to announce that a nightly version of deel-lip with support for Keras 3
+> is now available for testing! If you'd like to experiment with the latest updates
+> and improvements, feel free to check out the `keras3` branch.
+>
+> ```bash
+> pip install git+https://github.com/deel-ai/deel-lip.git@keras3
+> ```
+>
+> Please note that this version is still under development and may contain experimental
+> features. We welcome your feedback and encourage you to report any issues you
+> encounter.
+
+
 ## 📚 Table of contents
 
 - [📚 Table of contents](#-table-of-contents)
