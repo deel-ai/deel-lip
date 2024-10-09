@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 # Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
@@ -5,27 +27,22 @@
 """Tests for singular value computation (in compute_layer_sv.py)"""
 import os
 import pprint
-import unittest
+import pytest
 
 import numpy as np
-import tensorflow as tf
-from tensorboard.plugins.hparams import api as hp
-from tensorflow.keras import Input, Model
-from tensorflow.keras import backend as K
-from tensorflow.keras import metrics
-from tensorflow.keras.layers import Dense, Layer
-from tensorflow.keras.optimizers import Adam
 
-from deel.lip.compute_layer_sv import compute_layer_sv
-from deel.lip.layers import (
-    FrobeniusConv2D,
-    FrobeniusDense,
-    LipschitzLayer,
-    SpectralConv2D,
-    SpectralDense,
+from .utils_framework import compute_layer_sv
+from .utils_framework import (
+    tLinear,
+    FrobeniusConv2d,
+    FrobeniusLinear,
+    SpectralConv2d,
+    SpectralLinear,
 )
-from deel.lip.model import Sequential
-from deel.lip.regularizers import OrthDenseRegularizer
+from .utils_framework import OrthLinearRegularizer
+
+from . import utils_framework as uft
+
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -86,420 +103,344 @@ def build_kernel(input_shape: tuple, output_shape: tuple, k=1.0):
     return kernel
 
 
-def generate_k_lip_model(layer_type: type, layer_params: dict, input_shape, k):
+def train_compute_and_verifySV(
+    layer_type: type,
+    layer_params: dict,
+    batch_size: int,
+    steps_per_epoch: int,
+    epochs: int,
+    input_shape: tuple,
+    k_lip_model: float,
+    k_lip_data: float,
+    **kwargs
+):
     """
-    build a model with a single layer of given type, with defined lipshitz factor.
+    Create a  model, train compute and verify SVs.
 
     Args:
-        layer_type: the type of layer to use
-        layer_params: parameter passed to constructor of layer_type
-        input_shape: the shape of the input
-        k: lipshitz factor of the function
+        layer_type:
+        layer_params:
+        batch_size:
+        steps_per_epoch:
+        epochs:
+        input_shape:
+        k_lip_model:
+        k_lip_data:
+        **kwargs:
 
     Returns:
-        a keras Model with a single layer.
-
     """
-    if issubclass(layer_type, Sequential):
-        model = layer_type(**layer_params)
-        model.set_klip_factor(k)
-        return model
-    a = Input(shape=input_shape)
-    if issubclass(layer_type, LipschitzLayer):
-        layer_params["k_coef_lip"] = k
-    layer = layer_type(**layer_params)
-    assert isinstance(layer, Layer)
-    b = layer(a)
-    return Model(inputs=a, outputs=b)
+    flag_test_SVmin = True
+    if "test_SVmin" in kwargs.keys():
+        flag_test_SVmin = kwargs["test_SVmin"]
+    if "k_lip_tolerance_factor" not in kwargs.keys():
+        kwargs["k_lip_tolerance_factor"] = 1.02
+    # clear session to avoid side effects from previous train
+    uft.init_session()  # K.clear_session()
+    np.random.seed(42)
+    input_shape = uft.to_framework_channel(input_shape)
 
+    # tf.random.uft.set_seed(1234)
+    # create the keras model, defin opt, and compile it
+    model = uft.generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
 
-class LipschitzLayersSVTest(unittest.TestCase):
-    def train_compute_and_verifySV(
-        self,
-        layer_type: type,
-        layer_params: dict,
-        batch_size: int,
-        steps_per_epoch: int,
-        epochs: int,
-        input_shape: tuple,
-        k_lip_model: float,
-        k_lip_data: float,
-        **kwargs
-    ):
-        """
-        Create a  model, train compute and verify SVs.
+    optimizer = uft.get_instance_framework(
+        uft.Adam, inst_params={"lr": 0.001, "model": model}
+    )
+    # optimizer = uft.Adam(lr=0.001)
+    loss_fn, optimizer, metrics = uft.compile_model(
+        model,
+        optimizer=optimizer,
+        loss=uft.MeanSquaredError(),
+        metrics=[uft.metric_mse()],
+    )
+    # model.compile(
+    #     optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
+    # )
+    # create the synthetic data generator
+    output_shape = uft.compute_output_shape(input_shape, model)
+    # output_shape = model.uft.compute_output_shape((batch_size,) + input_shape)[1:]
+    kernel = build_kernel(input_shape, output_shape, k_lip_data)
+    # define logging features
+    logdir = os.path.join("logs", uft.LIP_LAYERS, "%s" % layer_type.__name__)
+    os.makedirs(logdir, exist_ok=True)
 
-        Args:
-            layer_type:
-            layer_params:
-            batch_size:
-            steps_per_epoch:
-            epochs:
-            input_shape:
-            k_lip_model:
-            k_lip_data:
-            **kwargs:
+    callback_list = []  # [hp.KerasCallback(logdir, hparams)]
+    if "callbacks" in kwargs and (kwargs["callbacks"] is not None):
+        callback_list = callback_list + kwargs["callbacks"]
+    # train model
 
-        Returns:
-        """
-        flag_test_SVmin = True
-        if "test_SVmin" in kwargs.keys():
-            flag_test_SVmin = kwargs["test_SVmin"]
-        if "k_lip_tolerance_factor" not in kwargs.keys():
-            kwargs["k_lip_tolerance_factor"] = 1.02
-        # clear session to avoid side effects from previous train
-        K.clear_session()
-        np.random.seed(42)
-        tf.random.set_seed(1234)
-        # create the keras model, defin opt, and compile it
-        model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
-        print(model.summary())
+    traind_ds = linear_generator(batch_size, input_shape, kernel)
+    uft.train(
+        traind_ds,
+        model,
+        loss_fn,
+        optimizer,
+        epochs,
+        batch_size,
+        steps_per_epoch=steps_per_epoch,
+        callbacks=callback_list,
+    )
+    # model.fit(
+    #     linear_generator(batch_size, input_shape, kernel),
+    #     steps_per_epoch=steps_per_epoch,
+    #     epochs=epochs,
+    #     verbose=1,
+    #     callbacks=callback_list,
+    # )
 
-        optimizer = Adam(lr=0.001)
-        model.compile(
-            optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
-        )
-        # create the synthetic data generator
-        output_shape = model.compute_output_shape((batch_size,) + input_shape)[1:]
-        kernel = build_kernel(input_shape, output_shape, k_lip_data)
-        # define logging features
-        logdir = os.path.join("logs", "lip_layers", "%s" % layer_type.__name__)
-        hparams = dict(
-            layer_type=layer_type.__name__,
-            batch_size=batch_size,
-            steps_per_epoch=steps_per_epoch,
-            epochs=epochs,
-            k_lip_data=k_lip_data,
-            k_lip_model=k_lip_model,
-        )
-        callback_list = [hp.KerasCallback(logdir, hparams)]
-        if kwargs["callbacks"] is not None:
-            callback_list = callback_list + kwargs["callbacks"]
-        # train model
-        model.fit(
-            linear_generator(batch_size, input_shape, kernel),
-            steps_per_epoch=steps_per_epoch,
-            epochs=epochs,
-            verbose=1,
-            callbacks=callback_list,
-        )
+    for ll in uft.get_children(model):  # .layers:
+        SVmin, SVmax = compute_layer_sv(ll)
+        # log metrics
+        if SVmin is not None:
+            assert SVmax < k_lip_model * kwargs["k_lip_tolerance_factor"], (
+                " the maximum singular value of the layer "
+                + ll.name
+                + " must be lower than the specified boundary"
+            )  # noqa: E501
 
-        file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
-        file_writer.set_as_default()
-        for ll in model.layers:
-            print(ll.name)
-            SVmin, SVmax = compute_layer_sv(ll)
-            # log metrics
-            if SVmin is not None:
-                tf.summary.text("Layer name", ll.name, step=epochs)
-                tf.summary.scalar("SVmin_estim", SVmin, step=epochs)
-                tf.summary.scalar("SVmax_estim", SVmax, step=epochs)
-                self.assertLess(
-                    SVmax,
-                    k_lip_model * kwargs["k_lip_tolerance_factor"],
-                    msg=" the maximum singular value of the layer "
+            assert SVmin <= SVmax, (
+                " the minimum singular value of the layer "
+                + ll.name
+                + " must be lower than the maximum value"
+            )  # noqa: E501
+            if flag_test_SVmin:
+                assert SVmin > k_lip_model * (2.0 - kwargs["k_lip_tolerance_factor"]), (
+                    " the minimum singular value of the layer "
                     + ll.name
-                    + " must be lower than the specified boundary",  # noqa: E501
-                )
-                self.assertLessEqual(
-                    SVmin,
-                    SVmax,
-                    msg=" the minimum singular value of the layer "
-                    + ll.name
-                    + " must be lower than the maximum value",  # noqa: E501
-                )
-                if flag_test_SVmin:
-                    self.assertGreater(
-                        SVmin,
-                        k_lip_model * (2.0 - kwargs["k_lip_tolerance_factor"]),
-                        msg=" the minimum singular value of the layer "
-                        + ll.name
-                        + " must be greater than the specified boundary",  # noqa: E501
-                    )
-        return
-
-    def _apply_tests_bank(self, tests_bank):
-        for test_params in tests_bank:
-            pp.pprint(test_params)
-            self.train_compute_and_verifySV(**test_params)
-
-    def test_spectral_dense(self):
-        self._apply_tests_bank(
-            [
-                dict(
-                    layer_type=SpectralDense,
-                    layer_params={
-                        "units": 4,
-                        "use_bias": False,
-                    },
-                    batch_size=1000,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(4,),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=SpectralDense,
-                    layer_params={
-                        "units": 4,
-                    },
-                    batch_size=1000,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(4,),
-                    k_lip_data=1.0,
-                    k_lip_model=5.0,
-                    callbacks=[],
-                ),
-            ]
-        )
-
-    def test_frobenius_dense(self):
-        self._apply_tests_bank(
-            [
-                dict(
-                    layer_type=FrobeniusDense,
-                    layer_params={"units": 1},
-                    batch_size=1000,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(4,),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=FrobeniusDense,
-                    layer_params={"units": 1},
-                    batch_size=1000,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(4,),
-                    k_lip_data=1.0,
-                    k_lip_model=5.0,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-            ]
-        )
-
-    def test_orthRegul_dense(self):
-        """
-        Tests for a standard Dense layer, for result comparison.
-        """
-        self._apply_tests_bank(
-            [
-                dict(
-                    layer_type=Dense,
-                    layer_params={
-                        "units": 6,
-                        "kernel_regularizer": OrthDenseRegularizer(1000.0),
-                    },
-                    batch_size=1000,
-                    steps_per_epoch=125,
-                    epochs=10,
-                    input_shape=(4,),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    callbacks=[],
-                ),
-            ]
-        )
-
-    def test_spectralconv2d(self):
-        self._apply_tests_bank(
-            [
-                dict(
-                    layer_type=SpectralConv2D,
-                    layer_params={
-                        "filters": 2,
-                        "kernel_size": (3, 3),
-                        "use_bias": False,
-                    },
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.02,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=SpectralConv2D,
-                    layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=5.0,
-                    k_lip_tolerance_factor=1.02,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=SpectralConv2D,
-                    layer_params={
-                        "filters": 2,
-                        "kernel_size": (3, 3),
-                        "use_bias": False,
-                    },
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 3),  # case conv_first=False
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.02,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=SpectralConv2D,
-                    layer_params={
-                        "filters": 5,
-                        "kernel_size": (3, 3),
-                        "use_bias": False,
-                        "strides": 2,
-                    },
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(10, 10, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.02,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=SpectralConv2D,
-                    layer_params={
-                        "filters": 3,  # case conv_first=False
-                        "kernel_size": (3, 3),
-                        "use_bias": False,
-                        "strides": 2,
-                    },
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(10, 10, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.02,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-            ]
-        )
-
-    def test_frobeniusconv2d(self):
-        # tests only checks that lip cons is enforced
-        self._apply_tests_bank(
-            [
-                dict(
-                    layer_type=FrobeniusConv2D,
-                    layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=FrobeniusConv2D,
-                    layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 1),
-                    k_lip_data=1.0,
-                    k_lip_model=5.0,
-                    k_lip_tolerance_factor=1.1,
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-                dict(
-                    layer_type=FrobeniusConv2D,
-                    layer_params={"filters": 2, "kernel_size": (3, 3)},
-                    batch_size=100,
-                    steps_per_epoch=125,
-                    epochs=5,
-                    input_shape=(5, 5, 3),  # case conv_first=False
-                    k_lip_data=1.0,
-                    k_lip_model=1.0,
-                    k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
-                    test_SVmin=False,
-                    callbacks=[],
-                ),
-            ]
-        )
-
-    # def test_orthoconv2d(self):
-    #     # tests only checks that lip cons is enforced
-    #     self._apply_tests_bank(
-    #         [
-    #             dict(
-    #                 layer_type=OrthoConv2D,
-    #                 layer_params={
-    #                     "filters": 2,
-    #                     "kernel_size": (3, 3),
-    #                     "regul_lorth": 1000.0,
-    #                 },
-    #                 batch_size=1000,
-    #                 steps_per_epoch=125,
-    #                 epochs=10,
-    #                 input_shape=(5, 5, 1),
-    #                 k_lip_data=1.0,
-    #                 k_lip_model=1.0,
-    #                 k_lip_tolerance_factor=1.1,
-    #                 callbacks=[],
-    #             ),
-    #             dict(
-    #                 layer_type=OrthoConv2D,
-    #                 layer_params={
-    #                     "filters": 2,
-    #                     "kernel_size": (3, 3),
-    #                     "regul_lorth": 1000.0,
-    #                 },
-    #                 batch_size=1000,
-    #                 steps_per_epoch=125,
-    #                 epochs=10,
-    #                 input_shape=(5, 5, 1),
-    #                 k_lip_data=1.0,
-    #                 k_lip_model=5.0,
-    #                 k_lip_tolerance_factor=1.1,
-    #                 callbacks=[],
-    #             ),
-    #             dict(
-    #                 layer_type=OrthoConv2D,
-    #                 layer_params={
-    #                     "filters": 6,
-    #                     "kernel_size": (3, 3),
-    #                     "regul_lorth": 1000.0,
-    #                     "strides": 2,
-    #                 },
-    #                 batch_size=1000,
-    #                 steps_per_epoch=125,
-    #                 epochs=10,
-    #                 input_shape=(10, 10, 1),
-    #                 k_lip_data=1.0,
-    #                 k_lip_model=1.0,
-    #                 k_lip_tolerance_factor=1.1,
-    #                 callbacks=[],
-    #             ),
-    #         ]
-    #     )
+                    + " must be greater than the specified boundary"
+                )  # noqa: E501
+    return
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.skipif(
+    hasattr(compute_layer_sv, "unavailable_class"),
+    reason="compute_layer_sv not available",
+)
+@pytest.mark.parametrize(
+    "test_params",
+    [
+        dict(
+            layer_type=SpectralLinear,
+            layer_params={"bias": False, "in_features": 4, "out_features": 4},
+            batch_size=1000,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(4,),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralLinear,
+            layer_params={"in_features": 4, "out_features": 4},
+            batch_size=1000,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(4,),
+            k_lip_data=1.0,
+            k_lip_model=5.0,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=FrobeniusLinear,
+            layer_params={"in_features": 4, "out_features": 1},
+            batch_size=1000,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(4,),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=FrobeniusLinear,
+            layer_params={"in_features": 4, "out_features": 1},
+            batch_size=1000,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(4,),
+            k_lip_data=1.0,
+            k_lip_model=5.0,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+                "bias": False,
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 5, 5),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.02,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 5, 5),
+            k_lip_data=1.0,
+            k_lip_model=5.0,
+            k_lip_tolerance_factor=1.02,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralConv2d,
+            layer_params={
+                "in_channels": 3,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+                "bias": False,
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(3, 5, 5),  # case conv_first=False
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.02,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 5,
+                "kernel_size": (3, 3),
+                "bias": False,
+                "stride": 2,
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 10, 10),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.02,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=SpectralConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 3,
+                "kernel_size": (3, 3),
+                "bias": False,
+                "stride": 2,
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 10, 10),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.02,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=FrobeniusConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 5, 5),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=FrobeniusConv2d,
+            layer_params={
+                "in_channels": 1,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+                "bias": False,
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(1, 5, 5),
+            k_lip_data=1.0,
+            k_lip_model=5.0,
+            k_lip_tolerance_factor=1.1,
+            test_SVmin=False,
+            callbacks=[],
+        ),
+        dict(
+            layer_type=FrobeniusConv2d,
+            layer_params={
+                "in_channels": 3,
+                "out_channels": 2,
+                "kernel_size": (3, 3),
+            },
+            batch_size=100,
+            steps_per_epoch=125,
+            epochs=5,
+            input_shape=(3, 5, 5),  # case conv_first=False
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            k_lip_tolerance_factor=1.1,  # Frobenius seems less precise on SVs
+            test_SVmin=False,
+            callbacks=[],
+        ),
+    ],
+)
+def test_verifySV(test_params):
+    train_compute_and_verifySV(**test_params)
+
+
+@pytest.mark.skipif(
+    hasattr(compute_layer_sv, "unavailable_class")
+    or hasattr(OrthLinearRegularizer, "unavailable_class"),
+    reason="compute_layer_sv or OrthLinearRegularizer not available",
+)
+@pytest.mark.parametrize(
+    "test_params",
+    [
+        dict(
+            layer_type=tLinear,
+            layer_params={
+                "in_features": 4,
+                "out_features": 6,
+                "kernel_regularizer": uft.get_instance_framework(
+                    OrthLinearRegularizer, {"lambda_orth": 1000.0}
+                ),
+            },
+            batch_size=1000,
+            steps_per_epoch=125,
+            epochs=10,
+            input_shape=(4,),
+            k_lip_data=1.0,
+            k_lip_model=1.0,
+            callbacks=[],
+        ),
+    ],
+)
+def test_verifySV_orthRegul(test_params):
+    train_compute_and_verifySV(**test_params)

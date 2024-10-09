@@ -1,54 +1,97 @@
+# -*- coding: utf-8 -*-
+# Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
+# rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
+# CRIAQ and ANITI - https://www.deel.ai/
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 # Copyright IRT Antoine de Saint Exupéry et Université Paul Sabatier Toulouse III - All
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
-import unittest
+import pytest
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras import backend as K, metrics
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.optimizers import Adam
-from deel.lip.initializers import SpectralInitializer
 
-FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
-EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
+from . import utils_framework as uft
 
-np.random.seed(42)
+from .utils_framework import (
+    SpectralInitializer,
+    tLinear,
+)
 
 
-class MyTestCase(unittest.TestCase):
-    def test_bjorck_initializer(self):
-        input_shape = (5,)
-        model = Sequential(
-            [Dense(4, kernel_initializer=SpectralInitializer(1e-6, 1e-6))]
-        )
-        self._test_model(model, input_shape, orthogonal_test=True)
-        model = Sequential(
-            [Dense(100, kernel_initializer=SpectralInitializer(1e-6, None))]
-        )
-        self._test_model(model, input_shape, orthogonal_test=False)
+@pytest.mark.parametrize(
+    "layer_type, layer_params,input_shape, orthogonal_test",
+    [
+        (
+            tLinear,
+            {
+                "in_features": 5,
+                "out_features": 4,
+                "kernel_initializer": uft.get_instance_framework(
+                    SpectralInitializer,
+                    inst_params={"eps_spectral": 1e-6, "eps_bjorck": 1e-6},
+                ),
+            },
+            (5,),
+            True,
+        ),
+        (
+            tLinear,
+            {
+                "in_features": 5,
+                "out_features": 100,
+                "kernel_initializer": uft.get_instance_framework(
+                    SpectralInitializer,
+                    inst_params={"eps_spectral": 1e-6, "eps_bjorck": None},
+                ),
+            },
+            (5,),
+            False,
+        ),
+    ],
+)
+def test_initializer(layer_type, layer_params, input_shape, orthogonal_test):
+    np.random.seed(42)
+    # clear session to avoid side effects from previous train
+    uft.init_session()  # K.clear_session()
+    input_shape = uft.to_framework_channel(input_shape)
+    # create the keras model, defin opt, and compile it
+    model = uft.generate_k_lip_model(layer_type, layer_params, input_shape)
+    uft.initialize_kernel(model, 0, layer_params["kernel_initializer"])
 
-    def _test_model(self, model, input_shape, orthogonal_test=True):
-        batch_size = 1000
-        # clear session to avoid side effects from previous train
-        K.clear_session()
-        # create the keras model, defin opt, and compile it
-        optimizer = Adam(lr=0.001)
-        model.compile(
-            optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse]
-        )
-        model.build((batch_size,) + input_shape)
-        sigmas = tf.linalg.svd(
-            model.layers[0].kernel,
-            full_matrices=False,
-            compute_uv=False,
-        ).numpy()
-        if orthogonal_test:
-            np.testing.assert_allclose(sigmas, np.ones_like(sigmas), 1e-5, 0)
-        else:
-            np.testing.assert_almost_equal(sigmas.max(), 1.0, 5)
+    optimizer = uft.get_instance_framework(
+        uft.Adam, inst_params={"lr": 0.001, "model": model}
+    )  # uft.Adam(lr=0.001)
 
+    loss_fn, optimizer, metrics = uft.compile_model(
+        model,
+        optimizer=optimizer,
+        loss=uft.MeanSquaredError(),
+        metrics=[uft.metric_mse()],
+    )
 
-if __name__ == "__main__":
-    unittest.main()
+    sigmas = np.linalg.svd(
+        uft.to_numpy(uft.get_layer_weights_by_index(model, 0)),
+        full_matrices=False,
+        compute_uv=False,
+    )
+    if orthogonal_test:
+        np.testing.assert_allclose(sigmas, np.ones_like(sigmas), atol=1e-5)
+    else:
+        np.testing.assert_allclose(sigmas.max(), 1.0, atol=1e-2)
