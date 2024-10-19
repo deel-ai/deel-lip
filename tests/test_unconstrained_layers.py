@@ -37,8 +37,8 @@ from .utils_framework import vanillaModel
 
 def compare(x, x_ref, index_x=[], index_x_ref=[]):
     """Compare a tensor and its padded version, based on index_x and ref."""
-    x = uft.to_numpy(uft.to_NCHW(x))
-    x_ref = uft.to_numpy(uft.to_NCHW(x_ref))
+    x = uft.to_NCHW(uft.to_numpy(x))
+    x_ref = uft.to_NCHW(uft.to_numpy(x_ref))
     x_cropped = x[:, :, index_x[0] : index_x[1], index_x[3] : index_x[4]][
         :, :, :: index_x[2], :: index_x[5]
     ]

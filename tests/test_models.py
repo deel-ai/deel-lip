@@ -290,7 +290,7 @@ def test_warning_unsupported_1Lip_layers():
     # Check that unsupported layers raise a warning
     unsupported_layers = [
         uft.get_instance_framework(
-            tMaxPool2d, {"pool_size": 3, "strides": 2}
+            tMaxPool2d, {"kernel_size": 3, "stride": 2}
         ),  # kl.MaxPool2d(),
         uft.get_instance_framework(tAdd, {}),  # kl.Add(),
         uft.get_instance_framework(tConcatenate, {}),  # kl.Concatenate(),
@@ -305,12 +305,10 @@ def test_warning_unsupported_1Lip_layers():
             tActivation, {"activation": "gelu"}
         ),  # kl.Activation("relu"),
     ]
-    # if version.parse(tf.__version__) >= version.parse("2.4.0"):
-    #         unsupported_layers.append(kl.Activation("gelu"))
 
     for lay in unsupported_layers:
-        with pytest.warns(Warning):
-            if lay is not None:
+        if lay is not None:
+            with pytest.warns(Warning):
                 _ = uft.generate_k_lip_model(
                     Sequential,
                     {"layers": [lay]},

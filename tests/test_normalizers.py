@@ -38,7 +38,7 @@ from .utils_framework import (
     reshaped_kernel_orthogonalization,
     spectral_normalization,
     spectral_normalization_conv,
-    DEFAULT_NITER_SPECTRAL_INIT,
+    DEFAULT_EPS_SPECTRAL,
 )
 
 from .utils_framework import (
@@ -79,7 +79,7 @@ def test_kernel_svd(kernel_shape):
     u = uft.to_tensor(u)
     W_bar, _u, sigma = uft.get_instance_framework(
         spectral_normalization,
-        {"kernel": kernel, "u": u, "eps": 1e-6, "niter": DEFAULT_NITER_SPECTRAL_INIT},
+        {"kernel": kernel, "u": u, "eps": DEFAULT_EPS_SPECTRAL},
     )
     # Test sigma is close to the one computed with svd first run @ 1e-1
     np.testing.assert_approx_equal(
@@ -88,12 +88,12 @@ def test_kernel_svd(kernel_shape):
 
     W_bar, _u, sigma = uft.get_instance_framework(
         spectral_normalization,
-        {"kernel": kernel, "u": _u, "eps": 1e-6, "niter": DEFAULT_NITER_SPECTRAL_INIT},
+        {"kernel": kernel, "u": _u, "eps": DEFAULT_EPS_SPECTRAL},
     )
     # spectral_normalization(kernel, u=_u, eps=1e-6)
     W_bar, _u, sigma = uft.get_instance_framework(
         spectral_normalization,
-        {"kernel": kernel, "u": _u, "eps": 1e-6, "niter": DEFAULT_NITER_SPECTRAL_INIT},
+        {"kernel": kernel, "u": _u, "eps": DEFAULT_EPS_SPECTRAL},
     )
     # spectral_normalization(kernel, u=_u, eps=1e-6)
     # Test W_bar is reshaped correctly

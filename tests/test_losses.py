@@ -165,13 +165,13 @@ y_pred4 = np.random.normal(size=(num_items4,))
     [
         (
             KRLoss,
-            {"true_values": (1, 0)},
+            {},
             binary_data(y_true1),
             binary_data(y_pred1),
             1.0,
             1e-7,
         ),
-        (KRLoss, {"true_values": (1, 0)}, y_truegaussian, y_predgaussian, 2.0, 1e-3),
+        (KRLoss, {}, y_truegaussian, y_predgaussian, 2.0, 1e-3),
         (
             HingeMarginLoss,
             {"min_margin": 2.0},
@@ -204,7 +204,7 @@ y_pred4 = np.random.normal(size=(num_items4,))
             },  # Warning alpha replaced by alpha/(1+alpha)
             y_true2,
             y_pred2,
-            np.float32(1.0897621 * uft.scaleAlpha(5.0)),
+            np.float32(1.0897621 * uft.scaleDivAlpha(5.0)),
             1e-5,
         ),
         (
@@ -240,7 +240,7 @@ def test_loss_generic_value(
 @pytest.mark.parametrize(
     "loss_instance, loss_params, y_true_np, y_pred_np, test_minus1",
     [
-        (KRLoss, {"true_values": (1, 0)}, y_truegaussian, y_predgaussian, True),
+        (KRLoss, {}, y_truegaussian, y_predgaussian, True),
         (
             HingeMarginLoss,
             {"min_margin": 2.0},
@@ -343,7 +343,7 @@ def test_hkr_loss():
         pytest.skip(f"{loss_instance} not implemented")
     loss = uft.get_instance_framework(
         loss_instance,
-        inst_params={"true_values": (1, 0), "alpha": 0.5, "min_margin": 2.0},
+        inst_params={"alpha": 0.5, "min_margin": 2.0},
     )
     if loss is None:
         pytest.skip(f"{loss_instance} with params not implemented")
@@ -356,7 +356,7 @@ def test_softhkrmulticlass_loss():
     if hasattr(loss_instance, "unavailable_class"):
         pytest.skip(f"{loss_instance} not implemented")
     y_true_np, y_pred_np = y_true2, y_pred2
-    expected_loss = np.float32(1.0897621) * uft.scaleAlpha(
+    expected_loss = np.float32(1.0897621) * uft.scaleDivAlpha(
         5.0
     )  # warning alpha scaled to be in [0,1]
     rtol = 1e-5
@@ -372,7 +372,7 @@ def test_softhkrmulticlass_loss():
     # moving mean should change and thus loss value
     loss_val_bis = uft.compute_loss(loss, y_pred, y_true).numpy()
     np.testing.assert_allclose(
-        loss_val_bis, np.float32(1.0834466) * uft.scaleAlpha(5.0), rtol=rtol
+        loss_val_bis, np.float32(1.0834466) * uft.scaleDivAlpha(5.0), rtol=rtol
     )
 
     y_true_np, y_pred_np = y_trueonehot, y_predonehot
@@ -414,7 +414,7 @@ def test_softhkrmulticlass_loss():
     [
         (
             KRLoss,
-            {"true_values": (1, 0), "reduction": "none"},
+            {"reduction": "none"},
             binary_data(y_true1b),
             binary_data(y_pred1b),
             [1.0, 2.2, -0.2, 1.4, 2.6, 0.8, -0.4, 1.8],
@@ -431,14 +431,14 @@ def test_softhkrmulticlass_loss():
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 2.5,
                 "min_margin": 2.0,
                 "reduction": "none",
             },
             binary_data(y_true1b),
             binary_data(y_pred1b),
-            [0.25, -2.2, 2.95, -0.65, -2.6, 0.7, 3.4, -1.55],
+            np.float64([0.25, -2.2, 2.95, -0.65, -2.6, 0.7, 3.4, -1.55])
+            * uft.scaleAlpha(2.5),
             1e-7,
         ),
         (
@@ -478,7 +478,9 @@ def test_softhkrmulticlass_loss():
             {"alpha": 2.5, "min_margin": 1.0, "reduction": "none"},
             y_true3,
             y_pred3,
-            np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825]) / 900,
+            np.float64([-779, -656, 1395, -625, -1609, 4557, -1284, 825])
+            * uft.scaleAlpha(2.5)
+            / 900,
             1e-7,
         ),  # OK (-1,1) but no more one hot
         (
@@ -522,7 +524,7 @@ def test_softhkrmulticlass_loss():
                     1.1028761,
                 ]
             )
-            * uft.scaleAlpha(5.0),
+            * uft.scaleDivAlpha(5.0),
             1e-7,
         ),
     ],
@@ -540,13 +542,14 @@ def test_no_reduction_loss_generic(
     if loss is None:
         pytest.skip(f"{loss_instance}   with params {loss_params} not implemented")
     y_true, y_pred = uft.to_tensor(y_true_np), uft.to_tensor(y_pred_np)
-    loss_val = uft.compute_loss(loss, y_pred, y_true).numpy()
+    loss_val = uft.to_numpy(uft.compute_loss(loss, y_pred, y_true))
+    loss_val = np.squeeze(loss_val)
     np.testing.assert_allclose(
         loss_val,
         expected_loss,
         rtol=rtol,
         atol=5e-6,
-        err_msg=f"Loss {loss.name} failed",
+        err_msg=f"Loss {loss} failed",
     )
 
 
@@ -569,7 +572,7 @@ segments4 = [
     [
         (
             KRLoss,
-            {"true_values": (1, 0), "multi_gpu": True, "reduction": "sum"},
+            {"multi_gpu": True, "reduction": "sum"},
             binary_data(y_true1b),
             binary_data(y_pred1b),
             [0, 3, 7, None],
@@ -588,7 +591,6 @@ segments4 = [
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 2.5,
                 "min_margin": 2.0,
                 "reduction": "sum",
@@ -597,7 +599,7 @@ segments4 = [
             binary_data(y_true1b),
             binary_data(y_pred1b),
             [0, 3, 7, None],
-            0.3,
+            0.3 * uft.scaleAlpha(2.5),
             1e-7,
         ),
         (
@@ -611,7 +613,7 @@ segments4 = [
         ),
         (
             KRLoss,
-            {"true_values": (1, 0), "multi_gpu": True, "reduction": "sum"},
+            {"multi_gpu": True, "reduction": "sum"},
             binary_data(y_true4),
             binary_data(y_pred4),
             segments4,
@@ -630,7 +632,6 @@ segments4 = [
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 2.5,
                 "min_margin": 2.0,
                 "reduction": "sum",
@@ -684,7 +685,7 @@ segments4 = [
             y_true3,
             y_pred3,
             [0, 3, 7, None],
-            np.float32(152 / 75),
+            np.float32(152 / 75) * uft.scaleAlpha(2.5),
             1e-7,
         ),  # OK (-1,1) but no more one hot
         (
@@ -752,7 +753,7 @@ def test_minibatches_binary_loss_generic(
             expected_loss,
             rtol=rtol,
             atol=5e-6,
-            err_msg=f"Loss {loss.name} failed",
+            err_msg=f"Loss {loss} failed",
         )
     loss_val_minibatches = 0
     for i in range(len(segments) - 1):
@@ -767,7 +768,7 @@ def test_minibatches_binary_loss_generic(
         loss_val_minibatches,
         rtol=rtol,  # 5e-6,
         atol=5e-6,
-        err_msg=f"Loss {loss.name} failed for hardcoded mini-batches",
+        err_msg=f"Loss {loss} failed for hardcoded mini-batches",
     )
 
 
@@ -776,7 +777,7 @@ def test_minibatches_binary_loss_generic(
     [
         (
             KRLoss,
-            {"true_values": (1, 0), "name": "KRLoss none", "reduction": "none"},
+            {"name": "KRLoss none", "reduction": "none"},
             1e-7,
         ),
         (
@@ -787,7 +788,6 @@ def test_minibatches_binary_loss_generic(
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 5.2,
                 "reduction": "none",
                 "name": "HKRLoss none",
@@ -796,7 +796,7 @@ def test_minibatches_binary_loss_generic(
         ),
         (
             KRLoss,
-            {"true_values": (1, 0), "name": "KRLoss auto", "reduction": "auto"},
+            {"name": "KRLoss auto", "reduction": "auto"},
             1e-7,
         ),
         (
@@ -807,7 +807,6 @@ def test_minibatches_binary_loss_generic(
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 10.0,
                 "reduction": "auto",
                 "name": "HKRLoss auto",
@@ -817,7 +816,6 @@ def test_minibatches_binary_loss_generic(
         (
             KRLoss,
             {
-                "true_values": (1, 0),
                 "multi_gpu": True,
                 "name": "KRLoss multi_gpu",
                 "reduction": "sum",
@@ -827,7 +825,6 @@ def test_minibatches_binary_loss_generic(
         (
             HKRLoss,
             {
-                "true_values": (1, 0),
                 "alpha": 3.2,
                 "multi_gpu": True,
                 "reduction": "sum",
@@ -877,5 +874,5 @@ def test_multilabel_loss_generic(loss_instance, loss_params, rtol):
         mean_loss_vals,
         rtol=rtol,  # 5e-6,
         atol=1e-4,
-        err_msg=f"Loss {loss.name} failed",
+        err_msg=f"Loss {loss} failed",
     )
