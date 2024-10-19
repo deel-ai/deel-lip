@@ -1,6 +1,8 @@
 import copy
 import warnings
 from functools import partial
+import numpy as np
+
 import tensorflow as tf
 from tensorflow.keras import Model as tModel
 from tensorflow.keras.models import Sequential as tSequential
@@ -36,7 +38,7 @@ from tensorflow.keras.layers import Concatenate as tConcatenate
 
 from deel.lip.activations import GroupSort as GroupSort
 from deel.lip.activations import GroupSort2 as GroupSort2
-from deel.lip.activations import Householder as Householder
+from deel.lip.activations import Householder as HouseHolder
 from deel.lip.layers import LipschitzLayer
 
 from deel.lip.constraints import (
@@ -95,6 +97,7 @@ from deel.lip.normalizers import (
     spectral_normalization_conv,
 )
 from deel.lip.normalizers import DEFAULT_MAXITER_SPECTRAL as DEFAULT_NITER_SPECTRAL_INIT
+from deel.lip.normalizers import DEFAULT_EPS_SPECTRAL, DEFAULT_EPS_BJORCK
 from deel.lip.utils import _padding_circular
 
 from deel.lip.regularizers import Lorth2D as Lorth2d
@@ -104,6 +107,7 @@ from deel.lip.layers.unconstrained import PadConv2D as PadConv2d
 from deel.lip.compute_layer_sv import compute_layer_sv
 from deel.lip.regularizers import OrthDenseRegularizer as OrthLinearRegularizer
 
+framework = "tf"
 
 # to avoid linter F401
 __all__ = [
@@ -118,7 +122,7 @@ __all__ = [
     "tConcatenate",
     "type_int32",
     "GroupSort2",
-    "Householder",
+    "HouseHolder",
     "AutoWeightClipConstraint",
     "SpectralConstraint",
     "FrobeniusConstraint",
@@ -153,6 +157,8 @@ __all__ = [
     "LorthRegularizer",
     "compute_layer_sv",
     "OrthLinearRegularizer",
+    "DEFAULT_EPS_SPECTRAL",
+    "DEFAULT_EPS_BJORCK",
 ]
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
@@ -237,10 +243,10 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"output_size": None}
     ),
     ScaledAvgPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
+        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides",}
     ),
     ScaledL2NormPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
+        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides"}
     ),
     SpectralConv2d: partial(
         get_instance_withreplacement,
@@ -285,7 +291,7 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
     ),
     tMaxPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
+        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides"}
     ),
     tLinear: partial(
         get_instance_withreplacement,
@@ -326,6 +332,9 @@ getters_dict = {
             "bias": "use_bias",
             "padding_mode": "padding",
         },
+    ),
+    HouseHolder: partial(
+        get_instance_withreplacement, dict_keys_replace={"channels": None}
     ),
 }
 
@@ -493,7 +502,10 @@ def to_framework_channel(x):  # channel first to channel last
 
 
 def to_NCHW(x):
-    return tf.transpose(x, perm=[0, 3, 1, 2])
+    return np.transpose(x, (0, 3, 1, 2))
+
+def to_NCHW_inv(x):
+    return np.transpose(x, (0, 2, 3, 1))
 
 
 def get_NCHW(x):
@@ -509,6 +521,9 @@ def scaleAlpha(alpha):
     return 1.0
     # return (1.0/(1+1.0/alpha))
 
+def scaleDivAlpha(alpha):
+    warnings.warn("scaleDivAlpha is deprecated, use alpha in [0,1] instead")
+    return 1.0
 
 def vanilla_require_a_copy():
     return False

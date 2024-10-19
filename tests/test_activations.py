@@ -31,7 +31,7 @@ from . import utils_framework as uft
 from .utils_framework import (
     CategoricalCrossentropy,
     GroupSort,
-    Householder,
+    HouseHolder,
 )
 
 
@@ -59,7 +59,7 @@ def check_serialization(layer_type, layer_params):
         k=1,
     )
     y2 = m2(x)
-    np.testing.assert_allclose(y1.numpy(), y2.numpy())
+    np.testing.assert_allclose(uft.to_numpy(y1), uft.to_numpy(y2))
 
 
 def test_group_sort_simple():
@@ -100,6 +100,16 @@ def test_group_sort_simple():
                 [1.0, 2.0, 1.0, 2.0],
             ],
         ),
+        (
+            4,
+            True,
+            [
+                [1.0, 2.0, 3.0, 4.0],
+                [1.0, 2.0, 3.0, 4.0],
+                [1.0, 1.0, 2.0, 2.0],
+                [1.0, 1.0, 2.0, 2.0],
+            ],
+        ),
     ],
 )
 def test_GroupSort(group_size, img, expected):
@@ -119,8 +129,9 @@ def test_GroupSort(group_size, img, expected):
     else:
         xn = np.asarray(x)
         xnp = np.repeat(
-            np.expand_dims(np.repeat(np.expand_dims(xn, 1), 28, 1), 1), 28, 1
+            np.expand_dims(np.repeat(np.expand_dims(xn, -1), 28, -1), -1), 28, -1
         )
+        xnp = uft.to_NCHW_inv(xnp)  # move channel if needed (TF)
         x = uft.to_tensor(xnp)
         uft.build_layer(gs, (28, 28, 4))
     y = gs(x).numpy()
@@ -128,8 +139,9 @@ def test_GroupSort(group_size, img, expected):
     if img:
         y_tnp = np.asarray(y_t)
         y_t = np.repeat(
-            np.expand_dims(np.repeat(np.expand_dims(y_tnp, 1), 28, 1), 1), 28, 1
+            np.expand_dims(np.repeat(np.expand_dims(y_tnp, -1), 28, -1), -1), 28, -1
         )
+        y_t = uft.to_NCHW_inv(y_t)  # move channel if needed (TF)
     np.testing.assert_equal(y, y_t)
 
 
@@ -146,7 +158,7 @@ def test_GroupSort_idempotence(group_size):
     np.testing.assert_equal(y1.numpy(), y2.numpy())
 
 
-"""Tests for Householder activation:
+"""Tests for HouseHolder activation:
     - instantiation of layer
     - check outputs on dense (bs, n) tensor, with three thetas: 0, pi/2 and pi
     - check outputs on dense (bs, h, w, n) tensor, with three thetas: 0, pi/2 and pi
@@ -155,162 +167,190 @@ def test_GroupSort_idempotence(group_size):
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
 @pytest.mark.parametrize(
     "params,shape,len_shape,expected",
     [
-        ({}, (28, 28, 10), (5,), np.pi / 2),  # Instantiation without argument
+        (
+            {"channels": 10},
+            (10, 28, 28),
+            (5,),
+            np.pi / 2,
+        ),  # Instantiation without argument
         (
             {
                 "data_format": "channels_last",
+                "channels": 16,
                 "k_coef_lip": 2.5,
                 "theta_initializer": "ones",
             },
-            (32, 32, 16),
+            (16, 32, 32),
             (8,),
             1,
         ),  # Instantiation with arguments
     ],
 )
-def test_Householder_instantiation(params, shape, len_shape, expected):
-    hh = uft.get_instance_framework(Householder, params)
+def test_HouseHolder_instantiation(params, shape, len_shape, expected):
+    shape = uft.to_framework_channel(shape)
+    hh = uft.get_instance_framework(HouseHolder, params)
     uft.build_layer(hh, shape)
-    assert hh.theta.shape == len_shape
-    np.testing.assert_equal(hh.theta.numpy(), expected)
+    theta = np.squeeze(uft.to_numpy(hh.theta))
+    assert theta.shape == len_shape
+    np.testing.assert_equal(theta, expected)
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
-def test_Householder_serialization():
+def test_HouseHolder_serialization():
     # Check serialization
     check_serialization(
-        Householder, layer_params={"theta_initializer": "glorot_uniform"}
+        HouseHolder, layer_params={"channels": 10, "theta_initializer": "normal"}
     )
 
+    if uft.framework == "torch":
+        pytest.skip("data format skipped in  torch")
     # Instantiation error because of wrong data format
     with pytest.raises(RuntimeError):
-        _ = uft.get_instance_framework(Householder, {"data_format": "channels_first"})
+        _ = uft.get_instance_framework(
+            HouseHolder, {"channels": 4, "data_format": "channels_first"}
+        )
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
 @pytest.mark.parametrize("dense", [(True,), (False,)])
-def test_Householder_theta_zero(dense):
-    """Householder with theta=0 on 2-D tensor (bs, n).
+def test_HouseHolder_theta_zero(dense):
+    """HouseHolder with theta=0 on 2-D tensor (bs, n).
     Theta=0 means Id if z2 > 0, and reflection if z2 < 0.
     """
-    hh = uft.get_instance_framework(Householder, {"theta_initializer": "zeros"})
     if dense:
         bs = np.random.randint(64, 512)
         n = np.random.randint(1, 1024) * 2
         size = (bs, n // 2)
+        ch = n
     else:  # convolutional
         bs = np.random.randint(32, 128)
         h, w = np.random.randint(1, 64), np.random.randint(1, 64)
         c = np.random.randint(1, 64) * 2
-        size = (bs, h, w, c // 2)
+        size = (bs,) + uft.to_framework_channel((c // 2, h, w))
+        ch = c
+
+    hh = uft.get_instance_framework(
+        HouseHolder, {"channels": ch, "theta_initializer": "zeros"}
+    )
 
     # Case 1: hh(x) = x   (identity case, z2 > 0)
     z1 = np.random.normal(size=size)
     z2 = np.random.uniform(size=size)
     x = np.concatenate([z1, z2], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), x)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, x)
 
     # Case 2: hh(x) = [z1, -z2]   (reflection across z1 axis, z2 < 0)
     z1 = np.random.normal(size=size)
     z2 = -np.random.uniform(size=size)
     x = np.concatenate([z1, z2], axis=-1)
     expected_output = np.concatenate([z1, -z2], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), expected_output)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, expected_output)
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
 @pytest.mark.parametrize("dense", [(True,), (False,)])
-def test_Householder_theta_pi(dense):
-    """Householder with theta=pi on 2-D tensor (bs, n).
+def test_HouseHolder_theta_pi(dense):
+    """HouseHolder with theta=pi on 2-D tensor (bs, n).
     Theta=pi means Id if z1 < 0, and reflection if z1 > 0.
     """
-    hh = uft.get_instance_framework(
-        Householder, {"theta_initializer": uft.initializers_Constant(np.pi)}
-    )
     if dense:
         bs = np.random.randint(64, 512)
         n = np.random.randint(1, 1024) * 2
         size = (bs, n // 2)
+        ch = n
     else:  # convolutional
         bs = np.random.randint(32, 128)
         h, w = np.random.randint(1, 64), np.random.randint(1, 64)
         c = np.random.randint(1, 64) * 2
-        size = (bs, h, w, c // 2)
+        size = (bs,) + uft.to_framework_channel((c // 2, h, w))
+        ch = c
 
+    hh = uft.get_instance_framework(
+        HouseHolder,
+        {"channels": ch, "theta_initializer": uft.initializers_Constant(np.pi)},
+    )
     # Case 1: hh(x) = x   (identity case, z1 < 0)
     z1 = -np.random.uniform(size=size)
     z2 = np.random.normal(size=size)
     x = np.concatenate([z1, z2], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), x, atol=1e-6)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, x, atol=1e-6)
 
     # Case 2: hh(x) = [z1, -z2]   (reflection across  z2 axis, z1 > 0)
     z1 = np.random.uniform(size=size)
     z2 = np.random.normal(size=size)
     x = np.concatenate([z1, z2], axis=-1)
     expected_output = np.concatenate([-z1, z2], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), expected_output, atol=1e-6)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, expected_output, atol=1e-6)
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
 @pytest.mark.parametrize("dense", [(True,), (False,)])
-def test_Householder_theta_90(dense):
-    """Householder with theta=pi/2 on 2-D tensor (bs, n).
+def test_HouseHolder_theta_90(dense):
+    """HouseHolder with theta=pi/2 on 2-D tensor (bs, n).
     Theta=pi/2 is equivalent to GroupSort2: Id if z1 < z2, and reflection if z1 > z2
     """
-    hh = uft.get_instance_framework(Householder, {})
     if dense:
         bs = np.random.randint(64, 512)
         n = np.random.randint(1, 1024) * 2
         size = (bs, n // 2)
+        ch = n
     else:  # convolutional
         bs = np.random.randint(32, 128)
         h, w = np.random.randint(1, 64), np.random.randint(1, 64)
         c = np.random.randint(1, 64) * 2
-        size = (bs, h, w, c // 2)
+        size = (bs,) + uft.to_framework_channel((c // 2, h, w))
+        ch = c
 
+    hh = uft.get_instance_framework(HouseHolder, {"channels": ch})
     # Case 1: hh(x) = x   (identity case, z1 < z2)
     z1 = -np.random.normal(size=size)
     z2 = z1 + np.random.uniform(size=size)
     x = np.concatenate([z1, z2], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), x)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, x)
 
     # Case 2: hh(x) = reflection(x)   (if z1 > z2)
     z1 = np.random.normal(size=size)
     z2 = z1 - np.random.uniform(size=size)
     x = np.concatenate([z1, z2], axis=-1)
     expected_output = np.concatenate([z2, z1], axis=-1)
-    np.testing.assert_allclose(hh(uft.to_tensor(x)), expected_output, atol=1e-6)
+    y = uft.to_numpy(hh(uft.to_tensor(x)))
+    np.testing.assert_allclose(y, expected_output, atol=1e-6)
 
 
 @pytest.mark.skipif(
-    hasattr(Householder, "unavailable_class"), reason="Householder not available"
+    hasattr(HouseHolder, "unavailable_class"), reason="HouseHolder not available"
 )
-def test_Householder_idempotence():
-    """Assert idempotence of Householder activation: hh(hh(x)) = hh(x)"""
-    hh = uft.get_instance_framework(
-        Householder, {"theta_initializer": "glorot_uniform"}
-    )
+def test_HouseHolder_idempotence():
+    """Assert idempotence of HouseHolder activation: hh(hh(x)) = hh(x)"""
 
     bs = np.random.randint(32, 128)
     h, w = np.random.randint(1, 64), np.random.randint(1, 64)
     c = np.random.randint(1, 32) * 2
-    x = np.random.normal(size=(bs, h, w, c))
+    hh = uft.get_instance_framework(
+        HouseHolder, {"channels": c, "theta_initializer": "normal"}
+    )
+    x = np.random.normal(size=(bs,) + uft.to_framework_channel((c, h, w)))
     x = uft.to_tensor(x)
 
     # Run two times the HH activation and compare both outputs
     y = hh(x)
     z = hh(y)
-    np.testing.assert_allclose(y, z)
+    np.testing.assert_allclose(uft.to_numpy(y), uft.to_numpy(z))
