@@ -1,6 +1,7 @@
 import copy
 import warnings
 from functools import partial
+import pytest
 import numpy as np
 
 import tensorflow as tf
@@ -56,7 +57,7 @@ from deel.lip.layers import SpectralDense as SpectralLinear
 from deel.lip.layers import FrobeniusDense as FrobeniusLinear
 from deel.lip.layers import SpectralConv2D as SpectralConv2d
 from deel.lip.layers import FrobeniusConv2D as FrobeniusConv2d
-from deel.lip.layers import SpectralConv2DTranspose as SpectralConv2dTranspose
+from deel.lip.layers import SpectralConv2DTranspose as SpectralConvTranspose2d
 from deel.lip.layers import ScaledAveragePooling2D as ScaledAvgPool2d
 from deel.lip.layers import ScaledGlobalAveragePooling2D as ScaledAdaptiveAvgPool2d
 from deel.lip.layers import ScaledL2NormPooling2D as ScaledL2NormPool2d
@@ -187,6 +188,11 @@ bjorck_norm = remove_bjorck_norm = frobenius_norm = remove_frobenius_norm = (
     compute_lconv_coef
 ) = lconv_norm = remove_lconv_norm = module_Unavailable_class
 
+SpectralConv1d = module_Unavailable_class
+LipResidual = module_Unavailable_class
+BatchCentering = module_Unavailable_class
+LayerCentering = module_Unavailable_class
+tSplit = module_Unavailable_class
 
 def get_instance_generic(instance_type, inst_params):
     return instance_type(**inst_params)
@@ -220,7 +226,26 @@ def replace_key_params(inst_params, dict_keys_replace):
 
 def get_instance_withreplacement(instance_type, inst_params, dict_keys_replace):
     layp = replace_key_params(inst_params, dict_keys_replace)
-    print(layp)
+    return instance_type(**layp)
+
+
+def get_instance_withcheck(
+    instance_type, inst_params, dict_keys_replace={}, list_keys_notimplemented=[]
+):
+    for k in list_keys_notimplemented:
+        if isinstance(k, tuple):
+            kk = k[0]
+            kv = k[1]
+        else:
+            kk = k
+            kv = None
+        if kk in inst_params:
+            if (kv is None) or inst_params[kk] in kv:
+                warnings.warn(
+                    UserWarning("Warning key is not implemented", kk, " in tensorflow")
+                )
+                return None
+    layp = replace_key_params(inst_params, dict_keys_replace)
     return instance_type(**layp)
 
 
@@ -228,7 +253,7 @@ getters_dict = {
     GroupSort: partial(
         get_instance_withreplacement, dict_keys_replace={"group_size": "n"}
     ),
-    SpectralConv2dTranspose: partial(
+    SpectralConvTranspose2d: partial(
         get_instance_withreplacement,
         dict_keys_replace={
             "in_channels": None,
@@ -236,6 +261,7 @@ getters_dict = {
             "bias": "use_bias",
             "padding": ("padding", lambda x: "valid" if x == 0 else "same"),
             "padding_mode": None,
+            "dilation": "dilation_rate",
             "stride": "strides",
         },
     ),
@@ -249,14 +275,16 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides"}
     ),
     SpectralConv2d: partial(
-        get_instance_withreplacement,
+        get_instance_withcheck,
         dict_keys_replace={
             "in_channels": None,
             "out_channels": "filters",
             "padding": None,
+            "padding_mode": ("padding",lambda x: "same" if x == "zeros" else "not implemented"),
             "bias": "use_bias",
             "stride": "strides",
         },
+        list_keys_notimplemented=[("padding_mode", ["reflect", "symmetric", "circular"])],
     ),
     SpectralLinear: partial(
         get_instance_withreplacement,
@@ -275,14 +303,16 @@ getters_dict = {
         },
     ),
     FrobeniusConv2d: partial(
-        get_instance_withreplacement,
+        get_instance_withcheck,
         dict_keys_replace={
             "in_channels": None,
             "out_channels": "filters",
             "padding": None,
+            "padding_mode": ("padding",lambda x: "same" if x == "zeros" else "not implemented"),
             "bias": "use_bias",
             "stride": "strides",
         },
+        list_keys_notimplemented=[("padding_mode", ["reflect", "symmetric", "circular"])],
     ),
     InvertibleDownSampling: partial(
         get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
@@ -335,6 +365,9 @@ getters_dict = {
     ),
     HouseHolder: partial(
         get_instance_withreplacement, dict_keys_replace={"channels": None}
+    ),
+    tReshape: partial(
+        get_instance_withreplacement, dict_keys_replace={"dim": None,"unflattened_size": "target_shape"}
     ),
 }
 
@@ -533,15 +566,18 @@ def copy_model_parameters(model_src, model_dest):
     model_dest.set_weights(model_src.get_weights())
 
 
-def is_supported_padding(padding):
-    return padding.lower() in [
-        "same",
-        "valid",
-        "constant",
-        "reflect",
-        "symmetric",
-        "circular",
-    ]
+def is_supported_padding(padding, layer_type):
+    layertype2padding = {
+        SpectralConv2d: ["same","zeros"],
+        FrobeniusConv2d: ["same","zeros"],
+        PadConv2d: ["same","valid", "constant", "reflect", "symmetric", "circular"],
+    }
+    if layer_type in layertype2padding:
+        return padding.lower() in layertype2padding[layer_type]
+    else:
+        assert False
+        warnings.warn(f"layer {layer_type} type not supported for padding")
+        return False
 
 
 def pad_input(x, padding, kernel_size):

@@ -228,7 +228,6 @@ def test_loss_generic_value(
     y_true, y_pred = uft.to_tensor(y_true_np), uft.to_tensor(y_pred_np)
 
     loss_val = uft.compute_loss(loss, y_pred, y_true).numpy()
-    print("loss_val", loss_val, expected_loss)
     np.testing.assert_allclose(
         loss_val,
         np.float32(expected_loss),
