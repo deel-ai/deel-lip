@@ -155,8 +155,8 @@ def assert_model_outputs(input_shape, model1, model2):
     np.testing.assert_allclose(uft.to_numpy(y2), uft.to_numpy(y1), atol=1e-5)
 
 
-def test_keras_Sequential():
-    """Assert vanilla conversion of a tf.keras.Sequential model"""
+def test_Sequential():
+    """Assert vanilla conversion of a Sequential model"""
     input_shape = uft.to_framework_channel((3, 20, 20))
     model = uft.generate_k_lip_model(
         tSequential,
@@ -203,14 +203,12 @@ def test_deel_lip_Sequential():
     reason="tModel not available",
 )
 def test_Model():
-    """Assert vanilla conversion of a tf.keras.Model model"""
+    """Assert vanilla conversion of a Model model"""
     input_shape = uft.to_framework_channel((3, 8, 8))
     dict_tensors = get_functional_tensors(input_shape)
     model = uft.get_functional_model(
         tModel, dict_tensors, functional_input_output_tensors
     )
-    # inputs, outputs = functional_input_output_tensors()
-    #    model = tf.keras.Model(inputs, outputs)
     if uft.vanilla_require_a_copy():
         dict_tensors2 = get_functional_tensors(input_shape)
         model2 = uft.get_functional_model(
@@ -265,7 +263,9 @@ def test_warning_unsupported_1Lip_layers():
         ),  # kl.Activation("relu"),
         uft.get_instance_framework(tSoftmax, {}),  # kl.Softmax(),
         uft.get_instance_framework(Flatten, {}),  # kl.Flatten(),
-        uft.get_instance_framework(tReshape, {"target_shape": (10,)}),  # kl.Reshape(),
+        uft.get_instance_framework(
+            tReshape, {"dim": -1, "unflattened_size": (10,)}
+        ),  # kl.Reshape(),
         uft.get_instance_framework(
             tMaxPool2d, {"kernel_size": (2, 2)}
         ),  # kl.MaxPool2d(),

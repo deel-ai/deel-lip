@@ -141,7 +141,7 @@ def train_compute_and_verifySV(
     input_shape = uft.to_framework_channel(input_shape)
 
     # tf.random.uft.set_seed(1234)
-    # create the keras model, defin opt, and compile it
+    # create the model, defin opt, and compile it
     model = uft.generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
 
     optimizer = uft.get_instance_framework(
@@ -165,7 +165,7 @@ def train_compute_and_verifySV(
     logdir = os.path.join("logs", uft.LIP_LAYERS, "%s" % layer_type.__name__)
     os.makedirs(logdir, exist_ok=True)
 
-    callback_list = []  # [hp.KerasCallback(logdir, hparams)]
+    callback_list = []
     if "callbacks" in kwargs and (kwargs["callbacks"] is not None):
         callback_list = callback_list + kwargs["callbacks"]
     # train model

@@ -46,17 +46,18 @@ def compare(x, x_ref, index_x=[], index_x_ref=[]):
         np.testing.assert_allclose(x_cropped, np.zeros(x_cropped.shape), 1e-2, 0)
     else:
         np.testing.assert_allclose(
-            x_cropped,
-            x_ref[
+            x_cropped
+            - x_ref[
                 :, :, index_x_ref[0] : index_x_ref[1], index_x_ref[3] : index_x_ref[4]
             ][:, :, :: index_x_ref[2], :: index_x_ref[5]],
+            np.zeros(x_cropped.shape),
             1e-2,
             0,
         )
 
 
 @pytest.mark.parametrize(
-    "padding_tested", ["circular", "constant", "symmetric", "reflect"]
+    "padding_tested", ["circular", "constant", "symmetric", "reflect", "replicate"]
 )
 @pytest.mark.parametrize(
     "input_shape, batch_size, kernel_size, filters",
@@ -70,7 +71,7 @@ def compare(x, x_ref, index_x=[], index_x_ref=[]):
 def test_padding(padding_tested, input_shape, batch_size, kernel_size, filters):
     """Test different padding types: assert values in original and padded tensors"""
     input_shape = uft.to_framework_channel(input_shape)
-    if not uft.is_supported_padding(padding_tested):
+    if not uft.is_supported_padding(padding_tested,PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     kernel_size_list = kernel_size
     if isinstance(kernel_size, (int, float)):
@@ -90,15 +91,19 @@ def test_padding(padding_tested, input_shape, batch_size, kernel_size, filters):
     right_x_pad = [p_vert, -p_vert, 1, -p_hor, x_pad_NCHW[3], 1, "right"]
     all_x = [0, x_NCHW[2], 1, 0, x_NCHW[3], 1]
     upper_x = [0, p_vert, 1, 0, x_NCHW[3], 1]
+    upper_x_first = [0, 1, 1, 0, x_NCHW[3], 1]
     upper_x_rev = [0, p_vert, -1, 0, x_NCHW[3], 1]
     upper_x_refl = [1, p_vert + 1, -1, 0, x_NCHW[3], 1]
     lower_x = [-p_vert, x_NCHW[2], 1, 0, x_NCHW[3], 1]
+    lower_x_last = [-1, x_NCHW[2], 1, 0, x_NCHW[3], 1]
     lower_x_rev = [-p_vert, x_NCHW[2], -1, 0, x_NCHW[3], 1]
     lower_x_refl = [-p_vert - 1, x_NCHW[2] - 1, -1, 0, x_NCHW[3], 1]
     left_x = [0, x_NCHW[2], 1, 0, p_hor, 1]
+    left_x_first = [0, x_NCHW[2], 1, 0, 1, 1]
     left_x_rev = [0, x_NCHW[2], 1, 0, p_hor, -1]
     left_x_refl = [0, x_NCHW[2], 1, 1, p_hor + 1, -1]
     right_x = [0, x_NCHW[2], 1, -p_hor, x_NCHW[3], 1]
+    right_x_last = [0, x_NCHW[2], 1, -1, x_NCHW[3], 1]
     right_x_rev = [0, x_NCHW[2], 1, -p_hor, x_NCHW[3], -1]
     right_x_refl = [0, x_NCHW[2], 1, -p_hor - 1, x_NCHW[3] - 1, -1]
     zero_pad = [None, None, None, None]
@@ -108,30 +113,35 @@ def test_padding(padding_tested, input_shape, batch_size, kernel_size, filters):
             "constant": [center_x_pad, all_x],
             "symmetric": [center_x_pad, all_x],
             "reflect": [center_x_pad, all_x],
+            "replicate": [center_x_pad, all_x],
         },
         {
             "circular": [upper_x_pad, lower_x],
             "constant": [upper_x_pad, zero_pad],
             "symmetric": [upper_x_pad, upper_x_rev],
             "reflect": [upper_x_pad, upper_x_refl],
+            "replicate": [upper_x_pad, upper_x_first],
         },
         {
             "circular": [lower_x_pad, upper_x],
             "constant": [lower_x_pad, zero_pad],
             "symmetric": [lower_x_pad, lower_x_rev],
             "reflect": [lower_x_pad, lower_x_refl],
+            "replicate": [lower_x_pad, lower_x_last],
         },
         {
             "circular": [left_x_pad, right_x],
             "constant": [left_x_pad, zero_pad],
             "symmetric": [left_x_pad, left_x_rev],
             "reflect": [left_x_pad, left_x_refl],
+            "replicate": [left_x_pad, left_x_first],
         },
         {
             "circular": [right_x_pad, left_x],
             "constant": [right_x_pad, zero_pad],
             "symmetric": [right_x_pad, right_x_rev],
             "reflect": [right_x_pad, right_x_refl],
+            "replicate": [right_x_pad, right_x_last],
         },
     ]
 
@@ -149,7 +159,8 @@ def test_padding(padding_tested, input_shape, batch_size, kernel_size, filters):
     reason="PadConv2d not available",
 )
 @pytest.mark.parametrize(
-    "padding_tested", ["circular", "constant", "symmetric", "reflect", "same", "valid"]
+    "padding_tested",
+    ["circular", "constant", "symmetric", "reflect", "replicate", "same", "valid"],
 )
 @pytest.mark.parametrize(
     "input_shape, batch_size, kernel_size, filters",
@@ -165,7 +176,7 @@ def test_predict(padding_tested, input_shape, batch_size, kernel_size, filters):
     in_ch = input_shape[0]
     input_shape = uft.to_framework_channel(input_shape)
 
-    if not uft.is_supported_padding(padding_tested):
+    if not uft.is_supported_padding(padding_tested,PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     layer_params = {
         "out_channels": 2,
@@ -222,7 +233,8 @@ def test_predict(padding_tested, input_shape, batch_size, kernel_size, filters):
     reason="PadConv2d not available",
 )
 @pytest.mark.parametrize(
-    "padding_tested", ["circular", "constant", "symmetric", "reflect", "same", "valid"]
+    "padding_tested",
+    ["circular", "constant", "symmetric", "reflect", "replicate", "same", "valid"],
 )
 @pytest.mark.parametrize(
     "input_shape, batch_size, kernel_size, filters",
@@ -238,7 +250,7 @@ def test_vanilla(padding_tested, input_shape, batch_size, kernel_size, filters):
     in_ch = input_shape[0]
     input_shape = uft.to_framework_channel(input_shape)
 
-    if not uft.is_supported_padding(padding_tested):
+    if not uft.is_supported_padding(padding_tested,PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     layer_params = {
         "out_channels": 2,

@@ -39,7 +39,7 @@ def check_serialization(layer_type, layer_params):
     m = uft.generate_k_lip_model(layer_type, layer_params, input_shape=(10,), k=1)
     if m is None:
         return
-    optimizer, loss, _ = uft.compile_model(
+    loss, optimizer, _ = uft.compile_model(
         m,
         optimizer=uft.get_instance_framework(uft.SGD, inst_params={"model": m}),
         loss=CategoricalCrossentropy(from_logits=True),

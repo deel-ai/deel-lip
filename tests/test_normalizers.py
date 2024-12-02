@@ -64,7 +64,6 @@ rng = np.random.default_rng(42)
 )
 def test_kernel_svd(kernel_shape):
     """Compare max singular value using power iteration and np.linalg.svd"""
-    print(kernel_shape)
     kernel = rng.normal(size=kernel_shape).astype("float32")
     sigmas_svd = np.linalg.svd(
         np.reshape(kernel, (np.prod(kernel.shape[:-1]), kernel.shape[-1])),
