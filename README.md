@@ -48,9 +48,18 @@ layers for keras**.
 > advised to use TensorFlow versions lower than 2.16 to ensure compatibility and proper
 > functionality of this package.
 >
-> We are actively working on updating the package to support Keras 3. Please stay tuned
-> for updates. For now, make sure to install an earlier version of TensorFlow by
-> specifying it in your environment.
+> We're excited to announce that a nightly version of deel-lip with support for Keras 3
+> is now available for testing! If you'd like to experiment with the latest updates
+> and improvements, feel free to check out the `keras3` branch.
+>
+> ```bash
+> pip install git+https://github.com/deel-ai/deel-lip.git@keras3
+> ```
+>
+> Please note that this version is still under development and may contain experimental
+> features. We welcome your feedback and encourage you to report any issues you
+> encounter.
+
 
 ## 📚 Table of contents
 
