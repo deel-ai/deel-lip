@@ -7,15 +7,11 @@ This module contains losses used in Wasserstein distance estimation. See
 [this paper](https://arxiv.org/abs/2006.06520) for more information.
 """
 from functools import partial
+
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.losses import (
-    categorical_crossentropy,
-    sparse_categorical_crossentropy,
-    Loss,
-    Reduction,
-)
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+from keras.saving import register_keras_serializable
+import keras.ops as K
 
 
 @register_keras_serializable("deel-lip", "_kr")
@@ -26,19 +22,19 @@ def _kr(y_true, y_pred, epsilon):
     or (batch_size, C) for multilabel/multiclass classification (with C categories).
     `y_true` labels should be either 1 and 0, or 1 and -1.
     """
-    y_true = tf.cast(y_true, y_pred.dtype)
-    batch_size = tf.cast(tf.shape(y_true)[0], dtype=y_pred.dtype)
+    y_true = K.cast(y_true, y_pred.dtype)
+    batch_size = K.cast(K.shape(y_true)[0], dtype=y_pred.dtype)
     # Transform y_true into {1, 0} values
-    S1 = tf.cast(tf.equal(y_true, 1), y_pred.dtype)
-    num_elements_per_class = tf.reduce_sum(S1, axis=0)
+    S1 = K.cast(K.equal(y_true, 1), y_pred.dtype)
+    num_elements_per_class = K.sum(S1, axis=0)
 
     pos = S1 / (num_elements_per_class + epsilon)
     neg = (1 - S1) / (batch_size - num_elements_per_class + epsilon)
     # Since element-wise KR terms are averaged by loss reduction later on, it is needed
     # to multiply by batch_size here.
-    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
-    # behaves like `tf.squeeze()` to return element-wise loss of shape (batch_size, ).
-    return tf.reduce_mean(batch_size * y_pred * (pos - neg), axis=-1)
+    # In binary case (`y_true` of shape (batch_size, 1)), `K.mean(axis=-1)`
+    # behaves like `K.squeeze()` to return element-wise loss of shape (batch_size, ).
+    return K.mean(batch_size * y_pred * (pos - neg), axis=-1)
 
 
 @register_keras_serializable("deel-lip", "_kr_multi_gpu")
@@ -51,17 +47,17 @@ def _kr_multi_gpu(y_true, y_pred):
     When using this loss function, the labels `y_true` must be pre-processed with the
     `process_labels_for_multi_gpu()` function.
     """
-    y_true = tf.cast(y_true, y_pred.dtype)
+    y_true = K.cast(y_true, y_pred.dtype)
     # Since the information of batch size was included in `y_true` by
     # `process_labels_for_multi_gpu()`, there is no need here to multiply by batch size.
-    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
-    # behaves like `tf.squeeze()` to return element-wise loss of shape (batch_size, ).
-    return tf.reduce_mean(y_pred * y_true, axis=-1)
+    # In binary case (`y_true` of shape (batch_size, 1)), `K.mean(axis=-1)`
+    # behaves like `K.squeeze()` to return element-wise loss of shape (batch_size, ).
+    return K.mean(y_pred * y_true, axis=-1)
 
 
 @register_keras_serializable("deel-lip", "KR")
-class KR(Loss):
-    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="KR"):
+class KR(keras.Loss):
+    def __init__(self, multi_gpu=False, reduction="sum_over_batch_size", name="KR"):
         r"""
         Loss to estimate Wasserstein-1 distance using Kantorovich-Rubinstein duality.
         The Kantorovich-Rubinstein duality is formulated as following:
@@ -87,8 +83,8 @@ class KR(Loss):
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -99,7 +95,6 @@ class KR(Loss):
         else:
             self.kr_function = partial(_kr, epsilon=self.eps)
 
-    @tf.function
     def call(self, y_true, y_pred):
         return self.kr_function(y_true, y_pred)
 
@@ -110,13 +105,13 @@ class KR(Loss):
 
 
 @register_keras_serializable("deel-lip", "HKR")
-class HKR(Loss):
+class HKR(keras.Loss):
     def __init__(
         self,
         alpha,
         min_margin=1.0,
         multi_gpu=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="HKR",
     ):
         r"""
@@ -146,12 +141,12 @@ class HKR(Loss):
                 between hinge and KR, the first label must yield the positive class
                 while the second yields negative class.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
-        self.alpha = tf.Variable(alpha, dtype=tf.float32)
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.alpha = keras.Variable(alpha, dtype="float32")
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         self.multi_gpu = multi_gpu
         self.KRloss = KR(multi_gpu=multi_gpu)
         if alpha == np.inf:  # alpha = inf => hinge only
@@ -160,7 +155,6 @@ class HKR(Loss):
             self.fct = self.hkr
         super(HKR, self).__init__(reduction=reduction, name=name)
 
-    @tf.function
     def hkr(self, y_true, y_pred):
         a = -self.KRloss.call(y_true, y_pred)
         b = hinge_margin(y_true, y_pred, self.min_margin)
@@ -191,20 +185,25 @@ def hinge_margin(y_true, y_pred, min_margin):
         min_margin (float): margin to enforce.
 
     Returns:
-        tf.Tensor: Element-wise hinge margin loss value.
+        Tensor: Element-wise hinge margin loss value.
 
     """
-    sign = tf.where(y_true > 0, 1, -1)
-    sign = tf.cast(sign, y_pred.dtype)
-    hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
-    # In binary case (`y_true` of shape (batch_size, 1)), `tf.reduce_mean(axis=-1)`
-    # behaves like `tf.squeeze` to return element-wise loss of shape (batch_size, ).
-    return tf.reduce_mean(hinge, axis=-1)
+    sign = K.where(y_true > 0, 1, -1)
+    sign = K.cast(sign, y_pred.dtype)
+    hinge = K.relu(min_margin / 2.0 - sign * y_pred)
+    # In binary case (`y_true` of shape (batch_size, 1)), `K.mean(axis=-1)`
+    # behaves like `K.squeeze` to return element-wise loss of shape (batch_size, ).
+    return K.mean(hinge, axis=-1)
 
 
 @register_keras_serializable("deel-lip", "HingeMargin")
-class HingeMargin(Loss):
-    def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="HingeMargin"):
+class HingeMargin(keras.Loss):
+    def __init__(
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="HingeMargin",
+    ):
         r"""
         Compute the hinge margin loss.
 
@@ -220,14 +219,13 @@ class HingeMargin(Loss):
 
         Args:
             min_margin (float): margin to enforce.
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         super(HingeMargin, self).__init__(reduction=reduction, name=name)
 
-    @tf.function
     def call(self, y_true, y_pred):
         return hinge_margin(y_true, y_pred, self.min_margin)
 
@@ -240,8 +238,13 @@ class HingeMargin(Loss):
 
 
 @register_keras_serializable("deel-lip", "MulticlassKR")
-class MulticlassKR(Loss):
-    def __init__(self, multi_gpu=False, reduction=Reduction.AUTO, name="MulticlassKR"):
+class MulticlassKR(keras.Loss):
+    def __init__(
+        self,
+        multi_gpu=False,
+        reduction="sum_over_batch_size",
+        name="MulticlassKR",
+    ):
         r"""
         Loss to estimate average of Wasserstein-1 distance using Kantorovich-Rubinstein
         duality over outputs. In this multiclass setup, the KR term is computed for each
@@ -256,8 +259,8 @@ class MulticlassKR(Loss):
 
         Args:
             multi_gpu (bool): set to True when running on multi-GPU/TPU
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
         self.eps = 1e-7
@@ -268,7 +271,6 @@ class MulticlassKR(Loss):
         else:
             self.kr_function = partial(_kr, epsilon=self.eps)
 
-    @tf.function
     def call(self, y_true, y_pred):
         return self.kr_function(y_true, y_pred)
 
@@ -286,27 +288,30 @@ def multiclass_hinge(y_true, y_pred, min_margin):
     `deel.lip.utils.process_labels_for_multi_gpu()` function.
 
     Args:
-        y_true (tf.Tensor): tensor of true targets of shape (batch_size, # classes)
-        y_pred (tf.Tensor): tensor of predicted targets of shape (batch_size, # classes)
+        y_true (Tensor): tensor of true targets of shape (batch_size, # classes)
+        y_pred (Tensor): tensor of predicted targets of shape (batch_size, # classes)
         min_margin (float): margin to enforce.
 
     Returns:
-        tf.Tensor: Element-wise multi-class hinge margin loss value.
+        Tensor: Element-wise multi-class hinge margin loss value.
     """
-    sign = tf.where(y_true > 0, 1, -1)
-    sign = tf.cast(sign, y_pred.dtype)
+    sign = K.where(y_true > 0, 1, -1)
+    sign = K.cast(sign, y_pred.dtype)
     # compute the elementwise hinge term
-    hinge = tf.nn.relu(min_margin / 2.0 - sign * y_pred)
+    hinge = K.relu(min_margin / 2.0 - sign * y_pred)
     # reweight positive elements
     factor = y_pred.shape[-1] - 1.0
-    hinge = tf.where(sign > 0, hinge * factor, hinge)
-    return tf.reduce_mean(hinge, axis=-1)
+    hinge = K.where(sign > 0, hinge * factor, hinge)
+    return K.mean(hinge, axis=-1)
 
 
 @register_keras_serializable("deel-lip", "MulticlassHinge")
-class MulticlassHinge(Loss):
+class MulticlassHinge(keras.Loss):
     def __init__(
-        self, min_margin=1.0, reduction=Reduction.AUTO, name="MulticlassHinge"
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="MulticlassHinge",
     ):
         """
         Loss to estimate the Hinge loss in a multiclass setup. It computes the
@@ -320,14 +325,13 @@ class MulticlassHinge(Loss):
 
         Args:
             min_margin (float): margin to enforce.
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         super(MulticlassHinge, self).__init__(reduction=reduction, name=name)
 
-    @tf.function
     def call(self, y_true, y_pred):
         return multiclass_hinge(y_true, y_pred, self.min_margin)
 
@@ -340,13 +344,13 @@ class MulticlassHinge(Loss):
 
 
 @register_keras_serializable("deel-lip", "MulticlassHKR")
-class MulticlassHKR(Loss):
+class MulticlassHKR(keras.Loss):
     def __init__(
         self,
         alpha=10.0,
         min_margin=1.0,
         multi_gpu=False,
-        reduction=Reduction.AUTO,
+        reduction="sum_over_batch_size",
         name="MulticlassHKR",
     ):
         """
@@ -364,12 +368,12 @@ class MulticlassHKR(Loss):
             alpha (float): regularization factor
             min_margin (float): margin to enforce.
             multi_gpu (bool): set to True when running on multi-GPU/TPU
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
-        self.alpha = tf.Variable(alpha, dtype=tf.float32)
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.alpha = keras.Variable(alpha, dtype="float32")
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         self.multi_gpu = multi_gpu
         self.KRloss = MulticlassKR(multi_gpu=multi_gpu, reduction=reduction, name=name)
         if alpha == np.inf:  # alpha = inf => hinge only
@@ -378,7 +382,6 @@ class MulticlassHKR(Loss):
             self.fct = self.hkr
         super(MulticlassHKR, self).__init__(reduction=reduction, name=name)
 
-    @tf.function
     def hkr(self, y_true, y_pred):
         a = -self.KRloss.call(y_true, y_pred)
         b = multiclass_hinge(y_true, y_pred, self.min_margin)
@@ -398,8 +401,13 @@ class MulticlassHKR(Loss):
 
 
 @register_keras_serializable("deel-lip", "MultiMargin")
-class MultiMargin(Loss):
-    def __init__(self, min_margin=1.0, reduction=Reduction.AUTO, name="MultiMargin"):
+class MultiMargin(keras.Loss):
+    def __init__(
+        self,
+        min_margin=1.0,
+        reduction="sum_over_batch_size",
+        name="MultiMargin",
+    ):
         """
         Compute the hinge margin loss for multiclass (equivalent to Pytorch
         multi_margin_loss)
@@ -409,24 +417,23 @@ class MultiMargin(Loss):
 
         Args:
             min_margin (float): margin to enforce.
-            reduction: passed to tf.keras.Loss constructor
-            name (str): passed to tf.keras.Loss constructor
+            reduction: passed to keras.Loss constructor
+            name (str): passed to keras.Loss constructor
 
         """
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         super(MultiMargin, self).__init__(reduction=reduction, name=name)
 
-    @tf.function
     def call(self, y_true, y_pred):
-        mask = tf.where(y_true > 0, 1, 0)
-        mask = tf.cast(mask, y_pred.dtype)
+        mask = K.where(y_true > 0, 1, 0)
+        mask = K.cast(mask, y_pred.dtype)
         # get the y_pred[target_class]
         # (zeroing out all elements of y_pred where y_true=0)
-        vYtrue = tf.reduce_sum(y_pred * mask, axis=-1, keepdims=True)
+        vYtrue = K.sum(y_pred * mask, axis=-1, keepdims=True)
         # computing elementwise margin term : margin + y_pred[i]-y_pred[target_class]
-        margin = tf.nn.relu(self.min_margin - vYtrue + y_pred)
+        margin = K.relu(self.min_margin - vYtrue + y_pred)
         # averaging on all outputs and batch
-        final_loss = tf.reduce_mean((1.0 - mask) * margin, axis=-1)
+        final_loss = K.mean((1.0 - mask) * margin, axis=-1)
         return final_loss
 
     def get_config(self):
@@ -438,8 +445,13 @@ class MultiMargin(Loss):
 
 
 @register_keras_serializable("deel-lip", "CategoricalHinge")
-class CategoricalHinge(Loss):
-    def __init__(self, min_margin, reduction=Reduction.AUTO, name="CategoricalHinge"):
+class CategoricalHinge(keras.Loss):
+    def __init__(
+        self,
+        min_margin,
+        reduction="sum_over_batch_size",
+        name="CategoricalHinge",
+    ):
         """
         Similar to original categorical hinge, but with a settable margin parameter.
         This implementation is sligthly different from the Keras one.
@@ -453,15 +465,15 @@ class CategoricalHinge(Loss):
             reduction: reduction of the loss, passed to original loss.
             name (str): name of the loss
         """
-        self.min_margin = tf.Variable(min_margin, dtype=tf.float32)
+        self.min_margin = keras.Variable(min_margin, dtype="float32")
         super(CategoricalHinge, self).__init__(name=name, reduction=reduction)
 
     def call(self, y_true, y_pred):
-        mask = tf.where(y_true > 0, 1, 0)
-        mask = tf.cast(mask, y_pred.dtype)
-        pos = tf.reduce_sum(mask * y_pred, axis=-1)
-        neg = tf.reduce_max(tf.where(mask > 0, tf.float32.min, y_pred), axis=-1)
-        return tf.nn.relu(self.min_margin - (pos - neg))
+        mask = K.where(y_true > 0, 1, 0)
+        mask = K.cast(mask, y_pred.dtype)
+        pos = K.sum(mask * y_pred, axis=-1)
+        neg = K.max(K.where(mask > 0, K.min(y_pred), y_pred), axis=-1)
+        return K.relu(self.min_margin - (pos - neg))
 
     def get_config(self):
         config = {"min_margin": self.min_margin.numpy()}
@@ -470,9 +482,12 @@ class CategoricalHinge(Loss):
 
 
 @register_keras_serializable("deel-lip", "TauCategoricalCrossentropy")
-class TauCategoricalCrossentropy(Loss):
+class TauCategoricalCrossentropy(keras.Loss):
     def __init__(
-        self, tau, reduction=Reduction.AUTO, name="TauCategoricalCrossentropy"
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauCategoricalCrossentropy",
     ):
         """
         Similar to original categorical crossentropy, but with a settable temperature
@@ -483,14 +498,12 @@ class TauCategoricalCrossentropy(Loss):
             reduction: reduction of the loss, passed to original loss.
             name (str): name of the loss
         """
-        self.tau = tf.Variable(tau, dtype=tf.float32)
+        self.tau = keras.Variable(tau, dtype="float32")
         super(TauCategoricalCrossentropy, self).__init__(name=name, reduction=reduction)
 
-    def call(self, y_true, y_pred, *args, **kwargs):
+    def call(self, y_true, y_pred):
         return (
-            categorical_crossentropy(
-                y_true, self.tau * y_pred, from_logits=True, *args, **kwargs
-            )
+            K.categorical_crossentropy(y_true, self.tau * y_pred, from_logits=True)
             / self.tau
         )
 
@@ -501,9 +514,12 @@ class TauCategoricalCrossentropy(Loss):
 
 
 @register_keras_serializable("deel-lip", "TauSparseCategoricalCrossentropy")
-class TauSparseCategoricalCrossentropy(Loss):
+class TauSparseCategoricalCrossentropy(keras.Loss):
     def __init__(
-        self, tau, reduction=Reduction.AUTO, name="TauSparseCategoricalCrossentropy"
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauSparseCategoricalCrossentropy",
     ):
         """
         Similar to original sparse categorical crossentropy, but with a settable
@@ -514,12 +530,14 @@ class TauSparseCategoricalCrossentropy(Loss):
             reduction: reduction of the loss, passed to original loss.
             name (str): name of the loss
         """
-        self.tau = tf.Variable(tau, dtype=tf.float32)
+        self.tau = keras.Variable(tau, dtype="float32")
         super().__init__(name=name, reduction=reduction)
 
     def call(self, y_true, y_pred):
         return (
-            sparse_categorical_crossentropy(y_true, self.tau * y_pred, from_logits=True)
+            K.sparse_categorical_crossentropy(
+                y_true, self.tau * y_pred, from_logits=True
+            )
             / self.tau
         )
 
@@ -530,8 +548,13 @@ class TauSparseCategoricalCrossentropy(Loss):
 
 
 @register_keras_serializable("deel-lip", "TauBinaryCrossentropy")
-class TauBinaryCrossentropy(Loss):
-    def __init__(self, tau, reduction=Reduction.AUTO, name="TauBinaryCrossentropy"):
+class TauBinaryCrossentropy(keras.Loss):
+    def __init__(
+        self,
+        tau,
+        reduction="sum_over_batch_size",
+        name="TauBinaryCrossentropy",
+    ):
         """
         Similar to the original binary crossentropy, but with a settable temperature
         parameter. y_pred must be a logits tensor (before sigmoid) and not
@@ -545,15 +568,13 @@ class TauBinaryCrossentropy(Loss):
             reduction: reduction of the loss, passed to original loss.
             name: name of the loss
         """
-        self.tau = tf.Variable(tau, dtype=tf.float32)
+        self.tau = keras.Variable(tau, dtype="float32")
         super().__init__(name=name, reduction=reduction)
 
     def call(self, y_true, y_pred):
-        y_true = tf.cast(y_true > 0, y_pred.dtype)
+        y_true = K.cast(y_true > 0, y_pred.dtype)
         return (
-            tf.keras.losses.binary_crossentropy(
-                y_true, self.tau * y_pred, from_logits=True
-            )
+            K.binary_crossentropy(y_true, self.tau * y_pred, from_logits=True)
             / self.tau
         )
 

@@ -7,19 +7,19 @@ This module contains extra Keras initializers, e.g. SpectralInitializer for 1-Li
 matrix initialization.
 They can be used as kernel initializers in any Keras layer.
 """
-from tensorflow.keras.initializers import Initializer
-from tensorflow.keras import initializers
+import keras
+from keras.saving import register_keras_serializable
+
 from .normalizers import (
     reshaped_kernel_orthogonalization,
     DEFAULT_EPS_SPECTRAL,
     DEFAULT_EPS_BJORCK,
     DEFAULT_BETA_BJORCK,
 )
-from tensorflow.keras.utils import register_keras_serializable
 
 
 @register_keras_serializable("deel-lip", "SpectralInitializer")
-class SpectralInitializer(Initializer):
+class SpectralInitializer(keras.Initializer):
     def __init__(
         self,
         eps_spectral=DEFAULT_EPS_SPECTRAL,
@@ -44,7 +44,7 @@ class SpectralInitializer(Initializer):
         self.eps_bjorck = eps_bjorck
         self.beta_bjorck = beta_bjorck
         self.k_coef_lip = k_coef_lip
-        self.base_initializer = initializers.get(base_initializer)
+        self.base_initializer = keras.initializers.get(base_initializer)
         super(SpectralInitializer, self).__init__()
 
     def __call__(self, shape, dtype=None, partition_info=None):
@@ -65,5 +65,5 @@ class SpectralInitializer(Initializer):
             "eps_bjorck": self.eps_bjorck,
             "beta_bjorck": self.beta_bjorck,
             "k_coef_lip": self.k_coef_lip,
-            "base_initializer": initializers.serialize(self.base_initializer),
+            "base_initializer": keras.initializers.serialize(self.base_initializer),
         }

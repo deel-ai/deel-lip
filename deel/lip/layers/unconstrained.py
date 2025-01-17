@@ -27,15 +27,15 @@ Compared to other files in `layers` folder, the layers defined here are not
 Lipschitz-constrained. They are base classes for more advanced layers. Do not use these
 layers as is, since they are not Lipschitz constrained.
 """
-import tensorflow as tf
-from tensorflow.keras.utils import register_keras_serializable
+import keras
+from keras.saving import register_keras_serializable
 
 from ..utils import _padding_circular
 from .base_layer import Condensable
 
 
 @register_keras_serializable("deel-lip", "PadConv2D")
-class PadConv2D(tf.keras.layers.Conv2D, Condensable):
+class PadConv2D(keras.layers.Conv2D, Condensable):
     def __init__(
         self,
         filters,
@@ -107,21 +107,18 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
                 [self.padding_size[1], self.padding_size[1]],
                 [0, 0],
             ]
-            self.pad = lambda t: tf.pad(t, paddings, self.old_padding)
+            self.pad = lambda t: keras.ops.pad(t, paddings, self.old_padding)
         if self.old_padding.lower() == "circular":
             self.padding_size = [self.kernel_size[0] // 2, self.kernel_size[1] // 2]
             self.pad = lambda t: _padding_circular(t, self.padding_size)
 
     def _compute_padded_shape(self, input_shape, padding_size):
-        if isinstance(input_shape, tf.TensorShape):
-            internal_input_shape = input_shape.as_list()
-        else:
-            internal_input_shape = list(input_shape)
+        internal_input_shape = list(input_shape)
 
         first_spatial_dim = 1 if self.data_format == "channels_last" else 2
         for index, pad in enumerate(padding_size):
             internal_input_shape[first_spatial_dim + index] += 2 * pad
-        return tf.TensorShape(internal_input_shape)
+        return internal_input_shape
 
     def build(self, input_shape):
         self.internal_input_shape = self._compute_padded_shape(
@@ -147,7 +144,7 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
     def vanilla_export(self):
         self._kwargs["name"] = self.name
         if self.old_padding.lower() in ["same", "valid"]:
-            layer_type = tf.keras.layers.Conv2D
+            layer_type = keras.layers.Conv2D
         else:
             layer_type = PadConv2D
         layer = layer_type(
@@ -163,7 +160,7 @@ class PadConv2D(tf.keras.layers.Conv2D, Condensable):
             bias_initializer="zeros",
             **self._kwargs
         )
-        layer.build(self.input_shape)
+        layer.build(self.input.shape)
         layer.kernel.assign(self.kernel)
         if self.use_bias:
             layer.bias.assign(self.bias)

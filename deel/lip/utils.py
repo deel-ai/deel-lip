@@ -7,13 +7,32 @@ Contains utility functions.
 """
 from typing import Generator, Tuple, Any
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras import Model
-from tensorflow.keras import backend as K
+import keras
+import keras.ops as K
+
+
+def l2_normalize(x, axis=None, epsilon=1e-12):
+    """
+    Normalizes a tensor wrt the L2 norm alongside the specified axis.
+
+    Inspired by `tf.math.l2_normalize()` function.
+
+    Args:
+        x: Tensor.
+        axis (optional): Dimension along which to normalize. A scalar or a vector of
+            integers. Defaults to None (all axes considered).
+        epsilon (optional): small value to avoid division by zero. Defaults to 1e-12.
+
+    Returns:
+        Tensor: normalized tensor
+    """
+    square_sum = K.sum(K.square(x), axis=axis, keepdims=True)
+    x_inv_norm = K.rsqrt(K.maximum(square_sum, epsilon))
+    return K.multiply(x, x_inv_norm)
 
 
 def evaluate_lip_const_gen(
-    model: Model,
+    model: keras.Model,
     generator: Generator[Tuple[np.ndarray, np.ndarray], Any, None],
     eps=1e-4,
     seed=None,
@@ -40,7 +59,7 @@ def evaluate_lip_const_gen(
     return evaluate_lip_const(model, x, eps, seed=seed)
 
 
-def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
+def evaluate_lip_const(model: keras.Model, x, eps=1e-4, seed=None):
     """
     Evaluate the Lipschitz constant of a model, with the naive method.
     Please note that the estimation of the lipschitz constant is done locally around
@@ -60,7 +79,7 @@ def evaluate_lip_const(model: Model, x, eps=1e-4, seed=None):
     y_pred = model.predict(x)
     # x = np.repeat(x, 100, 0)
     # y_pred = np.repeat(y_pred, 100, 0)
-    x_var = x + K.random_uniform(
+    x_var = x + keras.random.uniform(
         shape=x.shape, minval=eps * 0.25, maxval=eps, seed=seed
     )
     y_pred_var = model.predict(x_var)
@@ -79,9 +98,9 @@ def _padding_circular(x, circular_paddings):
         return x
     w_pad, h_pad = circular_paddings
     if w_pad > 0:
-        x = tf.concat((x[:, -w_pad:, :, :], x, x[:, :w_pad, :, :]), axis=1)
+        x = K.concatenate((x[:, -w_pad:, :, :], x, x[:, :w_pad, :, :]), axis=1)
     if h_pad > 0:
-        x = tf.concat((x[:, :, -h_pad:, :], x, x[:, :, :h_pad, :]), axis=2)
+        x = K.concatenate((x[:, :, -h_pad:, :], x, x[:, :, :h_pad, :]), axis=2)
     return x
 
 
@@ -92,18 +111,18 @@ def _zero_upscale2D(x, strides):
     output_shape = x.get_shape().as_list()[1:]
     if strides[1] > 1:
         output_shape[1] *= strides[1]
-        x = tf.expand_dims(x, 3)
-        fillz = tf.zeros_like(x)
-        fillz = tf.tile(fillz, [1, 1, 1, strides[1] - 1, 1])
-        x = tf.concat((x, fillz), axis=3)
-        x = tf.reshape(x, (-1,) + tuple(output_shape))
+        x = K.expand_dims(x, 3)
+        fillz = K.zeros_like(x)
+        fillz = K.tile(fillz, [1, 1, 1, strides[1] - 1, 1])
+        x = K.concatenate((x, fillz), axis=3)
+        x = K.reshape(x, (-1,) + tuple(output_shape))
     if strides[0] > 1:
         output_shape[0] *= strides[0]
-        x = tf.expand_dims(x, 2)
-        fillz = tf.zeros_like(x)
-        fillz = tf.tile(fillz, [1, 1, strides[0] - 1, 1, 1])
-        x = tf.concat((x, fillz), axis=2)
-        x = tf.reshape(x, (-1,) + tuple(output_shape))
+        x = K.expand_dims(x, 2)
+        fillz = K.zeros_like(x)
+        fillz = K.tile(fillz, [1, 1, strides[0] - 1, 1, 1])
+        x = K.concatenate((x, fillz), axis=2)
+        x = K.reshape(x, (-1,) + tuple(output_shape))
     return x
 
 
@@ -111,12 +130,11 @@ def _maybe_transpose_kernel(w, transpose=False):
     """Transpose 4-D kernel: permutation of axes 2 and 3 + reverse axes 0 and 1."""
     if not transpose:
         return w
-    w_adj = tf.transpose(w, perm=[0, 1, 3, 2])
+    w_adj = K.transpose(w, axes=[0, 1, 3, 2])
     w_adj = w_adj[::-1, ::-1, :]
     return w_adj
 
 
-@tf.function
 def process_labels_for_multi_gpu(labels):
     """Process labels to be fed to any loss based on KR estimation with a multi-GPU/TPU
     strategy.
@@ -129,15 +147,15 @@ def process_labels_for_multi_gpu(labels):
     [batch_size, number of classes].
 
     Args:
-        labels (tf.Tensor): tensor containing the labels
+        labels (Tensor): tensor containing the labels
 
     Returns:
-        tf.Tensor: labels processed for KR-based losses with multi-GPU/TPU strategy.
+        Tensor: labels processed for KR-based losses with multi-GPU/TPU strategy.
     """
     eps = 1e-7
-    labels = tf.cast(tf.where(labels > 0, 1, 0), labels.dtype)
-    batch_size = tf.cast(tf.shape(labels)[0], labels.dtype)
-    counts = tf.reduce_sum(labels, axis=0)
+    labels = K.cast(K.where(labels > 0, 1, 0), labels.dtype)
+    batch_size = K.cast(K.shape(labels)[0], labels.dtype)
+    counts = K.sum(labels, axis=0)
 
     pos = labels / (counts + eps)
     neg = (1 - labels) / (batch_size - counts + eps)

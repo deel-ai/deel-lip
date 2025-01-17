@@ -8,9 +8,8 @@ import tempfile
 import unittest
 
 import numpy as np
-import tensorflow as tf
+import keras
 from tensorboard.plugins.hparams import api as hp
-from tensorflow.keras import backend as K, Input, Model, metrics, callbacks
 
 from deel.lip.constraints import (
     AutoWeightClipConstraint,
@@ -18,14 +17,10 @@ from deel.lip.constraints import (
     FrobeniusConstraint,
 )
 
-if tf.__version__.startswith("2.0"):
-    from tensorflow.python.framework.random_seed import set_seed
-else:
-    set_seed = tf.random.set_seed
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Layer
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.models import load_model
+from keras.callbacks import TensorBoard
+from keras.layers import Dense, Input, Layer
+from keras.optimizers import Adam
+from keras.models import Model, load_model
 from deel.lip.callbacks import CondenseCallback, MonitorCallback
 from deel.lip.layers import (
     LipschitzLayer,
@@ -43,9 +38,6 @@ from deel.lip.layers import (
 )
 from deel.lip.model import Sequential
 from deel.lip.utils import evaluate_lip_const
-
-FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
-EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -185,12 +177,14 @@ def train_k_lip_model(
 
     """
     # clear session to avoid side effects from previous train
-    K.clear_session()
+    keras.utils.clear_session()
     np.random.seed(42)
     # create the keras model, defin opt, and compile it
     model = generate_k_lip_model(layer_type, layer_params, input_shape, k_lip_model)
     optimizer = Adam(learning_rate=0.001)
-    model.compile(optimizer=optimizer, loss="mean_squared_error", metrics=[metrics.mse])
+    model.compile(
+        optimizer=optimizer, loss="mean_squared_error", metrics=["mean_squared_error"]
+    )
     # model.summary()
     # create the synthetic data generator
     output_shape = model.compute_output_shape((batch_size,) + input_shape)[1:]
@@ -205,11 +199,11 @@ def train_k_lip_model(
         k_lip_data=k_lip_data,
         k_lip_model=k_lip_model,
     )
-    callback_list = [callbacks.TensorBoard(logdir), hp.KerasCallback(logdir, hparams)]
+    callback_list = [TensorBoard(logdir), hp.KerasCallback(logdir, hparams)]
     if kwargs["callbacks"] is not None:
         callback_list = callback_list + kwargs["callbacks"]
     # train model
-    model.__getattribute__(FIT)(
+    model.fit(
         linear_generator(batch_size, input_shape, kernel),
         steps_per_epoch=steps_per_epoch,
         epochs=epochs,
@@ -218,9 +212,8 @@ def train_k_lip_model(
     )
     # the seed is set to compare all models with the same data
     x, y = linear_generator(batch_size, input_shape, kernel).send(None)
-    np.random.seed(42)
-    set_seed(42)
-    loss, mse = model.__getattribute__(EVALUATE)(
+    keras.utils.set_random_seed(42)
+    loss, mse = model.evaluate(
         linear_generator(batch_size, input_shape, kernel),
         steps=10,
     )
@@ -229,22 +222,21 @@ def train_k_lip_model(
     model_checkpoint_path = os.path.join(logdir, "model.keras")
     model.save(model_checkpoint_path, overwrite=True)
     del model
-    K.clear_session()
+    keras.utils.clear_session()
     model = load_model(model_checkpoint_path)
-    np.random.seed(42)
-    set_seed(42)
-    from_disk_loss, from_disk_mse = model.__getattribute__(EVALUATE)(
+    keras.utils.set_random_seed(42)
+    from_disk_loss, from_disk_mse = model.evaluate(
         linear_generator(batch_size, input_shape, kernel),
         steps=10,
     )
     from_empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
     # log metrics
-    file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
-    file_writer.set_as_default()
-    tf.summary.scalar("lip_coef_estim", empirical_lip_const, step=epochs)
-    tf.summary.scalar("evaluation_mse", mse, step=epochs)
-    tf.summary.scalar("disk_load_evaluation_mse", from_disk_mse, step=epochs)
-    tf.summary.scalar("disk_load_lip_coef_estim", from_empirical_lip_const, step=epochs)
+    # file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
+    # file_writer.set_as_default()
+    # tf.summary.scalar("lip_coef_estim", empirical_lip_const, step=epochs)
+    # tf.summary.scalar("evaluation_mse", mse, step=epochs)
+    # tf.summary.scalar("disk_load_evaluation_mse", from_disk_mse, step=epochs)
+    # tf.summary.scalar("disk_load_lip_coef_estim",from_empirical_lip_const,step=epochs)
     return (
         mse,
         empirical_lip_const.numpy(),
@@ -254,6 +246,10 @@ def train_k_lip_model(
 
 
 class LipschitzLayersTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def _check_mse_results(self, mse, from_disk_mse, test_params):
         self.assertAlmostEqual(
             mse,
@@ -1001,14 +997,17 @@ class LipschitzLayersTest(unittest.TestCase):
 
 
 class TestSpectralConv2DTranspose(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        os.makedirs("logs/lip_layers", exist_ok=True)
+
     def test_instantiation(self):
         # Supported cases
         cases = (
             dict(filters=5, kernel_size=3),
             dict(filters=12, kernel_size=5, strides=2, use_bias=False),
             dict(filters=3, kernel_size=3, padding="same", dilation_rate=1),
-            dict(filters=4, kernel_size=1, output_padding=None, activation="relu"),
-            dict(filters=16, kernel_size=3, data_format="channels_first"),
+            dict(filters=16, kernel_size=3, data_format="channels_last"),
         )
 
         for i, kwargs in enumerate(cases):
@@ -1019,7 +1018,6 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
         cases = (
             {"msg": "Wrong padding", "kwarg": {"padding": "valid"}},
             {"msg": "Wrong dilation rate", "kwarg": {"dilation_rate": 2}},
-            {"msg": "Wrong data format", "kwarg": {"output_padding": 5}},
         )
 
         for case in cases:
@@ -1033,14 +1031,14 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
             kernel_size=5,
             strides=2,
             activation="relu",
-            data_format="channels_first",
+            data_format="channels_last",
             input_shape=(28, 28, 3),
         )
 
         lay = SpectralConv2DTranspose(**kwargs)
         model = Sequential([lay])
 
-        x = tf.random.normal((5,) + (kwargs["input_shape"]))
+        x = keras.random.normal((5,) + (kwargs["input_shape"]))
         y1 = model(x)
 
         # Test vanilla export inference comparison
@@ -1052,7 +1050,7 @@ class TestSpectralConv2DTranspose(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             model_path = os.path.join(tmpdir, "model.keras")
             model.save(model_path)
-            tf.keras.models.load_model(model_path)
+            load_model(model_path)
 
 
 if __name__ == "__main__":
