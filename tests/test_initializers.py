@@ -35,6 +35,10 @@ from .utils_framework import (
 )
 
 
+@pytest.mark.skipif(
+    hasattr(SpectralInitializer, "unavailable_class"),
+    reason="SpectralInitializer not available",
+)
 @pytest.mark.parametrize(
     "layer_type, layer_params,input_shape, orthogonal_test",
     [

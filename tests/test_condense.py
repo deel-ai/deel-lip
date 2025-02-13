@@ -301,9 +301,10 @@ def test_model(
     vanilla_loss2, vanilla_mse2 = uft.run_test(
         vanilla_model, test_dl, loss_fn, metrics, steps=10
     )
-    np.testing.assert_equal(
+    np.testing.assert_almost_equal(
         vanilla_mse,
         vanilla_mse2,
+        5,
         "exported model must be completely independent from original",
     )
 

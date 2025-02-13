@@ -77,6 +77,7 @@ def check_serialization(nb_class, loss):
     )
     name = loss.__class__.__name__ if isinstance(loss, Loss) else loss.__name__
     path = os.path.join("logs", "losses", name)
+
     uft.save_model(m, path)
     m2 = uft.load_model(
         path,

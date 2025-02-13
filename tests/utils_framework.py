@@ -1,4 +1,5 @@
 import copy
+import os
 import warnings
 from functools import partial
 import pytest
@@ -61,7 +62,7 @@ from deel.lip.layers import SpectralConv2DTranspose as SpectralConvTranspose2d
 from deel.lip.layers import ScaledAveragePooling2D as ScaledAvgPool2d
 from deel.lip.layers import ScaledGlobalAveragePooling2D as ScaledAdaptiveAvgPool2d
 from deel.lip.layers import ScaledL2NormPooling2D as ScaledL2NormPool2d
-from deel.lip.layers import ScaledGlobalL2NormPooling2D as ScaledGlobalL2NormPool2d
+from deel.lip.layers import ScaledGlobalL2NormPooling2D as ScaledAdaptativeL2NormPool2d
 from deel.lip.model import Sequential, Model
 from deel.lip.utils import evaluate_lip_const, process_labels_for_multi_gpu
 from deel.lip import vanillaModel
@@ -166,6 +167,7 @@ FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate_generator" if tf.__version__.startswith("2.0") else "evaluate"
 
 MODEL_PATH = "model.keras"
+EXTENSION = ".keras"
 LIP_LAYERS = "lip_layers"
 
 
@@ -193,6 +195,7 @@ LipResidual = module_Unavailable_class
 BatchCentering = module_Unavailable_class
 LayerCentering = module_Unavailable_class
 tSplit = module_Unavailable_class
+
 
 def get_instance_generic(instance_type, inst_params):
     return instance_type(**inst_params)
@@ -269,10 +272,18 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"output_size": None}
     ),
     ScaledAvgPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides",}
+        get_instance_withreplacement,
+        dict_keys_replace={
+            "kernel_size": "pool_size",
+            "stride": "strides",
+        },
     ),
     ScaledL2NormPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides"}
+        get_instance_withreplacement,
+        dict_keys_replace={"kernel_size": "pool_size", "stride": "strides"},
+    ),
+    ScaledAdaptativeL2NormPool2d: partial(
+        get_instance_withreplacement, dict_keys_replace={"output_size": None}
     ),
     SpectralConv2d: partial(
         get_instance_withcheck,
@@ -280,11 +291,16 @@ getters_dict = {
             "in_channels": None,
             "out_channels": "filters",
             "padding": None,
-            "padding_mode": ("padding",lambda x: "same" if x == "zeros" else "not implemented"),
+            "padding_mode": (
+                "padding",
+                lambda x: "same" if x == "zeros" else "not implemented",
+            ),
             "bias": "use_bias",
             "stride": "strides",
         },
-        list_keys_notimplemented=[("padding_mode", ["reflect", "symmetric", "circular"])],
+        list_keys_notimplemented=[
+            ("padding_mode", ["reflect", "symmetric", "circular"])
+        ],
     ),
     SpectralLinear: partial(
         get_instance_withreplacement,
@@ -308,11 +324,16 @@ getters_dict = {
             "in_channels": None,
             "out_channels": "filters",
             "padding": None,
-            "padding_mode": ("padding",lambda x: "same" if x == "zeros" else "not implemented"),
+            "padding_mode": (
+                "padding",
+                lambda x: "same" if x == "zeros" else "not implemented",
+            ),
             "bias": "use_bias",
             "stride": "strides",
         },
-        list_keys_notimplemented=[("padding_mode", ["reflect", "symmetric", "circular"])],
+        list_keys_notimplemented=[
+            ("padding_mode", ["reflect", "symmetric", "circular"])
+        ],
     ),
     InvertibleDownSampling: partial(
         get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
@@ -321,7 +342,8 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size"}
     ),
     tMaxPool2d: partial(
-        get_instance_withreplacement, dict_keys_replace={"kernel_size": "pool_size","stride": "strides"}
+        get_instance_withreplacement,
+        dict_keys_replace={"kernel_size": "pool_size", "stride": "strides"},
     ),
     tLinear: partial(
         get_instance_withreplacement,
@@ -367,7 +389,8 @@ getters_dict = {
         get_instance_withreplacement, dict_keys_replace={"channels": None}
     ),
     tReshape: partial(
-        get_instance_withreplacement, dict_keys_replace={"dim": None,"unflattened_size": "target_shape"}
+        get_instance_withreplacement,
+        dict_keys_replace={"dim": None, "unflattened_size": "target_shape"},
     ),
 }
 
@@ -459,6 +482,14 @@ def to_numpy(tens):
 
 
 def save_model(model, path, overwrite=True):
+    if not path.endswith(EXTENSION):
+        path = path + EXTENSION
+    if overwrite:
+        if os.path.exists(path):
+            os.remove(path)
+    parent_dirpath = os.path.split(path)[0]
+    if not os.path.exists(parent_dirpath):
+        os.makedirs(parent_dirpath)
     model.save(path)
     return
 
@@ -466,6 +497,8 @@ def save_model(model, path, overwrite=True):
 def load_model(
     path, compile=True, layer_type=None, layer_params=True, input_shape=None, k=None
 ):
+    if not path.endswith(EXTENSION):
+        path = path + EXTENSION
     return tload_model(path, compile=compile)
 
 
@@ -537,6 +570,7 @@ def to_framework_channel(x):  # channel first to channel last
 def to_NCHW(x):
     return np.transpose(x, (0, 3, 1, 2))
 
+
 def to_NCHW_inv(x):
     return np.transpose(x, (0, 2, 3, 1))
 
@@ -554,9 +588,11 @@ def scaleAlpha(alpha):
     return 1.0
     # return (1.0/(1+1.0/alpha))
 
+
 def scaleDivAlpha(alpha):
     warnings.warn("scaleDivAlpha is deprecated, use alpha in [0,1] instead")
     return 1.0
+
 
 def vanilla_require_a_copy():
     return False
@@ -568,9 +604,9 @@ def copy_model_parameters(model_src, model_dest):
 
 def is_supported_padding(padding, layer_type):
     layertype2padding = {
-        SpectralConv2d: ["same","zeros"],
-        FrobeniusConv2d: ["same","zeros"],
-        PadConv2d: ["same","valid", "constant", "reflect", "symmetric", "circular"],
+        SpectralConv2d: ["same", "zeros"],
+        FrobeniusConv2d: ["same", "zeros"],
+        PadConv2d: ["same", "valid", "constant", "reflect", "symmetric", "circular"],
     }
     if layer_type in layertype2padding:
         return padding.lower() in layertype2padding[layer_type]
