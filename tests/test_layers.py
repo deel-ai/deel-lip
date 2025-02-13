@@ -224,7 +224,7 @@ def train_k_lip_model(
         linear_generator(batch_size, input_shape, kernel),
         steps=10,
     )
-    empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
+    empirical_lip_const = evaluate_lip_const(model=model, x=x)
     # save the model
     model_checkpoint_path = os.path.join(logdir, "model.keras")
     model.save(model_checkpoint_path, overwrite=True)
@@ -237,7 +237,7 @@ def train_k_lip_model(
         linear_generator(batch_size, input_shape, kernel),
         steps=10,
     )
-    from_empirical_lip_const = evaluate_lip_const(model=model, x=x, seed=42)
+    from_empirical_lip_const = evaluate_lip_const(model=model, x=x)
     # log metrics
     file_writer = tf.summary.create_file_writer(os.path.join(logdir, "metrics"))
     file_writer.set_as_default()

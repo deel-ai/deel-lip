@@ -2,8 +2,7 @@
 # rights reserved. DEEL is a research program operated by IVADO, IRT Saint Exupéry,
 # CRIAQ and ANITI - https://www.deel.ai/
 # =====================================================================================
-"""Tests for singular value computation (in compute_layer_sv.py)
-"""
+"""Tests for singular value computation (in compute_layer_sv.py)"""
 import os
 import pprint
 import unittest
