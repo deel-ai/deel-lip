@@ -96,7 +96,7 @@ def test_invertible_upsample():
     y_np = uft.to_NCHW(y_np)
     assert y_np.shape == (10, 1, 128, 128)
     check_downsample(y_np, x_np, 4)
-    
+
     dw_layer = uft.get_instance_framework(InvertibleUpSampling, {"kernel_size": 2})
     y = dw_layer(x)
     y_np = uft.to_numpy(y)

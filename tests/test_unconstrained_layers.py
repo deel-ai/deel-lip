@@ -71,7 +71,7 @@ def compare(x, x_ref, index_x=[], index_x_ref=[]):
 def test_padding(padding_tested, input_shape, batch_size, kernel_size, filters):
     """Test different padding types: assert values in original and padded tensors"""
     input_shape = uft.to_framework_channel(input_shape)
-    if not uft.is_supported_padding(padding_tested,PadConv2d):
+    if not uft.is_supported_padding(padding_tested, PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     kernel_size_list = kernel_size
     if isinstance(kernel_size, (int, float)):
@@ -176,7 +176,7 @@ def test_predict(padding_tested, input_shape, batch_size, kernel_size, filters):
     in_ch = input_shape[0]
     input_shape = uft.to_framework_channel(input_shape)
 
-    if not uft.is_supported_padding(padding_tested,PadConv2d):
+    if not uft.is_supported_padding(padding_tested, PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     layer_params = {
         "out_channels": 2,
@@ -250,7 +250,7 @@ def test_vanilla(padding_tested, input_shape, batch_size, kernel_size, filters):
     in_ch = input_shape[0]
     input_shape = uft.to_framework_channel(input_shape)
 
-    if not uft.is_supported_padding(padding_tested,PadConv2d):
+    if not uft.is_supported_padding(padding_tested, PadConv2d):
         pytest.skip(f"Padding {padding_tested} not supported")
     layer_params = {
         "out_channels": 2,

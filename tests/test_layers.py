@@ -44,7 +44,7 @@ from .utils_framework import (
     ScaledL2NormPool2d,
     InvertibleDownSampling,
     InvertibleUpSampling,
-    ScaledGlobalL2NormPool2d,
+    ScaledAdaptativeL2NormPool2d,
     Flatten,
     Sequential,
 )
@@ -149,7 +149,7 @@ def train_k_lip_model(
     input_shape: tuple,
     k_lip_model: float,
     k_lip_data: float,
-    **kwargs
+    **kwargs,
 ):
     """
     Create a generator, create a model, train it and return the results.
@@ -221,9 +221,9 @@ def train_k_lip_model(
     empirical_lip_const = evaluate_lip_const(model=model, x=x)
 =======
     uft.set_seed(42)
+    x, y = test_dl.send(None)
 
     loss, mse = uft.run_test(model, test_dl, loss_fn, metrics, steps=10)
-    x, y = test_dl.send(None)
 
     x = uft.to_tensor(x)
     empirical_lip_const = uft.evaluate_lip_const(model=model, x=x, seed=42)
@@ -247,10 +247,10 @@ def train_k_lip_model(
     np.random.seed(42)
     uft.set_seed(42)
     test_dl = linear_generator(batch_size, input_shape, kernel)  # .send(None)
+    x, y = test_dl.send(None)
     from_disk_loss, from_disk_mse = uft.run_test(
         model, test_dl, loss_fn, metrics, steps=10
     )
-    x, y = test_dl.send(None)
     x = uft.to_tensor(x)
     from_empirical_lip_const = uft.evaluate_lip_const(model=model, x=x, seed=42)
 
@@ -643,7 +643,7 @@ def test_spectralconv2d_pad(
     layer_params["padding"] = pad
     layer_params["padding_mode"] = pad_mode
     layer_params["kernel_size"] = kernel_size
-    if not uft.is_supported_padding(pad_mode,SpectralConv2d):
+    if not uft.is_supported_padding(pad_mode, SpectralConv2d):
         pytest.skip(f"SpectralConv2d: Padding {pad_mode} not supported")
     test_params = dict(
         layer_type=SpectralConv2d,
@@ -890,7 +890,7 @@ def test_scaledl2normPool2d(test_params):
 
 
 @pytest.mark.skipif(
-    hasattr(ScaledGlobalL2NormPool2d, "unavailable_class"),
+    hasattr(ScaledAdaptativeL2NormPool2d, "unavailable_class"),
     reason="compute_layer_sv not available",
 )
 @pytest.mark.parametrize(
@@ -903,7 +903,7 @@ def test_scaledl2normPool2d(test_params):
                 "layers": [
                     tInput(uft.to_framework_channel((1, 5, 5))),
                     uft.get_instance_framework(
-                        ScaledGlobalL2NormPool2d, {"data_format": "channels_last"}
+                        ScaledAdaptativeL2NormPool2d, {"data_format": "channels_last"}
                     ),
                 ]
             },
@@ -921,7 +921,7 @@ def test_scaledl2normPool2d(test_params):
                 "layers": [
                     tInput(uft.to_framework_channel((1, 5, 5))),
                     uft.get_instance_framework(
-                        ScaledGlobalL2NormPool2d, {"data_format": "channels_last"}
+                        ScaledAdaptativeL2NormPool2d, {"data_format": "channels_last"}
                     ),
                 ]
             },
@@ -939,7 +939,7 @@ def test_scaledl2normPool2d(test_params):
                 "layers": [
                     tInput(uft.to_framework_channel((1, 5, 5))),
                     uft.get_instance_framework(
-                        ScaledGlobalL2NormPool2d, {"data_format": "channels_last"}
+                        ScaledAdaptativeL2NormPool2d, {"data_format": "channels_last"}
                     ),
                 ]
             },
@@ -1329,10 +1329,10 @@ def test_SpectralConv1d_vanilla_export(
 
     # Test saving/loading model
     with tempfile.TemporaryDirectory() as tmpdir:
-        uft.MODEL_PATH = os.path.join(tmpdir, uft.MODEL_PATH)
-        uft.save_model(model, uft.MODEL_PATH, overwrite=True)
+        model_path = os.path.join(tmpdir, uft.MODEL_PATH)
+        uft.save_model(model, model_path, overwrite=True)
         uft.load_model(
-            uft.MODEL_PATH,
+            model_path,
             layer_type=layer_type,
             layer_params=layer_params,
             input_shape=input_shape,
@@ -1386,8 +1386,8 @@ def test_Conv2d_vanilla_export(pad, pad_mode, kernel_size, layer_params, layer_t
     layer_params["kernel_size"] = kernel_size
     layer_type = layer_type
     input_shape = (1, 5, 5)
-    
-    if not uft.is_supported_padding(pad_mode,layer_type):
+
+    if not uft.is_supported_padding(pad_mode, layer_type):
         pytest.skip(f"{layer_type}: Padding {pad_mode} not supported")
     model = uft.generate_k_lip_model(layer_type, layer_params, input_shape, 1.0)
 
@@ -1410,10 +1410,10 @@ def test_Conv2d_vanilla_export(pad, pad_mode, kernel_size, layer_params, layer_t
 
     # Test saving/loading model
     with tempfile.TemporaryDirectory() as tmpdir:
-        uft.MODEL_PATH = os.path.join(tmpdir, uft.MODEL_PATH)
-        uft.save_model(model, uft.MODEL_PATH, overwrite=True)
+        model_path = os.path.join(tmpdir, uft.MODEL_PATH)
+        uft.save_model(model, model_path, overwrite=True)
         uft.load_model(
-            uft.MODEL_PATH,
+            model_path,
             layer_type=layer_type,
             layer_params=layer_params,
             input_shape=input_shape,
@@ -1461,10 +1461,10 @@ def test_SpectralConvTranspose2d_vanilla_export():
 
     # Test saving/loading model
     with tempfile.TemporaryDirectory() as tmpdir:
-        uft.MODEL_PATH = os.path.join(tmpdir, uft.MODEL_PATH)
-        uft.save_model(model, uft.MODEL_PATH, overwrite=True)
+        model_path = os.path.join(tmpdir, uft.MODEL_PATH)
+        uft.save_model(model, model_path, overwrite=True)
         uft.load_model(
-            uft.MODEL_PATH,
+            model_path,
             layer_type=SpectralConvTranspose2d,
             layer_params=kwargs,
             input_shape=kwargs["input_shape"],

@@ -410,7 +410,7 @@ class InvertibleDownSampling(keraslayers.Layer):
             raise ValueError(
                 f"Expected {ndims}-dimensional pool_size, but "
                 f"got {len(ks)}-dimensional instead"
-            )        
+            )
         self.pool_size = ks
 
     def call(self, inputs):
@@ -425,15 +425,17 @@ class InvertibleDownSampling(keraslayers.Layer):
         ho = h // ph
         inputs = tf.reshape(inputs, (-1, wo, pw, h, c_in))
         inputs = tf.reshape(inputs, (-1, wo, pw, ho, ph, c_in))
-        inputs = tf.transpose(inputs, [0, 1, 3, 5, 2, 4])  # (bs, wo, pw, ho, ph, c) -> (bs, wo, ho, c, pw, ph)
+        inputs = tf.transpose(
+            inputs, [0, 1, 3, 5, 2, 4]
+        )  # (bs, wo, pw, ho, ph, c) -> (bs, wo, ho, c, pw, ph)
         inputs = tf.reshape(inputs, (-1, wo, ho, c_in * pw * ph))
 
         if self.data_format == "channels_first":
             inputs = tf.transpose(
-                inputs, [0, 3, 1, 2]  # (bs, w, h, c*pw*ph) -> (bs, c*pw*ph, w, h) -> 
+                inputs, [0, 3, 1, 2]  # (bs, w, h, c*pw*ph) -> (bs, c*pw*ph, w, h) ->
             )
         return inputs
-    
+
     def get_config(self):
         config = {
             "data_format": self.data_format,
@@ -472,7 +474,7 @@ class InvertibleUpSampling(keraslayers.Layer):
         """
         super(InvertibleUpSampling, self).__init__(name=name, dtype=dtype, **kwargs)
         self.data_format = data_format
-        
+
         ndims = 2
         ks: Tuple[int, ...]
         if isinstance(pool_size, int):
@@ -484,9 +486,8 @@ class InvertibleUpSampling(keraslayers.Layer):
             raise ValueError(
                 f"Expected {ndims}-dimensional pool_size, but "
                 f"got {len(ks)}-dimensional instead"
-            )        
+            )
         self.pool_size = ks
-
 
     def call(self, inputs):
         if self.data_format == "channels_first":

@@ -101,7 +101,8 @@ def test_serialization(nb_class, loss, loss_params, nb_classes):
 
     l1 = m.evaluate(x, y)
     name = loss.__class__.__name__
-    path = os.path.join("logs", "losses", name)
+    path = os.path.join("logs", "metrics", name)
+
     uft.save_model(m, path)
     m2 = uft.load_model(
         path,
