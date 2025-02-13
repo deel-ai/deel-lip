@@ -64,7 +64,8 @@ from deel.lip.layers import ScaledGlobalAveragePooling2D as ScaledAdaptiveAvgPoo
 from deel.lip.layers import ScaledL2NormPooling2D as ScaledL2NormPool2d
 from deel.lip.layers import ScaledGlobalL2NormPooling2D as ScaledAdaptativeL2NormPool2d
 from deel.lip.model import Sequential, Model
-from deel.lip.utils import evaluate_lip_const, process_labels_for_multi_gpu
+from deel.lip.utils import evaluate_lip_const as tevaluate_lip_const
+from deel.lip.utils import process_labels_for_multi_gpu
 from deel.lip import vanillaModel
 
 from deel.lip.losses import KR as KRLoss
@@ -633,3 +634,6 @@ def pad_input(x, padding, kernel_size):
 
 def check_parametrization(m, is_parametrized):
     assert True  # No parametrization in Tensorflow
+
+def evaluate_lip_const(model: Model, x, seed = None):
+    return tevaluate_lip_const(model, x)

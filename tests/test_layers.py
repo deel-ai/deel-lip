@@ -212,14 +212,6 @@ def train_k_lip_model(
     # the seed is set to compare all models with the same data
     test_dl = linear_generator(batch_size, input_shape, kernel)
     np.random.seed(42)
-<<<<<<< HEAD
-    set_seed(42)
-    loss, mse = model.__getattribute__(EVALUATE)(
-        linear_generator(batch_size, input_shape, kernel),
-        steps=10,
-    )
-    empirical_lip_const = evaluate_lip_const(model=model, x=x)
-=======
     uft.set_seed(42)
     x, y = test_dl.send(None)
 
@@ -227,7 +219,6 @@ def train_k_lip_model(
 
     x = uft.to_tensor(x)
     empirical_lip_const = uft.evaluate_lip_const(model=model, x=x, seed=42)
->>>>>>> 9e20bf0 (pytest compatible with torchlip)
     # save the model
     model_checkpoint_path = os.path.join(logdir, uft.MODEL_PATH)
     uft.save_model(model, model_checkpoint_path, overwrite=True)
@@ -241,9 +232,6 @@ def train_k_lip_model(
         input_shape=input_shape,
         k=k_lip_model,
     )
-<<<<<<< HEAD
-    from_empirical_lip_const = evaluate_lip_const(model=model, x=x)
-=======
     np.random.seed(42)
     uft.set_seed(42)
     test_dl = linear_generator(batch_size, input_shape, kernel)  # .send(None)
@@ -254,7 +242,6 @@ def train_k_lip_model(
     x = uft.to_tensor(x)
     from_empirical_lip_const = uft.evaluate_lip_const(model=model, x=x, seed=42)
 
->>>>>>> 9e20bf0 (pytest compatible with torchlip)
     # log metrics
     return (
         mse,
