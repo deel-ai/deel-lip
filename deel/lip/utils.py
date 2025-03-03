@@ -93,7 +93,6 @@ def evaluate_lip_const(model: keras.Model, x, eps=1e-4, seed=None):
     return keras.ops.max(spectral_norms).numpy()
 
 
-
 def _padding_circular(x, circular_paddings):
     """Add circular padding to a 4-D tensor. Only channels_last is supported."""
     if circular_paddings is None:

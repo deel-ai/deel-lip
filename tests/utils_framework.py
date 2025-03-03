@@ -2,10 +2,8 @@ import copy
 import os
 import warnings
 from functools import partial
-import pytest
 import numpy as np
 
-import keras
 import keras.utils as K
 import tensorflow as tf
 
@@ -24,9 +22,6 @@ from keras.layers import Input as tInput
 # from tensorflow.keras.optimizers import SGD, Adam
 from keras.optimizers import SGD, Adam
 
-# from tensorflow.keras.losses import CategoricalCrossentropy as CategoricalCrossentropy
-from keras.losses import CategoricalCrossentropy as CategoricalCrossentropy
-
 # from tensorflow.keras.layers import Layer as tLayer
 from keras.layers import Layer as tLayer
 
@@ -35,16 +30,6 @@ from keras.layers import Dense as tLinear
 
 # from tensorflow.keras.layers import Flatten
 from keras.layers import Flatten
-
-
-from keras.utils import set_random_seed as set_seed
-
-# from tensorflow.keras import backend as K
-# from tensorflow.keras.metrics import mse as tmse
-from keras.metrics import MeanSquaredError as tmse
-
-# from tensorflow.keras.losses import MeanSquaredError as MeanSquaredError
-from keras.losses import MeanSquaredError as MeanSquaredError
 
 # from tensorflow import int32 as type_int32
 from tensorflow import int32 as type_int32
@@ -79,9 +64,6 @@ from keras.layers import UpSampling2D as tUpSampling2d
 # from tensorflow.keras.layers import Concatenate as tConcatenate
 from keras.layers import Concatenate as tConcatenate
 
-import sys
-
-sys.path.append(".")
 from deel.lip.activations import GroupSort as GroupSort
 from deel.lip.activations import GroupSort2 as GroupSort2
 from deel.lip.activations import Householder as HouseHolder
@@ -118,7 +100,6 @@ from deel.lip.losses import MulticlassKR as KRMulticlassLoss
 from deel.lip.losses import MulticlassHinge as HingeMulticlassLoss
 from deel.lip.losses import MulticlassHKR as HKRMulticlassLoss
 
-####from deel.lip.losses import MulticlassSoftHKR as SoftHKRMulticlassLoss
 from deel.lip.losses import MultiMargin as MultiMarginLoss
 from deel.lip.losses import TauCategoricalCrossentropy as TauCategoricalCrossentropyLoss
 from deel.lip.losses import (
@@ -176,7 +157,7 @@ __all__ = [
     "CondenseCallback",
     "MonitorCallback",
     "Sequential",
-    "ScaledGlobalL2NormPool2d",
+    "ScaledAdaptativeL2NormPool2d",
     "evaluate_lip_const",
     "DEFAULT_NITER_SPECTRAL_INIT",
     "Loss",
@@ -209,9 +190,7 @@ __all__ = [
 ]
 
 FIT = "fit"
-# if tf.__version__.startswith("2.0") else "fit"
 EVALUATE = "evaluate"
-# if tf.__version__.startswith("2.0") else "evaluate"
 
 MODEL_PATH = "model"
 EXTENSION = ".keras"
