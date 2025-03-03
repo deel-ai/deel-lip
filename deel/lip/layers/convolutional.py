@@ -441,6 +441,10 @@ class SpectralConv2DTranspose(Conv2DTranspose, LipschitzLayer, Condensable):
             raise ValueError("SpectralConv2DTranspose does not support dilation rate")
         if self.padding != "same":
             raise ValueError("SpectralConv2DTranspose only supports padding='same'")
+        if self.output_padding is not None:
+            raise ValueError(
+                "SpectralConv2DTranspose only supports output_padding=None"
+            )
         self.set_klip_factor(k_coef_lip)
         self.u = None
         self.sig = None
