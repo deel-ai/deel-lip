@@ -25,7 +25,10 @@ from keras.layers import Dense as tLinear
 
 from keras.layers import Flatten
 
+from keras.utils import set_random_seed as set_seed
+
 from keras.metrics import MeanSquaredError as tmse
+from keras.losses import MeanSquaredError as MeanSquaredError
 
 from tensorflow import int32 as type_int32
 
@@ -149,6 +152,7 @@ __all__ = [
     "process_labels_for_multi_gpu",
     "vanillaModel",
     "CategoricalCrossentropy",
+    "MeanSquaredError",
     "HingeMarginLoss",
     "KRMulticlassLoss",
     "HingeMulticlassLoss",
@@ -173,6 +177,7 @@ __all__ = [
     "OrthLinearRegularizer",
     "DEFAULT_EPS_SPECTRAL",
     "DEFAULT_EPS_BJORCK",
+    "set_seed",
 ]
 
 FIT = "fit"
