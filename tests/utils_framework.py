@@ -17,6 +17,8 @@ from keras.layers import Input as tInput
 
 from keras.optimizers import SGD, Adam
 
+from keras.losses import CategoricalCrossentropy as CategoricalCrossentropy
+
 from keras.layers import Layer as tLayer
 
 from keras.layers import Dense as tLinear
@@ -146,6 +148,7 @@ __all__ = [
     "Loss",
     "process_labels_for_multi_gpu",
     "vanillaModel",
+    "CategoricalCrossentropy",
     "HingeMarginLoss",
     "KRMulticlassLoss",
     "HingeMulticlassLoss",
