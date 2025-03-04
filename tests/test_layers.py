@@ -1422,6 +1422,9 @@ def test_SpectralConvTranspose2d_vanilla_export():
         data_format="channels_first",
         input_shape=(3, 28, 28),
     )
+    kwargs["input_shape"] = uft.to_framework_channel(kwargs["input_shape"])
+    if kwargs["input_shape"][-1] == kwargs["in_channels"]:
+        kwargs["data_format"] = "channels_last"
 
     model = uft.generate_k_lip_model(
         SpectralConvTranspose2d, kwargs, kwargs["input_shape"], 1.0

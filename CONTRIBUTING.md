@@ -32,7 +32,7 @@ $ make test
 
 This command will:
 - check your code with black PEP-8 formatter and flake8 linter.
-- run `unittest` on the `tests/` folder with different Python and TensorFlow versions.
+- run `pytest` on the `tests/` folder with different Python and TensorFlow versions.
 
 
 ## Submitting your changes
