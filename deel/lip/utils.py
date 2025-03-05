@@ -61,35 +61,36 @@ def evaluate_lip_const_gen(
 
 def evaluate_lip_const(model: keras.Model, x, eps=1e-4, seed=None):
     """
-    Evaluate the Lipschitz constant of a model, with the naive method.
-    Please note that the estimation of the lipschitz constant is done locally around
-    input sample. This may not correctly estimate the behaviour in the whole domain.
+    Evaluate the Lipschitz constant of a model using the Jacobian of the model.
+    The estimation is done locally around input samples.
 
     Args:
-        model: built keras model used to make predictions
-        x: inputs used to compute the lipschitz constant
-        eps (float): magnitude of noise to add to input in order to compute the constant
-        seed (int): seed used when generating the noise ( can be set to None )
+        model (Model): A built Keras model used to make predictions.
+        x (np.ndarray): Input samples used to compute the Lipschitz constant.
 
     Returns:
-        float: the empirically evaluated lipschitz constant. The computation might also
-            be inaccurate in high dimensional space.
-
+        float: The empirically evaluated Lipschitz constant.
     """
-    y_pred = model.predict(x)
-    # x = np.repeat(x, 100, 0)
-    # y_pred = np.repeat(y_pred, 100, 0)
-    x_var = x + keras.random.uniform(
-        shape=x.shape, minval=eps * 0.25, maxval=eps, seed=seed
-    )
-    y_pred_var = model.predict(x_var)
-    dx = x - x_var
-    dfx = y_pred - y_pred_var
-    ndx = K.sqrt(K.sum(K.square(dx), axis=range(1, len(x.shape))))
-    ndfx = K.sqrt(K.sum(K.square(dfx), axis=range(1, len(y_pred.shape))))
-    lip_cst = K.max(ndfx / ndx)
-    print(f"lip cst: {lip_cst:.3f}")
-    return lip_cst
+    batch_size = x.shape[0]
+    x = keras.ops.convert_to_tensor(x, dtype=model.inputs[0].dtype)
+
+    if keras.config.backend() == "tensorflow":
+        import tensorflow as tf
+
+        with tf.GradientTape() as tape:
+            tape.watch(x)
+            y_pred = model(x, training=False)
+        batch_jacobian = tape.batch_jacobian(y_pred, x)
+    else:
+        assert False, "Only tensorflow backend is supported for now."
+    # Flatten input/output dimensions for spectral norm computation
+    xdim = keras.ops.prod(keras.ops.shape(x)[1:])
+    ydim = keras.ops.prod(keras.ops.shape(y_pred)[1:])
+    batch_jacobian = keras.ops.reshape(batch_jacobian, (batch_size, ydim, xdim))
+
+    # Compute spectral norm of the Jacobians and return the maximum
+    spectral_norms = keras.ops.linalg.norm(batch_jacobian, ord=2, axis=[-2, -1])
+    return keras.ops.max(spectral_norms).numpy()
 
 
 def _padding_circular(x, circular_paddings):

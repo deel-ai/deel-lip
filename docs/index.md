@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="./assets/logo_white.svg#only-dark" width="75%" alt="DEEL-LIP" align="center" />
-    <img src="./assets/logo.svg#only-light" width="75%" alt="DEEL-LIP" align="center" />
+    <img src="./assets/banner_dark_deellip.png#only-dark" width="75%" alt="DEEL-LIP" align="center" />
+    <img src="./assets/banner_light_deellip.png#only-light" width="75%" alt="DEEL-LIP" align="center" />
 </div>
 <br>
 
@@ -9,10 +9,10 @@
         <img src="https://img.shields.io/pypi/pyversions/deel-lip.svg">
     </a>
     <a href="https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml">
-        <img alt="PyLint" src="https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=master">
+        <img alt="PyLint" src="https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=keras3">
     </a>
     <a href="https://github.com/deel-ai/deel-lip/actions/workflows/python-tests.yml">
-        <img alt="Tox" src="https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=master">
+        <img alt="Tox" src="https://github.com/deel-ai/deel-lip/actions/workflows/python-linters.yml/badge.svg?branch=keras3">
     </a>
     <a href="https://pypi.org/project/deel-lip">
         <img alt="Pypi" src="https://img.shields.io/pypi/v/deel-lip.svg">
@@ -54,7 +54,7 @@ layers for keras**.
 You can install ``deel-lip`` directly from pypi:
 
 ```python
-pip install deel-lip
+pip install git+https://github.com/deel-ai/deel-lip.git@keras3
 ```
 
 In order to use ``deel-lip``, you also need a [valid tensorflow
@@ -65,12 +65,12 @@ supports tensorflow versions 2.x.
 
 | **Tutorial Name**           | Notebook                                                                                                                                                           |
 | :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Getting started 1 - Creating a 1-Lipschitz neural network  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/Getting_started_1.ipynb)            |
-| Getting started 2 - Training an adversarially robust 1-Lipschitz neural network         | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/Getting_started_2.ipynb)            |
-| Wasserstein distance estimation on toy example | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/demo1.ipynb) |
-| HKR Classifier on toy dataset | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/demo2.ipynb) |
-| HKR classifier on MNIST dataset | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/demo3.ipynb) |
-| HKR multiclass and fooling | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/master/docs/notebooks/demo4.ipynb) |
+| Getting started 1 - Creating a 1-Lipschitz neural network  | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/Getting_started_1.ipynb)            |
+| Getting started 2 - Training an adversarially robust 1-Lipschitz neural network         | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/Getting_started_2.ipynb)            |
+| Wasserstein distance estimation on toy example | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/demo1.ipynb) |
+| HKR Classifier on toy dataset | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/demo2.ipynb) |
+| HKR classifier on MNIST dataset | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/demo3.ipynb) |
+| HKR multiclass and fooling | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/deel-ai/deel-lip/blob/keras3/docs/notebooks/demo4.ipynb) |
 
 
 ## 📦 What's Included
@@ -112,7 +112,8 @@ More from the DEEL project:
 
 - [Xplique](https://github.com/deel-ai/xplique) a Python library exclusively dedicated to explaining neural networks.
 - [Influenciae](https://github.com/deel-ai/influenciae) Python toolkit dedicated to computing influence values for the discovery of potentially problematic samples in a dataset.
-- [deel-torchlip](https://github.com/deel-ai/deel-torchlip) a Python library for training k-Lipschitz neural networks on PyTorch.
+- [deel-TorchLip](https://github.com/deel-ai/deel-torchlip) a Python library for training k-Lipschitz neural networks on PyTorch.
+- [Oodeel](https://github.com/deel-ai/oodeel) a Python library for post-hoc deep OOD (Out-of-Distribution) detection on already trained neural network image classifiers
 - [DEEL White paper](https://arxiv.org/abs/2103.10529) a summary of the DEEL team on the challenges of certifiable AI and the role of data quality, representativity and explainability for this purpose.
 
 ## 🙏 Acknowledgments
