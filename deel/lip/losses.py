@@ -418,9 +418,9 @@ class MulticlassSoftHKR(Loss):
         Args:
             alpha (float): regularization factor
             min_margin (float): margin to enforce.
+            alpha_mean (float): geometric mean factor
             temperature (float): factor for softmax  temperature
                 (higher value increases the weight of the highest non y_true logits)
-            alpha_mean (float): geometric mean factor
             reduction: passed to tf.keras.Loss constructor
             name (str): passed to tf.keras.Loss constructor
 
