@@ -1,8 +1,8 @@
 <div align="center">
         <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/logo_white.svg">
-                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/logo.svg">
-                <img alt="Library Banner" src="./docs/assets/logo.svg">
+                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/banner_light_deellip.png">
+                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/banner_dark_deellip.png">
+                <img alt="Library Banner" src="./docs/assets/banner_dark_deellip.png">
         </picture>
 </div>
 <br>

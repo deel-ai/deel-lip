@@ -1,6 +1,6 @@
 <div align="center">
-    <img src="./assets/logo_white.svg#only-dark" width="75%" alt="DEEL-LIP" align="center" />
-    <img src="./assets/logo.svg#only-light" width="75%" alt="DEEL-LIP" align="center" />
+    <img src="./assets/banner_light_deellip.png#only-dark" width="75%" alt="DEEL-LIP" align="center" />
+    <img src="./assets/banner_dark_deellip.png#only-light" width="75%" alt="DEEL-LIP" align="center" />
 </div>
 <br>
 
