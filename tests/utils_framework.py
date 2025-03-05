@@ -637,5 +637,6 @@ def pad_input(x, padding, kernel_size):
 def check_parametrization(m, is_parametrized):
     assert True  # No parametrization in Tensorflow
 
-def evaluate_lip_const(model: Model, x, seed = None):
+
+def evaluate_lip_const(model: Model, x, seed=None):
     return tevaluate_lip_const(model, x)
