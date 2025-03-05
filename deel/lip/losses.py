@@ -525,7 +525,8 @@ class MulticlassSoftHKR(Loss):
             "alpha": self.alpha.numpy(),
             "min_margin": self.min_margin_v,
             "alpha_mean": self.alpha_mean,
-            "temperature": self.temperature,
+            "temperature": self.temperature
+            / self.min_margin_v,  # consistency with the __init__
         }
         base_config = super(MulticlassSoftHKR, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
