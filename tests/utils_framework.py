@@ -17,7 +17,7 @@ from keras.layers import Input as tInput
 
 from keras.optimizers import SGD, Adam
 
-from keras.losses import CategoricalCrossentropy as CategoricalCrossentropy
+from keras.losses import CategoricalCrossentropy
 
 from keras.layers import Layer as tLayer
 
@@ -28,7 +28,7 @@ from keras.layers import Flatten
 from keras.utils import set_random_seed as set_seed
 
 from keras.metrics import MeanSquaredError as tmse
-from keras.losses import MeanSquaredError as MeanSquaredError
+from keras.losses import MeanSquaredError
 
 from tensorflow import int32 as type_int32
 
