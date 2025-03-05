@@ -1,8 +1,8 @@
 <div align="center">
         <picture>
-                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/banner_light_deellip.png">
-                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/banner_dark_deellip.png">
-                <img alt="Library Banner" src="./docs/assets/banner_dark_deellip.png">
+                <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/banner_dark_deellip.png">
+                <source media="(prefers-color-scheme: light)" srcset="./docs/assets/banner_light_deellip.png">
+                <img alt="DEEL-LIP Banner" src="./docs/assets/banner_light_deellip.png">
         </picture>
 </div>
 <br>
@@ -44,9 +44,7 @@ layers for keras**.
 > **Incompatibility with TensorFlow >= 2.16 and Keras 3**
 >
 > Due to significant changes introduced in TensorFlow version 2.16 and Keras 3, this
-> package is currently incompatible with TensorFlow versions 2.16 and above. Users are
-> advised to use TensorFlow versions lower than 2.16 to ensure compatibility and proper
-> functionality of this package.
+> 'master' branch is currently incompatible with TensorFlow versions 2.16 and above. 
 >
 > We're excited to announce that a nightly version of deel-lip with support for Keras 3
 > is now available for testing! If you'd like to experiment with the latest updates
@@ -136,8 +134,8 @@ More from the DEEL project:
 
 - [Xplique](https://github.com/deel-ai/xplique) a Python library exclusively dedicated to explaining neural networks.
 - [Influenciae](https://github.com/deel-ai/influenciae) Python toolkit dedicated to computing influence values for the discovery of potentially problematic samples in a dataset.
-- [deel-torchlip](https://github.com/deel-ai/deel-torchlip) a Python library for training k-Lipschitz neural networks on PyTorch.
-- [oodeel](https://github.com/deel-ai/oodeel) a Python library for post-hoc deep OOD (Out-of-Distribution) detection on already trained neural network image classifiers
+- [deel-TorchLip](https://github.com/deel-ai/deel-torchlip) a Python library for training k-Lipschitz neural networks on PyTorch.
+- [Oodeel](https://github.com/deel-ai/oodeel) a Python library for post-hoc deep OOD (Out-of-Distribution) detection on already trained neural network image classifiers
 - [DEEL White paper](https://arxiv.org/abs/2103.10529) a summary of the DEEL team on the challenges of certifiable AI and the role of data quality, representativity and explainability for this purpose.
 
 ## 🙏 Acknowledgments
