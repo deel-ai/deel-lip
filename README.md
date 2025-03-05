@@ -38,19 +38,15 @@ has many applications ranging from adversarial robustness to Wasserstein
 distance estimation.
 
 This library provides an efficient implementation of **k-Lispchitz
-layers for keras**.
+layers for Keras 3**.
 
 > [!CAUTION]
-> **Incompatibility with TensorFlow >= 2.16 and Keras 3**
+> **This branch is a major update designed for compatibility with TensorFlow ≥ 2.16 and Keras 3**
 >
-> Due to significant changes introduced in TensorFlow version 2.16 and Keras 3, this
-> package is currently incompatible with TensorFlow versions 2.16 and above. Users are
-> advised to use TensorFlow versions lower than 2.16 to ensure compatibility and proper
+> Due to significant changes introduced in TensorFlow 2.16 and Keras 3, backward compatibility 
+> with older TensorFlow versions can no longer be maintained. Users requiring an older version 
+> of TensorFlow are encouraged to clone the master branch to ensure compatibility and proper
 > functionality of this package.
->
-> We are actively working on updating the package to support Keras 3. Please stay tuned
-> for updates. For now, make sure to install an earlier version of TensorFlow by
-> specifying it in your environment.
 
 ## 📚 Table of contents
 
@@ -69,7 +65,7 @@ layers for keras**.
 You can install ``deel-lip`` directly from pypi:
 
 ```python
-pip install deel-lip
+pip install git+https://github.com/deel-ai/deel-lip.git@keras3
 ```
 
 In order to use ``deel-lip``, you also need a [valid tensorflow

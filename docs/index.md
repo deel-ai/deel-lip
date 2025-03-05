@@ -54,7 +54,7 @@ layers for keras**.
 You can install ``deel-lip`` directly from pypi:
 
 ```python
-pip install deel-lip
+pip install git+https://github.com/deel-ai/deel-lip.git@keras3
 ```
 
 In order to use ``deel-lip``, you also need a [valid tensorflow
