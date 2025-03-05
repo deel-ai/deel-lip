@@ -11,7 +11,7 @@ from tensorflow.keras.models import Sequential as tSequential
 from tensorflow.keras.models import load_model as tload_model
 from tensorflow.keras.layers import Input as tInput
 from tensorflow.keras.optimizers import SGD, Adam
-from tensorflow.keras.losses import CategoricalCrossentropy as CategoricalCrossentropy
+from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.layers import Layer as tLayer
 from tensorflow.keras.layers import Dense as tLinear
 from tensorflow.keras.layers import Flatten
@@ -24,7 +24,7 @@ else:
 
 from tensorflow.keras import backend as K
 from tensorflow.keras.metrics import mse as tmse
-from tensorflow.keras.losses import MeanSquaredError as MeanSquaredError
+from tensorflow.keras.losses import MeanSquaredError
 from tensorflow import int32 as type_int32
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.layers import Add as tAdd
@@ -162,6 +162,8 @@ __all__ = [
     "OrthLinearRegularizer",
     "DEFAULT_EPS_SPECTRAL",
     "DEFAULT_EPS_BJORCK",
+    "MeanSquaredError",
+    "CategoricalCrossentropy",
 ]
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
