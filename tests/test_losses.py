@@ -12,6 +12,7 @@ from deel.lip.losses import (
     MulticlassKR,
     MulticlassHinge,
     MulticlassHKR,
+    MulticlassSoftHKR,
     MultiMargin,
     TauCategoricalCrossentropy,
     TauSparseCategoricalCrossentropy,
@@ -174,6 +175,56 @@ class Test(TestCase):
         )
         check_serialization(1, multiclass_hkr)
 
+    def test_softhkrmulticlass_loss(self):
+        multiclass_softhkr = MulticlassSoftHKR(5.0, 0.2)
+        y_true = tf.one_hot([0, 0, 0, 1, 1, 2], 3)
+        y_pred = tf.convert_to_tensor(
+            np.float32(
+                [
+                    [2, 0.2, -0.5],
+                    [-1, -1.2, 0.3],
+                    [0.8, 2, 0],
+                    [0, 1, -0.5],
+                    [2.4, -0.4, -1.1],
+                    [-0.1, -1.7, 0.6],
+                ]
+            ),
+            dtype=tf.float32,
+        )
+
+        loss_val = multiclass_softhkr(y_true, y_pred).numpy()
+        np.testing.assert_allclose(loss_val, np.float32(1.0897621))
+        # moving mean should change and thus loss value
+        loss_val_bis = multiclass_softhkr(y_true, y_pred).numpy()
+        np.testing.assert_allclose(loss_val_bis, np.float32(1.0834466))
+
+        n_class = 10
+        n_items = 10000
+        y_true = tf.one_hot(np.random.randint(0, 10, n_items), n_class)
+        y_pred = tf.random.normal((n_items, n_class))
+        # recreate loss to reset means
+        multiclass_softhkr = MulticlassSoftHKR(5.0, 0.2)
+        loss_val = multiclass_softhkr(y_true, y_pred).numpy()
+        multiclass_softhkr2 = MulticlassSoftHKR(5.0, 0.2)
+        loss_val_2 = multiclass_softhkr2(
+            tf.cast(y_true, dtype=tf.int32), y_pred
+        ).numpy()
+        self.assertEqual(
+            loss_val_2,
+            loss_val,
+            "test failed when y_true has dtype int32",
+        )
+        # test with y_true as +/-1
+        multiclass_softhkr3 = MulticlassSoftHKR(5.0, 0.2)
+        loss_val_3 = multiclass_softhkr3(2 * y_true - 1, y_pred).numpy()
+        self.assertEqual(
+            loss_val_3,
+            loss_val,
+            "test failed when y_true has dtype +/-1",
+        )
+
+        check_serialization(1, multiclass_softhkr)
+
     def test_multi_margin_loss(self):
         multimargin_loss = MultiMargin(1.0)
         n_class = 10
@@ -293,7 +344,7 @@ class Test(TestCase):
         """
         Assert multi-class losses without reduction. Four losses are tested on hardcoded
         y_true/y_pred of shape [8 elements, 3 classes]: MulticlassKR, MulticlassHinge,
-        MultiMargin and MulticlassHKR.
+        MultiMargin, MulticlassHKR. and MulticlassSoftHKR
         """
         y_true = tf.one_hot([0, 0, 0, 1, 1, 1, 2, 2], 3)
         y_pred = np.array(
@@ -317,6 +368,7 @@ class Test(TestCase):
             CategoricalHinge(1.1, reduction="none"),
             TauCategoricalCrossentropy(2.0, reduction="none"),
             TauSparseCategoricalCrossentropy(2.0, reduction="none"),
+            MulticlassSoftHKR(alpha=5.0, min_margin=0.2, reduction="none"),
         )
 
         expected_loss_values = (
@@ -347,6 +399,18 @@ class Test(TestCase):
                     2.802300,
                     0.114224,
                     0.076357,
+                ]
+            ),
+            np.float64(
+                [
+                    -0.10878129,
+                    0.12582462,
+                    2.2788424,
+                    -0.17646402,
+                    -0.38242298,
+                    3.4523692,
+                    -0.19672059,
+                    1.1028761,
                 ]
             ),
         )
