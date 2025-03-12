@@ -481,7 +481,7 @@ def to_tensor(nparray, dtype=tf.float32):
 
 
 def to_numpy(tens):
-    if isinstance(tens, tf.Tensor):
+    if isinstance(tens, tf.Tensor) or isinstance(tens, tf.Variable):
         return tens.numpy()
     else:
         return tens
