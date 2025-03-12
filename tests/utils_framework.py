@@ -2,7 +2,6 @@ import copy
 import os
 import warnings
 from functools import partial
-import pytest
 import numpy as np
 
 import tensorflow as tf
@@ -132,7 +131,6 @@ __all__ = [
     "CondenseCallback",
     "MonitorCallback",
     "Sequential",
-    "ScaledGlobalL2NormPool2d",
     "evaluate_lip_const",
     "DEFAULT_NITER_SPECTRAL_INIT",
     "Loss",
@@ -164,6 +162,7 @@ __all__ = [
     "DEFAULT_EPS_BJORCK",
     "MeanSquaredError",
     "CategoricalCrossentropy",
+    "set_seed",
 ]
 
 FIT = "fit_generator" if tf.__version__.startswith("2.0") else "fit"
