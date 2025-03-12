@@ -204,8 +204,12 @@ def get_instance_generic(instance_type, inst_params):
 
 
 def get_optim_generic(instance_type, inst_params):
-    layp = copy.deepcopy(inst_params)
-    layp.pop("model", None)
+    layp = {}
+    for kk in inst_params.keys():
+        if kk == "model":
+            pass
+        else:
+            layp[kk] = copy.deepcopy(inst_params[kk])
     if "lr" in layp:
         layp["learning_rate"] = layp.pop("lr")
     return instance_type(**layp)
