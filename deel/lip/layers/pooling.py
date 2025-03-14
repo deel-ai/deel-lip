@@ -22,6 +22,7 @@ be done by setting the param `eps_bjorck=None`.
 """
 
 import numpy as np
+from typing import Tuple
 import tensorflow as tf
 import tensorflow.keras.layers as keraslayers
 from tensorflow.keras.utils import register_keras_serializable
@@ -389,39 +390,51 @@ class InvertibleDownSampling(keraslayers.Layer):
             The image shape must be divisible by the pool shape.
 
         Args:
-            pool_size: tuple describing the pool shape
+            pool_size: int or tuple describing the pool shape (p_h, p_w)
             data_format: can either be `channels_last` or `channels_first`
             name: name of the layer
             dtype: dtype of the layer
             **kwargs: params passed to the Layers constructor
         """
         super(InvertibleDownSampling, self).__init__(name=name, dtype=dtype, **kwargs)
-        self.pool_size = pool_size
         self.data_format = data_format
 
-    def call(self, inputs):
-        if self.data_format == "channels_last":
-            return tf.concat(
-                [
-                    inputs[
-                        :, i :: self.pool_size[0], j :: self.pool_size[1], :
-                    ]  # for now we handle only channels last
-                    for i in range(self.pool_size[0])
-                    for j in range(self.pool_size[1])
-                ],
-                axis=-1,
-            )
+        ndims = 2
+        ks: Tuple[int, ...]
+        if isinstance(pool_size, int):
+            ks = (pool_size,) * ndims
         else:
-            return tf.concat(
-                [
-                    inputs[
-                        :, :, i :: self.pool_size[0], j :: self.pool_size[1]
-                    ]  # for now we handle only channels last
-                    for i in range(self.pool_size[0])
-                    for j in range(self.pool_size[1])
-                ],
-                axis=1,
+            ks = tuple(pool_size)
+
+        if len(ks) != ndims:
+            raise ValueError(
+                f"Expected {ndims}-dimensional pool_size, but "
+                f"got {len(ks)}-dimensional instead"
             )
+        self.pool_size = ks
+
+    def call(self, inputs):
+        if self.data_format == "channels_first":
+            # convert to channels_first
+            inputs = tf.transpose(inputs, [0, 2, 3, 1])
+        # from shape (bs, w*pw, h*ph, c) to (bs, w, h, c, pw, ph)
+        input_shape = tf.shape(inputs)
+        w, h, c_in = input_shape[1], input_shape[2], input_shape[3]
+        pw, ph = self.pool_size
+        wo = w // pw
+        ho = h // ph
+        inputs = tf.reshape(inputs, (-1, wo, pw, h, c_in))
+        inputs = tf.reshape(inputs, (-1, wo, pw, ho, ph, c_in))
+        inputs = tf.transpose(
+            inputs, [0, 1, 3, 5, 2, 4]
+        )  # (bs, wo, pw, ho, ph, c) -> (bs, wo, ho, c, pw, ph)
+        inputs = tf.reshape(inputs, (-1, wo, ho, c_in * pw * ph))
+
+        if self.data_format == "channels_first":
+            inputs = tf.transpose(
+                inputs, [0, 3, 1, 2]  # (bs, w, h, c*pw*ph) -> (bs, c*pw*ph, w, h) ->
+            )
+        return inputs
 
     def get_config(self):
         config = {
@@ -453,15 +466,28 @@ class InvertibleUpSampling(keraslayers.Layer):
 
 
         Args:
-            pool_size: tuple describing the pool shape (p_h, p_w)
+            pool_size: integer or tuple describing the pool shape (p_h, p_w)
             data_format: can either be `channels_last` or `channels_first`
             name: name of the layer
             dtype: dtype of the layer
             **kwargs: params passed to the Layers constructor
         """
         super(InvertibleUpSampling, self).__init__(name=name, dtype=dtype, **kwargs)
-        self.pool_size = pool_size
         self.data_format = data_format
+
+        ndims = 2
+        ks: Tuple[int, ...]
+        if isinstance(pool_size, int):
+            ks = (pool_size,) * ndims
+        else:
+            ks = tuple(pool_size)
+
+        if len(ks) != ndims:
+            raise ValueError(
+                f"Expected {ndims}-dimensional pool_size, but "
+                f"got {len(ks)}-dimensional instead"
+            )
+        self.pool_size = ks
 
     def call(self, inputs):
         if self.data_format == "channels_first":
@@ -472,12 +498,12 @@ class InvertibleUpSampling(keraslayers.Layer):
         w, h, c_in = input_shape[1], input_shape[2], input_shape[3]
         pw, ph = self.pool_size
         c = c_in // (pw * ph)
-        inputs = tf.reshape(inputs, (-1, w, h, pw, ph, c))
+        inputs = tf.reshape(inputs, (-1, w, h, c, pw, ph))
         inputs = tf.transpose(
             tf.reshape(
                 tf.transpose(
-                    inputs, [0, 5, 2, 4, 1, 3]
-                ),  # (bs, w, h, pw, ph, c) -> (bs, c, w, pw, h, ph)
+                    inputs, [0, 3, 2, 5, 1, 4]
+                ),  # (bs, w, h, c, pw, ph) -> (bs, c, w, pw, h, ph)
                 (-1, c, w, pw, h * ph),
             ),  # (bs, c, w, pw, h, ph) -> (bs, c, w, pw, h*ph) merge last axes
             [
